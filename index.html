@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="ポーカーのドロー確率を2択で鍛える、10問の暗算ドリル。"
+    />
+    <title>暗算ポーカー｜勝率と確率のドリル</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="src/question-bank.js"></script>
+    <script src="src/game.js"></script>
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="site-header">
+        <p class="eyebrow">勝率と確率のドリル</p>
+        <h1>暗算ポーカー</h1>
+        <p class="intro">本物の確率を、2択で。全10問、時間制限はありません。</p>
+      </header>
+
+      <p id="app-error" class="error" role="alert" hidden></p>
+
+      <section id="game" class="panel" aria-labelledby="prompt">
+        <div class="question-meta">
+          <span id="stage" class="stage"></span>
+          <span id="progress" class="progress" aria-label="問題の進み具合"></span>
+        </div>
+
+        <h2 id="prompt" class="prompt"></h2>
+
+        <dl class="cards">
+          <div>
+            <dt>あなたの手札</dt>
+            <dd id="hole-cards"></dd>
+          </div>
+          <div>
+            <dt>ボード</dt>
+            <dd id="board-cards"></dd>
+          </div>
+        </dl>
+
+        <div id="choices" class="choices" aria-label="回答"></div>
+
+        <section id="feedback" class="feedback" aria-live="polite" hidden>
+          <div class="feedback-heading">
+            <h3 id="feedback-title"></h3>
+            <span id="answer-time" class="answer-time"></span>
+          </div>
+          <p id="exact-probability" class="exact-probability"></p>
+          <p id="explanation" class="explanation"></p>
+        </section>
+
+        <button id="next-question" class="next" type="button" hidden></button>
+      </section>
+
+      <section id="result" class="panel result" aria-labelledby="result-title" hidden>
+        <p class="eyebrow">10問完走</p>
+        <h2 id="result-title">今回の結果</h2>
+        <p id="score" class="score"></p>
+        <p id="average-time" class="average-time"></p>
+        <p class="result-note">
+          正確さが安定したら、同じ正答率のまま平均秒数を縮めてみましょう。
+        </p>
+        <button id="retry" class="next" type="button">もう10問</button>
+      </section>
+
+      <footer>
+        <p>全問、残りカードの全組合せから計算しています。</p>
+      </footer>
+    </main>
+  </body>
+</html>

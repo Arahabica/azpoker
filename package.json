@@ -1,0 +1,12 @@
+{
+  "name": "anzan-poker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "暗算ポーカー｜勝率と確率のドリル",
+  "scripts": {
+    "build": "node scripts/build-site.js",
+    "test": "node --test",
+    "check:bank": "python3 scripts/generate_question_bank.py --check",
+    "serve": "python3 -m http.server 8000"
+  }
+}
