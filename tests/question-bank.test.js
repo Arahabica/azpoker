@@ -101,6 +101,30 @@ test("正解は最寄りの5%刻みで、誤答より実際の値に近い", () 
   }
 });
 
+test("特定ランク問題は手札をペアにできるランクだけを問う", () => {
+  for (const question of bank.filter(
+    (candidate) => candidate.category === "rank_hit",
+  )) {
+    assert.equal(
+      question.hole.filter((card) => card[0] === question.targetRank).length,
+      1,
+      `${question.id}: 対象ランクの手札枚数`,
+    );
+    assert.equal(
+      question.board.some((card) => card[0] === question.targetRank),
+      false,
+      `${question.id}: 対象ランクがすでにボードにある`,
+    );
+    assert.equal(
+      question.prompt.startsWith(
+        `${question.targetRank === "T" ? "10" : question.targetRank}が`,
+      ),
+      true,
+      `${question.id}: 対象ランクの表示`,
+    );
+  }
+});
+
 test("問題文と解説は短く、内部の計算作業を見せない", () => {
   const bannedCopy = [
     "リバーまでに",
@@ -113,6 +137,8 @@ test("問題文と解説は短く、内部の計算作業を見せない", () =>
   for (const question of bank) {
     assert.ok(question.prompt.endsWith("確率は？"), `${question.id}: 問題文`);
     assert.equal(question.prompt.includes("完成"), false, `${question.id}: 完成`);
+    assert.equal(question.prompt.includes("Tが"), false, `${question.id}: 10表記`);
+    assert.equal(question.prompt.includes("Tの"), false, `${question.id}: 10表記`);
     for (const phrase of bannedCopy) {
       assert.equal(
         `${question.prompt}${question.explain}`.includes(phrase),

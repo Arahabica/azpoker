@@ -173,7 +173,7 @@
     "answer": "20%",
     "distractor": "35%",
     "category": "rank_trips",
-    "prompt": "Tの3カードの確率は？",
+    "prompt": "10の3カードの確率は？",
     "explain": "ポケットペアが3カード以上になるのは約5回に1回です。"
   },
   {
@@ -916,22 +916,22 @@
     "mode": "A",
     "stage": "flop",
     "hole": [
-      "2c",
-      "7s"
+      "Ah",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
-      "4d",
-      "9c"
+      "4d"
     ],
     "target": "rank_on_board",
     "targetRank": "A",
-    "trueP": 16.47,
-    "answer": "15%",
-    "distractor": "30%",
+    "trueP": 12.49,
+    "answer": "10%",
+    "distractor": "25%",
     "category": "rank_hit",
     "prompt": "Aが出る確率は？",
-    "explain": "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+    "explain": "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
   },
   {
     "id": "flop-rank-trips-01",
@@ -960,22 +960,22 @@
     "mode": "A",
     "stage": "flop",
     "hole": [
-      "2c",
-      "7s"
+      "Kh",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
-      "4d",
-      "9c"
+      "4d"
     ],
     "target": "rank_on_board",
     "targetRank": "K",
-    "trueP": 16.47,
-    "answer": "15%",
-    "distractor": "30%",
+    "trueP": 12.49,
+    "answer": "10%",
+    "distractor": "25%",
     "category": "rank_hit",
     "prompt": "Kが出る確率は？",
-    "explain": "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+    "explain": "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
   },
   {
     "id": "flop-rank-trips-02",
@@ -1004,22 +1004,22 @@
     "mode": "A",
     "stage": "flop",
     "hole": [
-      "2c",
-      "7s"
+      "Qh",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
-      "4d",
-      "9c"
+      "4d"
     ],
     "target": "rank_on_board",
     "targetRank": "Q",
-    "trueP": 16.47,
-    "answer": "15%",
-    "distractor": "30%",
+    "trueP": 12.49,
+    "answer": "10%",
+    "distractor": "25%",
     "category": "rank_hit",
     "prompt": "Qが出る確率は？",
-    "explain": "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+    "explain": "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
   },
   {
     "id": "flop-rank-trips-03",
@@ -1048,22 +1048,22 @@
     "mode": "A",
     "stage": "flop",
     "hole": [
-      "2c",
-      "7s"
+      "Jh",
+      "2c"
     ],
     "board": [
+      "7s",
       "4d",
-      "9c",
-      "3h"
+      "9c"
     ],
     "target": "rank_on_board",
     "targetRank": "J",
-    "trueP": 16.47,
-    "answer": "15%",
-    "distractor": "30%",
+    "trueP": 12.49,
+    "answer": "10%",
+    "distractor": "25%",
     "category": "rank_hit",
     "prompt": "Jが出る確率は？",
-    "explain": "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+    "explain": "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
   },
   {
     "id": "flop-rank-trips-04",
@@ -1092,22 +1092,22 @@
     "mode": "A",
     "stage": "flop",
     "hole": [
-      "2c",
-      "7s"
+      "Th",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
-      "4d",
-      "9c"
+      "4d"
     ],
     "target": "rank_on_board",
     "targetRank": "T",
-    "trueP": 16.47,
-    "answer": "15%",
-    "distractor": "30%",
+    "trueP": 12.49,
+    "answer": "10%",
+    "distractor": "25%",
     "category": "rank_hit",
-    "prompt": "Tが出る確率は？",
-    "explain": "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+    "prompt": "10が出る確率は？",
+    "explain": "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
   },
   {
     "id": "flop-rank-trips-05",
@@ -1128,7 +1128,7 @@
     "answer": "10%",
     "distractor": "20%",
     "category": "rank_trips",
-    "prompt": "Tの3カードの確率は？",
+    "prompt": "10の3カードの確率は？",
     "explain": "ポケットペアから3カード以上になるのは、約12回に1回です。"
   },
   {
@@ -1906,23 +1906,23 @@
     "mode": "A",
     "stage": "turn",
     "hole": [
-      "2c",
-      "7s"
+      "Ah",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
       "4d",
-      "9c",
-      "3h"
+      "9c"
     ],
     "target": "rank_on_board",
     "targetRank": "A",
-    "trueP": 8.7,
-    "answer": "10%",
-    "distractor": "20%",
+    "trueP": 6.52,
+    "answer": "5%",
+    "distractor": "15%",
     "category": "rank_hit",
     "prompt": "Aが出る確率は？",
-    "explain": "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    "explain": "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
   },
   {
     "id": "turn-rank-trips-01",
@@ -1952,23 +1952,23 @@
     "mode": "A",
     "stage": "turn",
     "hole": [
-      "2c",
-      "7s"
+      "Kh",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
       "4d",
-      "9c",
-      "3h"
+      "9c"
     ],
     "target": "rank_on_board",
     "targetRank": "K",
-    "trueP": 8.7,
-    "answer": "10%",
-    "distractor": "20%",
+    "trueP": 6.52,
+    "answer": "5%",
+    "distractor": "15%",
     "category": "rank_hit",
     "prompt": "Kが出る確率は？",
-    "explain": "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    "explain": "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
   },
   {
     "id": "turn-rank-trips-02",
@@ -1998,23 +1998,23 @@
     "mode": "A",
     "stage": "turn",
     "hole": [
-      "2c",
-      "7s"
+      "Qh",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
       "4d",
-      "9c",
-      "3h"
+      "9c"
     ],
     "target": "rank_on_board",
     "targetRank": "Q",
-    "trueP": 8.7,
-    "answer": "10%",
-    "distractor": "20%",
+    "trueP": 6.52,
+    "answer": "5%",
+    "distractor": "15%",
     "category": "rank_hit",
     "prompt": "Qが出る確率は？",
-    "explain": "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    "explain": "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
   },
   {
     "id": "turn-rank-trips-03",
@@ -2044,23 +2044,23 @@
     "mode": "A",
     "stage": "turn",
     "hole": [
-      "2c",
-      "7s"
+      "Jh",
+      "2c"
     ],
     "board": [
+      "7s",
       "4d",
       "9c",
-      "3h",
-      "8d"
+      "3h"
     ],
     "target": "rank_on_board",
     "targetRank": "J",
-    "trueP": 8.7,
-    "answer": "10%",
-    "distractor": "20%",
+    "trueP": 6.52,
+    "answer": "5%",
+    "distractor": "15%",
     "category": "rank_hit",
     "prompt": "Jが出る確率は？",
-    "explain": "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    "explain": "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
   },
   {
     "id": "turn-rank-trips-04",
@@ -2090,23 +2090,23 @@
     "mode": "A",
     "stage": "turn",
     "hole": [
-      "2c",
-      "7s"
+      "Th",
+      "2c"
     ],
     "board": [
+      "7s",
       "Jh",
       "4d",
-      "9c",
-      "3h"
+      "9c"
     ],
     "target": "rank_on_board",
     "targetRank": "T",
-    "trueP": 8.7,
-    "answer": "10%",
-    "distractor": "20%",
+    "trueP": 6.52,
+    "answer": "5%",
+    "distractor": "15%",
     "category": "rank_hit",
-    "prompt": "Tが出る確率は？",
-    "explain": "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    "prompt": "10が出る確率は？",
+    "explain": "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
   },
   {
     "id": "turn-rank-trips-05",
@@ -2128,7 +2128,7 @@
     "answer": "5%",
     "distractor": "15%",
     "category": "rank_trips",
-    "prompt": "Tの3カードの確率は？",
+    "prompt": "10の3カードの確率は？",
     "explain": "残り1枚でポケットペアを3カードにできるのは、約23回に1回です。"
   }
 ];

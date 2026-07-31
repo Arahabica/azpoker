@@ -1,3 +1,12 @@
+@font-face {
+  font-family: "Arbutus Slab";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/arbutus-slab/ArbutusSlab-Regular-latin.woff2")
+    format("woff2");
+}
+
 :root {
   color-scheme: dark;
   --app-max-width: 480px;
@@ -16,6 +25,7 @@
   --correct: #20ca91;
   --wrong: #ff6b6f;
   --red-suit: #c82d3c;
+  --card-rank-font: "Arbutus Slab", serif;
   font-family:
     Inter, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", system-ui, sans-serif;
 }
@@ -311,6 +321,8 @@ p {
 
 .playing-card {
   --card-rotation: 0deg;
+  --corner-center-x: 22%;
+  --rank-optical-shift: 0cqi;
   position: relative;
   display: block;
   flex: 0 0 auto;
@@ -322,6 +334,7 @@ p {
     radial-gradient(circle at 24% 14%, #fff 0, transparent 30%),
     linear-gradient(145deg, var(--paper), var(--paper-shadow));
   color: var(--ink);
+  container-type: inline-size;
   box-shadow:
     0 0.5rem 0.85rem rgb(0 29 22 / 30%),
     inset 0 0 0 1px rgb(255 255 255 / 64%);
@@ -333,6 +346,14 @@ p {
 
 .playing-card[data-tone="red"] {
   color: var(--red-suit);
+}
+
+.playing-card[data-rank="Q"] {
+  --rank-optical-shift: -1.5cqi;
+}
+
+.playing-card[data-rank="K"] {
+  --rank-optical-shift: -2cqi;
 }
 
 .playing-card--board {
@@ -357,51 +378,91 @@ p {
 .card-corner {
   position: absolute;
   top: 7%;
-  left: 9%;
+  left: var(--corner-center-x);
   display: grid;
   justify-items: center;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--card-rank-font);
   font-weight: 800;
   line-height: 0.88;
+  transform: translateX(-50%);
 }
 
 .card-rank {
-  font-size: clamp(1rem, 5vw, 1.48rem);
-  letter-spacing: -0.055em;
-}
-
-.playing-card--hole .card-rank,
-.playing-card--logo .card-rank {
-  font-size: clamp(1.5rem, 7vw, 1.85rem);
-}
-
-.playing-card--board[data-rank="10"] .card-rank {
-  font-size: clamp(0.84rem, 4.2vw, 1.2rem);
-}
-
-.playing-card--hole[data-rank="10"] .card-rank,
-.playing-card--logo[data-rank="10"] .card-rank {
-  font-size: clamp(1.2rem, 5.8vw, 1.52rem);
+  font-size: 1.25rem;
+  font-size: 34cqi;
+  letter-spacing: -0.06em;
+  font-variant-numeric: lining-nums tabular-nums;
+  transform: translateX(var(--rank-optical-shift));
 }
 
 .card-corner-suit {
-  width: clamp(0.62rem, 3vw, 0.9rem);
-  margin-top: 0.14rem;
+  width: 0.58rem;
+  width: 14cqi;
+  margin-top: 0.08rem;
   fill: currentcolor;
-}
-
-.playing-card--hole .card-corner-suit,
-.playing-card--logo .card-corner-suit {
-  width: clamp(0.86rem, 4vw, 1.08rem);
 }
 
 .card-center-suit {
   position: absolute;
-  top: 48%;
+  top: 62%;
   left: 50%;
-  width: 58%;
+  width: 52%;
   fill: currentcolor;
-  transform: translate(-50%, -38%);
+  transform: translate(-50%, -50%);
+}
+
+/* poker001寄せの暫定カード面。基本ルールは残し、クラスで切り替える。 */
+.playing-card--poker001 {
+  --corner-center-x: 25%;
+  --poker001-rank-stretch: 1.16;
+  --poker001-suit-stretch: 1.22;
+}
+
+.playing-card--poker001 .card-corner {
+  top: 0;
+  bottom: 0;
+  display: block;
+  width: 0;
+  font-weight: 400;
+}
+
+.playing-card--poker001 .card-rank {
+  position: absolute;
+  top: 5%;
+  left: 0;
+  font-size: 42cqi;
+  transform: translateX(calc(-50% + var(--rank-optical-shift)));
+  transform-origin: 50% 0;
+}
+
+.playing-card--poker001:is(
+    [data-rank="A"],
+    [data-rank="10"],
+    [data-rank="J"],
+    [data-rank="Q"],
+    [data-rank="K"]
+  )
+  .card-rank {
+  transform: translateX(calc(-50% + var(--rank-optical-shift)))
+    scaleY(var(--poker001-rank-stretch));
+}
+
+.playing-card--poker001 .card-corner-suit {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 30cqi;
+  margin-top: 0;
+  transform: translate(-50%, -50%) scaleY(var(--poker001-suit-stretch));
+  transform-origin: center;
+}
+
+.playing-card--poker001 .card-center-suit {
+  top: 65%;
+  left: 67%;
+  width: 54%;
+  transform: translate(-50%, -50%) scaleY(var(--poker001-suit-stretch));
+  transform-origin: center;
 }
 
 .choices {

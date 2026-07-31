@@ -4,11 +4,14 @@
   const bank = globalThis.QUESTION_BANK;
   const game = globalThis.AnzanPokerGame;
   const SVG_NS = "http://www.w3.org/2000/svg";
+  // 比較ページの3案目を暫定採用。外せば既存のカード面へ戻せる。
+  const ACTIVE_CARD_FACE_CLASS = "playing-card--poker001";
+  // Bootstrap Icons v1.13.1 の suit-*-fill（MIT）。THIRD_PARTY_NOTICES.md を参照。
   const SUIT_PATHS = Object.freeze({
-    h: "M50 89C42 79 10 59 10 32C10 16 29 8 41 21L50 31L59 21C71 8 90 16 90 32C90 59 58 79 50 89Z",
-    d: "M50 5 91 50 50 95 9 50Z",
-    s: "M50 6C44 18 12 39 12 61C12 77 32 84 44 71C43 82 38 89 30 94H70C62 89 57 82 56 71C68 84 88 77 88 61C88 39 56 18 50 6Z",
-    c: "M50 6C37 6 29 17 31 29C15 25 4 37 4 51C4 65 19 76 32 69C30 81 24 89 16 95H84C76 89 70 81 68 69C81 76 96 65 96 51C96 37 85 25 69 29C71 17 63 6 50 6Z",
+    h: "M4 1c2.21 0 4 1.755 4 3.92C8 2.755 9.79 1 12 1s4 1.755 4 3.92c0 3.263-3.234 4.414-7.608 9.608a.513.513 0 0 1-.784 0C3.234 9.334 0 8.183 0 4.92 0 2.755 1.79 1 4 1",
+    d: "M2.45 7.4 7.2 1.067a1 1 0 0 1 1.6 0L13.55 7.4a1 1 0 0 1 0 1.2L8.8 14.933a1 1 0 0 1-1.6 0L2.45 8.6a1 1 0 0 1 0-1.2",
+    s: "M7.184 11.246A3.5 3.5 0 0 1 1 9c0-1.602 1.14-2.633 2.66-4.008C4.986 3.792 6.602 2.33 8 0c1.398 2.33 3.014 3.792 4.34 4.992C13.86 6.367 15 7.398 15 9a3.5 3.5 0 0 1-6.184 2.246 20 20 0 0 0 1.582 2.907c.231.35-.02.847-.438.847H6.04c-.419 0-.67-.497-.438-.847a20 20 0 0 0 1.582-2.907",
+    c: "M11.5 12.5a3.5 3.5 0 0 1-2.684-1.254 20 20 0 0 0 1.582 2.907c.231.35-.02.847-.438.847H6.04c-.419 0-.67-.497-.438-.847a20 20 0 0 0 1.582-2.907 3.5 3.5 0 1 1-2.538-5.743 3.5 3.5 0 1 1 6.708 0A3.5 3.5 0 1 1 11.5 12.5",
   });
   const elements = {
     error: document.querySelector("#app-error"),
@@ -73,7 +76,7 @@
     const icon = document.createElementNS(SVG_NS, "svg");
     const path = document.createElementNS(SVG_NS, "path");
     icon.classList.add(className);
-    icon.setAttribute("viewBox", "0 0 100 100");
+    icon.setAttribute("viewBox", "0 0 16 16");
     icon.setAttribute("aria-hidden", "true");
     path.setAttribute("d", SUIT_PATHS[suit]);
     icon.append(path);
@@ -86,7 +89,7 @@
     const corner = document.createElement("span");
     const rank = document.createElement("span");
 
-    element.className = `playing-card playing-card--${variant}`;
+    element.className = `playing-card playing-card--${variant} ${ACTIVE_CARD_FACE_CLASS}`;
     element.dataset.tone = details.tone;
     element.dataset.rank = details.rank;
     element.style.setProperty("--deal-index", String(index));

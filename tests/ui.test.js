@@ -9,6 +9,13 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "src", "app.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+const cardFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "arbutus-slab",
+  "ArbutusSlab-Regular-latin.woff2",
+);
 
 test("UIが参照する要素はHTMLにすべて存在する", () => {
   const queriedIds = [
@@ -64,9 +71,47 @@ test("問題画面から説明用ラベルを除く", () => {
 test("カードはSVGスートと10表記に対応する", () => {
   assert.match(app, /SUIT_PATHS/);
   assert.match(app, /createElementNS\(SVG_NS, "svg"\)/);
+  assert.match(app, /viewBox", "0 0 16 16"/);
   assert.match(app, /rank\.textContent = details\.rank/);
   assert.match(styles, /\.playing-card\[data-tone="red"\]/);
-  assert.match(styles, /\.playing-card--board\[data-rank="10"\]/);
+  assert.match(styles, /container-type: inline-size/);
+  assert.match(styles, /font-size: 34cqi/);
+  assert.match(styles, /--corner-center-x: 22%/);
+  assert.match(styles, /left: var\(--corner-center-x\)/);
+  assert.match(styles, /transform: translateX\(-50%\)/);
+  assert.match(
+    styles,
+    /\.playing-card\[data-rank="Q"\] \{[\s\S]*--rank-optical-shift: -1\.5cqi/,
+  );
+  assert.match(
+    styles,
+    /\.playing-card\[data-rank="K"\] \{[\s\S]*--rank-optical-shift: -2cqi/,
+  );
+  assert.match(styles, /translateX\(var\(--rank-optical-shift\)\)/);
+  assert.match(styles, /font-family: "Arbutus Slab"/);
+  assert.match(
+    styles,
+    /url\("\.\/assets\/fonts\/arbutus-slab\/ArbutusSlab-Regular-latin\.woff2"\)/,
+  );
+  assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
+  assert.ok(fs.statSync(cardFontPath).size > 0);
+  assert.match(styles, /\.card-corner-suit \{[\s\S]*width: 14cqi/);
+  assert.match(styles, /\.card-center-suit \{[\s\S]*top: 62%/);
+  assert.match(app, /ACTIVE_CARD_FACE_CLASS = "playing-card--poker001"/);
+  assert.match(
+    app,
+    /playing-card--\$\{variant\} \$\{ACTIVE_CARD_FACE_CLASS\}/,
+  );
+  assert.match(styles, /\.playing-card--poker001 \{/);
+  assert.match(
+    styles,
+    /\.playing-card--poker001 \.card-corner \{[\s\S]*width: 0/,
+  );
+  assert.match(
+    styles,
+    /\.playing-card--poker001 \.card-corner-suit \{[\s\S]*position: absolute/,
+  );
+  assert.match(styles, /\[data-rank="10"\]/);
 });
 
 test("480pxのモバイル領域とPCの左右余白を持つ", () => {

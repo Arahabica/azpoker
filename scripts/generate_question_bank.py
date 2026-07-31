@@ -54,6 +54,10 @@ FOCUSED_RANKS = ("A", "K", "Q", "J", "T")
 FILLER_CARDS = ("2c", "7s", "Jh", "4d", "9c", "3h", "8d", "5s")
 
 
+def display_rank(rank: str) -> str:
+    return "10" if rank == "T" else rank
+
+
 def has_flush_using_hole(hole: tuple[str, ...], board: Iterable[str]) -> bool:
     cards = (*hole, *board)
     return any(
@@ -153,9 +157,9 @@ def prompt_for(target: str, target_rank: str | None = None) -> str:
     if target == "flush_or_straight":
         return "フラッシュかストレートの確率は？"
     if target == "rank_on_board":
-        return f"{target_rank}が出る確率は？"
+        return f"{display_rank(str(target_rank))}が出る確率は？"
     if target == "three_of_a_kind":
-        return f"{target_rank}の3カードの確率は？"
+        return f"{display_rank(str(target_rank))}の3カードの確率は？"
     raise ValueError(f"未対応の完成条件: {target}")
 
 
@@ -187,8 +191,8 @@ def explanation(stage: str, category: str) -> str:
         return "残り1枚でも、フラッシュとOESDの2方向なら約3回に1回です。"
     if category == "rank_hit":
         if stage == "flop":
-            return "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
-        return "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+            return "手札と同じランクは残り3枚。2枚のうちに重なるのは約8回に1回です。"
+        return "手札と同じランクは残り3枚。残り1枚で重なるのは約15回に1回です。"
     if category == "rank_trips":
         if stage == "flop":
             return "ポケットペアから3カード以上になるのは、約12回に1回です。"
@@ -264,9 +268,9 @@ def build_focused_rank_questions(stage: str) -> list[dict[str, object]]:
     questions: list[dict[str, object]] = []
 
     for index, target_rank in enumerate(FOCUSED_RANKS, start=1):
-        cards = filler_cards(target_rank, 2 + board_size)
-        hole = tuple(cards[:2])
-        board = tuple(cards[2:])
+        cards = filler_cards(target_rank, 1 + board_size)
+        hole = (f"{target_rank}h", cards[0])
+        board = tuple(cards[1:])
         _, _, hit_percent = exact_percent(
             hole,
             board,
@@ -283,8 +287,8 @@ def build_focused_rank_questions(stage: str) -> list[dict[str, object]]:
                 "target": "rank_on_board",
                 "targetRank": target_rank,
                 "trueP": round(hit_percent, 2),
-                "answer": "15%" if stage == "flop" else "10%",
-                "distractor": "30%" if stage == "flop" else "20%",
+                "answer": "10%" if stage == "flop" else "5%",
+                "distractor": "25%" if stage == "flop" else "15%",
                 "category": "rank_hit",
                 "prompt": prompt_for("rank_on_board", target_rank),
                 "explain": explanation(stage, "rank_hit"),
@@ -449,6 +453,19 @@ def validate_bank(bank: list[dict[str, object]]) -> None:
         raise RuntimeError(f"ステージ比率が不正です: {stage_counts}")
 
     for question in bank:
+        if question["category"] == "rank_hit":
+            target_rank = str(question["targetRank"])
+            hole = tuple(str(card) for card in question["hole"])
+            board = tuple(str(card) for card in question["board"])
+            if sum(card[0] == target_rank for card in hole) != 1:
+                raise RuntimeError(
+                    f"対象ランクを手札に1枚持っていません: {question['id']}"
+                )
+            if any(card[0] == target_rank for card in board):
+                raise RuntimeError(
+                    f"対象ランクがすでにボードにあります: {question['id']}"
+                )
+
         true_percent = float(question["trueP"])
         answer_percent = parse_percent(str(question["answer"]))
         distractor_percent = parse_percent(str(question["distractor"]))

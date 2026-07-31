@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カード配置比較｜暗算ポーカー</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        overflow-y: auto;
+      }
+
+      .balance-preview {
+        display: grid;
+        width: min(100%, var(--app-max-width));
+        min-height: 100dvh;
+        margin-inline: auto;
+        padding: 1.5rem var(--gutter) 3rem;
+        gap: 2rem;
+        background:
+          radial-gradient(circle at 50% 8%, var(--felt-light), transparent 18rem),
+          var(--felt);
+      }
+
+      .balance-preview-section {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .balance-preview-name {
+        margin: 0;
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.035em;
+      }
+
+      .balance-preview-cards {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: clamp(0.25rem, 1.4vw, 0.45rem);
+      }
+
+      .balance-preview .playing-card {
+        width: 100%;
+        animation: none;
+        transform: rotate(var(--card-rotation));
+      }
+
+      .layout-center-only .card-corner-suit {
+        display: none;
+      }
+
+      .layout-current-suit-adjusted .card-corner-suit {
+        width: 19cqi;
+        margin-top: 4cqi;
+      }
+
+      .layout-center-only .card-center-suit {
+        top: 57%;
+        left: 50%;
+        width: 56%;
+      }
+
+      .layout-center-only .card-rank {
+        font-size: 38cqi;
+      }
+
+      .layout-poker001 {
+        --corner-center-x: 25%;
+        --poker001-rank-stretch: 1.16;
+        --poker001-suit-stretch: 1.22;
+      }
+
+      .layout-poker001 .card-corner {
+        top: 0;
+        bottom: 0;
+        display: block;
+        width: 0;
+        font-weight: 400;
+      }
+
+      .layout-poker001 .card-rank {
+        position: absolute;
+        top: 5%;
+        left: 0;
+        font-size: 42cqi;
+        transform: translateX(calc(-50% + var(--rank-optical-shift)));
+        transform-origin: 50% 0;
+      }
+
+      .layout-poker001:is(
+          [data-rank="A"],
+          [data-rank="10"],
+          [data-rank="J"],
+          [data-rank="Q"],
+          [data-rank="K"]
+        )
+        .card-rank {
+        transform: translateX(calc(-50% + var(--rank-optical-shift)))
+          scaleY(var(--poker001-rank-stretch));
+      }
+
+      .layout-poker001 .card-corner-suit {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 30cqi;
+        margin-top: 0;
+        transform: translate(-50%, -50%) scaleY(var(--poker001-suit-stretch));
+        transform-origin: center;
+      }
+
+      .layout-poker001 .card-center-suit {
+        top: 65%;
+        left: 67%;
+        width: 54%;
+        transform: translate(-50%, -50%) scaleY(var(--poker001-suit-stretch));
+        transform-origin: center;
+      }
+
+    </style>
+  </head>
+  <body>
+    <main id="balance-preview" class="balance-preview" aria-label="カード配置比較"></main>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        const SUIT_PATHS = Object.freeze({
+          h: "M4 1c2.21 0 4 1.755 4 3.92C8 2.755 9.79 1 12 1s4 1.755 4 3.92c0 3.263-3.234 4.414-7.608 9.608a.513.513 0 0 1-.784 0C3.234 9.334 0 8.183 0 4.92 0 2.755 1.79 1 4 1",
+          s: "M7.184 11.246A3.5 3.5 0 0 1 1 9c0-1.602 1.14-2.633 2.66-4.008C4.986 3.792 6.602 2.33 8 0c1.398 2.33 3.014 3.792 4.34 4.992C13.86 6.367 15 7.398 15 9a3.5 3.5 0 0 1-6.184 2.246 20 20 0 0 0 1.582 2.907c.231.35-.02.847-.438.847H6.04c-.419 0-.67-.497-.438-.847a20 20 0 0 0 1.582-2.907",
+        });
+        const ranks = ["A", "5", "10", "Q", "K"];
+        const preview = document.querySelector("#balance-preview");
+
+        function createSuitIcon(suit, className) {
+          const icon = document.createElementNS(SVG_NS, "svg");
+          const path = document.createElementNS(SVG_NS, "path");
+          icon.classList.add(className);
+          icon.setAttribute("viewBox", "0 0 16 16");
+          icon.setAttribute("aria-hidden", "true");
+          path.setAttribute("d", SUIT_PATHS[suit]);
+          icon.append(path);
+          return icon;
+        }
+
+        function createCard(rank, suit = "h", layout = "") {
+          const card = document.createElement("span");
+          const corner = document.createElement("span");
+          const rankLabel = document.createElement("span");
+
+          card.className = `playing-card playing-card--board ${layout}`.trim();
+          card.dataset.tone = suit === "h" ? "red" : "black";
+          card.dataset.rank = rank;
+          card.setAttribute("role", "img");
+          card.setAttribute("aria-label", `${suit === "h" ? "ハート" : "スペード"}の${rank}`);
+          corner.className = "card-corner";
+          corner.setAttribute("aria-hidden", "true");
+          rankLabel.className = "card-rank";
+          rankLabel.textContent = rank;
+
+          corner.append(rankLabel, createSuitIcon(suit, "card-corner-suit"));
+          card.append(corner, createSuitIcon(suit, "card-center-suit"));
+          return card;
+        }
+
+        function createFiveCardSection(name, layout = "") {
+          const section = document.createElement("section");
+          const heading = document.createElement("h2");
+          const cards = document.createElement("div");
+
+          section.className = "balance-preview-section";
+          heading.className = "balance-preview-name";
+          heading.textContent = name;
+          cards.className = "balance-preview-cards";
+          cards.append(...ranks.map((rank) => createCard(rank, "h", layout)));
+          section.append(heading, cards);
+          return section;
+        }
+
+        preview.append(
+          createFiveCardSection("1. 今の配置"),
+          createFiveCardSection(
+            "1-B. 今の配置＋小マーク調整",
+            "layout-current-suit-adjusted",
+          ),
+          createFiveCardSection("2. マークを中央に1つ", "layout-center-only"),
+          createFiveCardSection("3. poker001.png寄せ", "layout-poker001"),
+          createFiveCardSection("4. トップページの配置"),
+        );
+      })();
+    </script>
+  </body>
+</html>
