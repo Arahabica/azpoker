@@ -6,6 +6,7 @@ const {
   calculateProbability,
   hasFlushUsingHole,
   hasStraightUsingHole,
+  hasThreeOfAKindUsingHole,
 } = require("../src/probability-engine.js");
 
 function assertRoundsTo(actual, expected, digits = 1) {
@@ -107,5 +108,49 @@ test("重複カードを拒否する", () => {
         target: "flush",
       }),
     /同じカード/,
+  );
+});
+
+test("特定ランクがボードに出る確率を計算する", () => {
+  const flop = calculateProbability({
+    hole: ["Kh", "Qd"],
+    board: ["2c", "7s", "Jh"],
+    target: "rank_on_board",
+    targetRank: "A",
+  });
+  const turn = calculateProbability({
+    hole: ["Kh", "Qd"],
+    board: ["2c", "7s", "Jh", "4d"],
+    target: "rank_on_board",
+    targetRank: "A",
+  });
+
+  assertRoundsTo(flop.percent, 16.5);
+  assertRoundsTo(turn.percent, 8.7);
+});
+
+test("ポケットペアが3カード以上になる確率を計算する", () => {
+  const preflop = calculateProbability({
+    hole: ["Ah", "Ad"],
+    board: [],
+    target: "three_of_a_kind",
+    targetRank: "A",
+  });
+  const flop = calculateProbability({
+    hole: ["Ah", "Ad"],
+    board: ["2c", "7s", "Jh"],
+    target: "three_of_a_kind",
+    targetRank: "A",
+  });
+
+  assertRoundsTo(preflop.percent, 19.2);
+  assertRoundsTo(flop.percent, 8.4);
+  assert.equal(
+    hasThreeOfAKindUsingHole(
+      ["Kh", "Qd"],
+      ["Ac", "Ad", "As", "2h", "7c"],
+      "A",
+    ),
+    false,
   );
 });

@@ -13,7 +13,14 @@
 
   const RANKS = "23456789TJQKA";
   const SUITS = "cdhs";
-  const TARGETS = new Set(["flush", "straight", "flush_or_straight"]);
+  const TARGETS = new Set([
+    "flush",
+    "straight",
+    "flush_or_straight",
+    "rank_on_board",
+    "three_of_a_kind",
+  ]);
+  const RANK_TARGETS = new Set(["rank_on_board", "three_of_a_kind"]);
   const RANK_VALUES = Object.freeze(
     Object.fromEntries([...RANKS].map((rank, index) => [rank, index + 2])),
   );
@@ -47,7 +54,7 @@
     }
   }
 
-  function assertSituation(hole, board, target) {
+  function assertSituation(hole, board, target, targetRank) {
     if (!Array.isArray(hole) || hole.length !== 2) {
       throw new TypeError("hole は2枚で指定してください");
     }
@@ -58,6 +65,10 @@
 
     if (!TARGETS.has(target)) {
       throw new TypeError(`未対応の完成条件です: ${String(target)}`);
+    }
+
+    if (RANK_TARGETS.has(target) && !RANKS.includes(targetRank)) {
+      throw new TypeError(`対象ランクが不正です: ${String(targetRank)}`);
     }
 
     const cards = [...hole, ...board];
@@ -97,13 +108,36 @@
     );
   }
 
-  function isTargetComplete(hole, completedBoard, target) {
+  function boardContainsRank(completedBoard, targetRank) {
+    return completedBoard.some((card) => card[0] === targetRank);
+  }
+
+  function hasThreeOfAKindUsingHole(hole, completedBoard, targetRank) {
+    if (!hole.some((card) => card[0] === targetRank)) {
+      return false;
+    }
+
+    return (
+      [...hole, ...completedBoard].filter((card) => card[0] === targetRank)
+        .length >= 3
+    );
+  }
+
+  function isTargetComplete(hole, completedBoard, target, targetRank) {
     if (target === "flush") {
       return hasFlushUsingHole(hole, completedBoard);
     }
 
     if (target === "straight") {
       return hasStraightUsingHole(hole, completedBoard);
+    }
+
+    if (target === "rank_on_board") {
+      return boardContainsRank(completedBoard, targetRank);
+    }
+
+    if (target === "three_of_a_kind") {
+      return hasThreeOfAKindUsingHole(hole, completedBoard, targetRank);
     }
 
     return (
@@ -140,8 +174,8 @@
    * 既知の手札・ボードから、リバーまでに指定した役が完成する確率を全列挙する。
    * 引数を変更せず、同じ入力には常に同じ結果を返す純粋関数。
    */
-  function calculateProbability({ hole, board, target }) {
-    assertSituation(hole, board, target);
+  function calculateProbability({ hole, board, target, targetRank }) {
+    assertSituation(hole, board, target, targetRank);
 
     const known = new Set([...hole, ...board]);
     const remainingDeck = FULL_DECK.filter((card) => !known.has(card));
@@ -151,7 +185,7 @@
 
     forEachCombination(remainingDeck, cardsToCome, (runout) => {
       total += 1;
-      if (isTargetComplete(hole, [...board, ...runout], target)) {
+      if (isTargetComplete(hole, [...board, ...runout], target, targetRank)) {
         hits += 1;
       }
     });
@@ -166,8 +200,10 @@
 
   return Object.freeze({
     calculateProbability,
+    boardContainsRank,
     hasFlushUsingHole,
     hasStraightUsingHole,
+    hasThreeOfAKindUsingHole,
     isTargetComplete,
   });
 });

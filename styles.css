@@ -64,8 +64,7 @@ h1 {
   letter-spacing: -0.04em;
 }
 
-.intro,
-footer {
+.intro {
   color: var(--muted);
 }
 
@@ -82,8 +81,7 @@ footer {
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 22%);
 }
 
-.question-meta,
-.feedback-heading {
+.question-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -99,8 +97,7 @@ footer {
   font-weight: 700;
 }
 
-.progress,
-.answer-time {
+.progress {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -158,11 +155,24 @@ footer {
 }
 
 .choice {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
   border: 1px solid var(--line);
   background: #0a1913;
   color: var(--text);
-  font-size: 1.25rem;
   font-weight: 750;
+}
+
+.choice-qualifier {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.choice-value {
+  font-size: 1.25rem;
 }
 
 .choice:hover:not(:disabled) {
@@ -210,7 +220,7 @@ footer {
   color: var(--wrong);
 }
 
-.exact-probability {
+.actual-probability {
   margin: 0.8rem 0 0.35rem;
   color: var(--accent);
   font-weight: 750;
@@ -252,11 +262,6 @@ footer {
   letter-spacing: -0.05em;
 }
 
-.average-time {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .result-note {
   margin: 1.5rem auto;
   max-width: 28rem;
@@ -269,16 +274,6 @@ footer {
   border: 1px solid var(--wrong);
   border-radius: 0.7rem;
   color: var(--wrong);
-}
-
-footer {
-  padding: 1.5rem 0 0;
-  font-size: 0.78rem;
-  text-align: center;
-}
-
-footer p {
-  margin-bottom: 0;
 }
 
 [hidden] {

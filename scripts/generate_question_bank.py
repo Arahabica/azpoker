@@ -9,7 +9,7 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "src" / "question-bank.js"
@@ -26,30 +26,32 @@ STRAIGHTS = (
 CATEGORY_RULES = {
     "flush_draw": {
         "target": "flush",
-        "answer": {"flop": "1/3", "turn": "1/6"},
-        "distractor": {"flop": "1/4", "turn": "1/3"},
+        "answer": {"flop": "35%", "turn": "20%"},
+        "distractor": {"flop": "20%", "turn": "35%"},
     },
     "oesd": {
         "target": "straight",
-        "answer": {"flop": "1/3", "turn": "1/6"},
-        "distractor": {"flop": "1/5", "turn": "1/3"},
+        "answer": {"flop": "30%", "turn": "15%"},
+        "distractor": {"flop": "15%", "turn": "30%"},
     },
     "gutshot": {
         "target": "straight",
-        "answer": {"flop": "1/6", "turn": "1/12"},
-        "distractor": {"flop": "1/3", "turn": "1/6"},
+        "answer": {"flop": "20%", "turn": "10%"},
+        "distractor": {"flop": "35%", "turn": "20%"},
     },
     "combo_gutshot": {
         "target": "flush_or_straight",
-        "answer": {"flop": "1/2", "turn": "1/4"},
-        "distractor": {"flop": "1/3", "turn": "1/2"},
+        "answer": {"flop": "45%", "turn": "25%"},
+        "distractor": {"flop": "30%", "turn": "45%"},
     },
     "combo_oesd": {
         "target": "flush_or_straight",
-        "answer": {"flop": "1/2", "turn": "1/3"},
-        "distractor": {"flop": "1/3", "turn": "1/6"},
+        "answer": {"flop": "55%", "turn": "35%"},
+        "distractor": {"flop": "35%", "turn": "20%"},
     },
 }
+FOCUSED_RANKS = ("A", "K", "Q", "J", "T")
+FILLER_CARDS = ("2c", "7s", "Jh", "4d", "9c", "3h", "8d", "5s")
 
 
 def has_flush_using_hole(hole: tuple[str, ...], board: Iterable[str]) -> bool:
@@ -68,10 +70,27 @@ def has_straight_using_hole(hole: tuple[str, ...], board: Iterable[str]) -> bool
     return any(sequence <= ranks and bool(sequence & hole_ranks) for sequence in STRAIGHTS)
 
 
+def board_contains_rank(board: Iterable[str], target_rank: str) -> bool:
+    return any(card[0] == target_rank for card in board)
+
+
+def has_three_of_a_kind_using_hole(
+    hole: tuple[str, ...],
+    board: Iterable[str],
+    target_rank: str,
+) -> bool:
+    cards = (*hole, *board)
+    return (
+        any(card[0] == target_rank for card in hole)
+        and sum(card[0] == target_rank for card in cards) >= 3
+    )
+
+
 def is_complete(
     hole: tuple[str, ...],
     board: Iterable[str],
     target: str,
+    target_rank: str | None = None,
 ) -> bool:
     if target == "flush":
         return has_flush_using_hole(hole, board)
@@ -79,6 +98,10 @@ def is_complete(
         return has_straight_using_hole(hole, board)
     if target == "flush_or_straight":
         return has_flush_using_hole(hole, board) or has_straight_using_hole(hole, board)
+    if target == "rank_on_board" and target_rank is not None:
+        return board_contains_rank(board, target_rank)
+    if target == "three_of_a_kind" and target_rank is not None:
+        return has_three_of_a_kind_using_hole(hole, board, target_rank)
     raise ValueError(f"未対応の完成条件: {target}")
 
 
@@ -91,6 +114,7 @@ def exact_percent(
     hole: tuple[str, ...],
     board: tuple[str, ...],
     target: str,
+    target_rank: str | None = None,
 ) -> tuple[int, int, float]:
     deck = remaining_deck(hole, board)
     cards_to_come = 5 - len(board)
@@ -99,7 +123,7 @@ def exact_percent(
 
     for runout in itertools.combinations(deck, cards_to_come):
         total += 1
-        hits += is_complete(hole, (*board, *runout), target)
+        hits += is_complete(hole, (*board, *runout), target, target_rank)
 
     return hits, total, hits / total * 100
 
@@ -121,41 +145,55 @@ def all_ranks_are_distinct(cards: Iterable[str]) -> bool:
     return len({card[0] for card in cards}) == len(cards)
 
 
-def explanation(stage: str, category: str, direct_outs: int) -> str:
+def prompt_for(target: str, target_rank: str | None = None) -> str:
+    if target == "flush":
+        return "フラッシュの確率は？"
+    if target == "straight":
+        return "ストレートの確率は？"
+    if target == "flush_or_straight":
+        return "フラッシュかストレートの確率は？"
+    if target == "rank_on_board":
+        return f"{target_rank}が出る確率は？"
+    if target == "three_of_a_kind":
+        return f"{target_rank}の3カードの確率は？"
+    raise ValueError(f"未対応の完成条件: {target}")
+
+
+def explanation(stage: str, category: str) -> str:
     if stage == "preflop":
-        return (
-            "同じスートは残り11枚。未知のボード5枚から3枚以上来る全組合せを数えると"
-            "約6.4%です。ランクが違ってもフラッシュ確率は同じです。"
-        )
+        if category == "rank_trips":
+            return "ポケットペアが3カード以上になるのは約5回に1回です。"
+        return "スーテッドでもフラッシュになるのは約16回に1回。見た目ほど頻繁ではありません。"
 
-    street = "ターンとリバー" if stage == "flop" else "リバー"
     if category == "flush_draw":
-        return (
-            f"同じスートの完成カードは9枚。{street}の全組合せを重複なく数えると"
-            f"約{'35.0' if stage == 'flop' else '19.6'}%です。"
-        )
+        if stage == "flop":
+            return "フロップのフラッシュドローは、ざっくり3回に1回です。"
+        return "残りが1枚だけになると、フラッシュドローは約5回に1回です。"
     if category == "oesd":
-        return (
-            f"両端の2ランク、合計8枚が主な完成カードです。{street}までを全列挙すると"
-            f"約{'31.5' if stage == 'flop' else '17.4'}%です。"
-        )
+        if stage == "flop":
+            return "両端を待てるOESDは、フラッシュドローより少し低い程度です。"
+        return "残り1枚でも両端を待てるため、ガットショットのほぼ2倍あります。"
     if category == "gutshot":
-        runner_note = (
-            "。フロップではランナーランナーの完成も含めます"
-            if stage == "flop"
-            else ""
-        )
-        return (
-            f"内側の1ランク、合計4枚が主な完成カードです{runner_note}。"
-            f"全列挙では約{'17.9' if stage == 'flop' else '8.7'}%です。"
-        )
-
-    draw_name = "ガットショット" if category == "combo_gutshot" else "OESD"
-    return (
-        f"フラッシュドローと{draw_name}を合わせると、次の1枚で完成するカードは"
-        f"重複を除いて{direct_outs}枚。フラッシュとストレートを別々に足さず、"
-        f"{street}の全組合せを数えます。"
-    )
+        if stage == "flop":
+            return "内側だけを待つガットショットは、OESDよりかなり低めです。"
+        return "残り1枚のガットショットは、10回に1回弱です。"
+    if category == "combo_gutshot":
+        if stage == "flop":
+            return "フラッシュとガットショットの2方向があり、ほぼ2回に1回です。"
+        return "2方向のドローでも、残り1枚なら約4回に1回です。"
+    if category == "combo_oesd":
+        if stage == "flop":
+            return "フラッシュとOESDが重なる強いドローで、半分を少し超えます。"
+        return "残り1枚でも、フラッシュとOESDの2方向なら約3回に1回です。"
+    if category == "rank_hit":
+        if stage == "flop":
+            return "同じランクは4枚。まだ1枚も見えていなければ、約6回に1回出ます。"
+        return "残り1枚で特定のランクを引く確率は、約11回に1回です。"
+    if category == "rank_trips":
+        if stage == "flop":
+            return "ポケットペアから3カード以上になるのは、約12回に1回です。"
+        return "残り1枚でポケットペアを3カードにできるのは、約23回に1回です。"
+    raise ValueError(f"未対応のカテゴリ: {category}")
 
 
 def build_preflop_questions() -> list[dict[str, object]]:
@@ -165,17 +203,12 @@ def build_preflop_questions() -> list[dict[str, object]]:
         ("Td", "9d"),
         ("8c", "7c"),
         ("6h", "5h"),
-        ("As", "5s"),
-        ("Kc", "Qc"),
-        ("Jh", "Th"),
-        ("9s", "8s"),
-        ("7d", "6d"),
     )
     hits, total, percent = exact_percent(suited_hands[0], (), "flush")
     if round(percent, 1) != 6.4:
         raise RuntimeError(f"プリフロップ検算に失敗: {hits}/{total} = {percent}")
 
-    return [
+    questions = [
         {
             "id": f"preflop-flush-{index:02d}",
             "mode": "A",
@@ -184,13 +217,107 @@ def build_preflop_questions() -> list[dict[str, object]]:
             "board": [],
             "target": "flush",
             "trueP": round(percent, 2),
-            "answer": "1/20",
-            "distractor": "1/10",
+            "answer": "5%",
+            "distractor": "15%",
             "category": "flush_draw",
-            "explain": explanation("preflop", "flush_draw", 0),
+            "prompt": prompt_for("flush"),
+            "explain": explanation("preflop", "flush_draw"),
         }
         for index, hole in enumerate(suited_hands, start=1)
     ]
+
+    for index, target_rank in enumerate(FOCUSED_RANKS, start=1):
+        hole = (f"{target_rank}h", f"{target_rank}d")
+        _, _, trips_percent = exact_percent(
+            hole,
+            (),
+            "three_of_a_kind",
+            target_rank,
+        )
+        questions.append(
+            {
+                "id": f"preflop-rank-trips-{index:02d}",
+                "mode": "A",
+                "stage": "preflop",
+                "hole": list(hole),
+                "board": [],
+                "target": "three_of_a_kind",
+                "targetRank": target_rank,
+                "trueP": round(trips_percent, 2),
+                "answer": "20%",
+                "distractor": "35%",
+                "category": "rank_trips",
+                "prompt": prompt_for("three_of_a_kind", target_rank),
+                "explain": explanation("preflop", "rank_trips"),
+            }
+        )
+
+    return questions
+
+
+def filler_cards(target_rank: str, count: int) -> tuple[str, ...]:
+    return tuple(card for card in FILLER_CARDS if card[0] != target_rank)[:count]
+
+
+def build_focused_rank_questions(stage: str) -> list[dict[str, object]]:
+    board_size = 3 if stage == "flop" else 4
+    questions: list[dict[str, object]] = []
+
+    for index, target_rank in enumerate(FOCUSED_RANKS, start=1):
+        cards = filler_cards(target_rank, 2 + board_size)
+        hole = tuple(cards[:2])
+        board = tuple(cards[2:])
+        _, _, hit_percent = exact_percent(
+            hole,
+            board,
+            "rank_on_board",
+            target_rank,
+        )
+        questions.append(
+            {
+                "id": f"{stage}-rank-hit-{index:02d}",
+                "mode": "A",
+                "stage": stage,
+                "hole": list(hole),
+                "board": list(board),
+                "target": "rank_on_board",
+                "targetRank": target_rank,
+                "trueP": round(hit_percent, 2),
+                "answer": "15%" if stage == "flop" else "10%",
+                "distractor": "30%" if stage == "flop" else "20%",
+                "category": "rank_hit",
+                "prompt": prompt_for("rank_on_board", target_rank),
+                "explain": explanation(stage, "rank_hit"),
+            }
+        )
+
+        trips_hole = (f"{target_rank}h", f"{target_rank}d")
+        trips_board = filler_cards(target_rank, board_size)
+        _, _, trips_percent = exact_percent(
+            trips_hole,
+            trips_board,
+            "three_of_a_kind",
+            target_rank,
+        )
+        questions.append(
+            {
+                "id": f"{stage}-rank-trips-{index:02d}",
+                "mode": "A",
+                "stage": stage,
+                "hole": list(trips_hole),
+                "board": list(trips_board),
+                "target": "three_of_a_kind",
+                "targetRank": target_rank,
+                "trueP": round(trips_percent, 2),
+                "answer": "10%" if stage == "flop" else "5%",
+                "distractor": "20%" if stage == "flop" else "15%",
+                "category": "rank_trips",
+                "prompt": prompt_for("three_of_a_kind", target_rank),
+                "explain": explanation(stage, "rank_trips"),
+            }
+        )
+
+    return questions
 
 
 def candidate_matches(
@@ -255,7 +382,7 @@ def build_postflop_questions(
         straight_outs = one_card_outs(hole, board, "straight")
 
         for category, rule in CATEGORY_RULES.items():
-            if len(selected[category]) >= 9:
+            if len(selected[category]) >= 7:
                 continue
             if not candidate_matches(stage, category, flush_outs, straight_outs):
                 continue
@@ -273,7 +400,6 @@ def build_postflop_questions(
             if round(percent, 1) != expected_rounded_percent(stage, category):
                 continue
 
-            direct_outs = len(flush_outs | straight_outs)
             question = {
                 "id": f"{stage}-{category}-{len(selected[category]) + 1:02d}",
                 "mode": "A",
@@ -285,25 +411,26 @@ def build_postflop_questions(
                 "answer": rule["answer"][stage],
                 "distractor": rule["distractor"][stage],
                 "category": category,
-                "explain": explanation(stage, category, direct_outs),
+                "prompt": prompt_for(target),
+                "explain": explanation(stage, category),
             }
             selected[category].append(question)
             seen_shapes[category].add(shape)
 
-        if all(len(questions) == 9 for questions in selected.values()):
+        if all(len(questions) == 7 for questions in selected.values()):
             break
     else:
         missing = {
-            category: 9 - len(questions)
+            category: 7 - len(questions)
             for category, questions in selected.items()
-            if len(questions) < 9
+            if len(questions) < 7
         }
         raise RuntimeError(f"{stage} の候補が不足しています: {missing}")
 
     # 同カテゴリが固まらない順番にして、生成物を目視しやすくする。
     return [
         selected[category][index]
-        for index in range(9)
+        for index in range(7)
         for category in CATEGORY_RULES
     ]
 
@@ -323,10 +450,12 @@ def validate_bank(bank: list[dict[str, object]]) -> None:
 
     for question in bank:
         true_percent = float(question["trueP"])
-        answer_percent = parse_fraction(str(question["answer"]))
-        distractor_percent = parse_fraction(str(question["distractor"]))
+        answer_percent = parse_percent(str(question["answer"]))
+        distractor_percent = parse_percent(str(question["distractor"]))
         if abs(true_percent - answer_percent) >= abs(true_percent - distractor_percent):
             raise RuntimeError(f"誤答のほうが近い問題です: {question['id']}")
+        if answer_percent != nearest_five_percent(true_percent):
+            raise RuntimeError(f"正解が5%刻みの最寄り値ではありません: {question['id']}")
         ratio = max(answer_percent, distractor_percent) / min(
             answer_percent, distractor_percent
         )
@@ -334,9 +463,14 @@ def validate_bank(bank: list[dict[str, object]]) -> None:
             raise RuntimeError(f"選択肢が近すぎます: {question['id']}")
 
 
-def parse_fraction(value: str) -> float:
-    numerator, denominator = value.split("/")
-    return int(numerator) / int(denominator) * 100
+def parse_percent(value: str) -> int:
+    if not value.endswith("%"):
+        raise ValueError(f"パーセント表記ではありません: {value}")
+    return int(value[:-1])
+
+
+def nearest_five_percent(value: float) -> int:
+    return int((value + 2.5) // 5 * 5)
 
 
 def render_bank(bank: list[dict[str, object]]) -> str:
@@ -363,7 +497,9 @@ def build_bank() -> list[dict[str, object]]:
     bank = [
         *build_preflop_questions(),
         *build_postflop_questions("flop", rng),
+        *build_focused_rank_questions("flop"),
         *build_postflop_questions("turn", rng),
+        *build_focused_rank_questions("turn"),
     ]
     validate_bank(bank)
     return bank

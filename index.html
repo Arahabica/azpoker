@@ -18,7 +18,9 @@
       <header class="site-header">
         <p class="eyebrow">勝率と確率のドリル</p>
         <h1>暗算ポーカー</h1>
-        <p class="intro">本物の確率を、2択で。全10問、時間制限はありません。</p>
+        <p class="intro">
+          表示された時点から、ボードが5枚になるまで。5%刻みの2択です。
+        </p>
       </header>
 
       <p id="app-error" class="error" role="alert" hidden></p>
@@ -47,9 +49,8 @@
         <section id="feedback" class="feedback" aria-live="polite" hidden>
           <div class="feedback-heading">
             <h3 id="feedback-title"></h3>
-            <span id="answer-time" class="answer-time"></span>
           </div>
-          <p id="exact-probability" class="exact-probability"></p>
+          <p id="actual-probability" class="actual-probability"></p>
           <p id="explanation" class="explanation"></p>
         </section>
 
@@ -60,16 +61,11 @@
         <p class="eyebrow">10問完走</p>
         <h2 id="result-title">今回の結果</h2>
         <p id="score" class="score"></p>
-        <p id="average-time" class="average-time"></p>
         <p class="result-note">
-          正確さが安定したら、同じ正答率のまま平均秒数を縮めてみましょう。
+          間違えた問題の解説を思い出しながら、もう一度挑戦してみましょう。
         </p>
         <button id="retry" class="next" type="button">もう10問</button>
       </section>
-
-      <footer>
-        <p>全問、残りカードの全組合せから計算しています。</p>
-      </footer>
     </main>
   </body>
 </html>

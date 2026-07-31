@@ -1,5 +1,0 @@
-.DS_Store
-dist/
-node_modules/
-*.tar.gz
-__pycache__/

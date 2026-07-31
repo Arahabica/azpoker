@@ -15,20 +15,16 @@
     choices: document.querySelector("#choices"),
     feedback: document.querySelector("#feedback"),
     feedbackTitle: document.querySelector("#feedback-title"),
-    exact: document.querySelector("#exact-probability"),
+    actual: document.querySelector("#actual-probability"),
     explanation: document.querySelector("#explanation"),
-    answerTime: document.querySelector("#answer-time"),
     next: document.querySelector("#next-question"),
     score: document.querySelector("#score"),
-    average: document.querySelector("#average-time"),
     retry: document.querySelector("#retry"),
   };
 
   let session = [];
   let currentIndex = 0;
   let score = 0;
-  let answeredAt = 0;
-  let timings = [];
 
   function showStartupError(message) {
     elements.error.hidden = false;
@@ -50,7 +46,6 @@
 
     currentIndex = 0;
     score = 0;
-    timings = [];
     elements.error.hidden = true;
     elements.result.hidden = true;
     elements.game.hidden = false;
@@ -59,11 +54,10 @@
 
   function renderQuestion() {
     const question = currentQuestion();
-    const target = game.targetLabel(question.target);
 
     elements.progress.textContent = `${currentIndex + 1} / ${session.length}`;
     elements.stage.textContent = game.stageLabel(question.stage);
-    elements.prompt.textContent = `リバーまでに${target}が完成する確率に近いのは？`;
+    elements.prompt.textContent = question.prompt;
     elements.hole.textContent = game.formatCards(question.hole);
     elements.board.textContent =
       question.board.length > 0 ? game.formatCards(question.board) : "まだありません";
@@ -74,15 +68,20 @@
     const choiceLabels = game.shuffle([question.answer, question.distractor]);
     for (const choice of choiceLabels) {
       const button = document.createElement("button");
+      const qualifier = document.createElement("span");
+      const value = document.createElement("span");
       button.type = "button";
       button.className = "choice";
-      button.textContent = choice;
+      qualifier.className = "choice-qualifier";
+      qualifier.textContent = "約";
+      value.className = "choice-value";
+      value.textContent = choice;
+      button.append(qualifier, value);
       button.dataset.choice = choice;
       button.addEventListener("click", handleAnswer);
       elements.choices.append(button);
     }
 
-    answeredAt = performance.now();
     requestAnimationFrame(() => {
       elements.choices.querySelector("button")?.focus({ preventScroll: true });
     });
@@ -92,9 +91,6 @@
     const question = currentQuestion();
     const selected = event.currentTarget.dataset.choice;
     const correct = selected === question.answer;
-    const elapsedSeconds = (performance.now() - answeredAt) / 1_000;
-
-    timings.push(elapsedSeconds);
     if (correct) {
       score += 1;
     }
@@ -110,9 +106,8 @@
 
     elements.feedbackTitle.textContent = correct ? "正解" : "惜しい";
     elements.feedbackTitle.dataset.result = correct ? "correct" : "wrong";
-    elements.exact.textContent = `厳密値 ${question.trueP.toFixed(1)}%`;
+    elements.actual.textContent = game.formatActualPercent(question.trueP);
     elements.explanation.textContent = question.explain;
-    elements.answerTime.textContent = `${elapsedSeconds.toFixed(1)}秒`;
     elements.feedback.hidden = false;
     elements.next.hidden = false;
     elements.next.textContent =
@@ -121,13 +116,9 @@
   }
 
   function showResult() {
-    const average =
-      timings.reduce((total, seconds) => total + seconds, 0) / timings.length;
-
     elements.game.hidden = true;
     elements.result.hidden = false;
     elements.score.textContent = `${score} / ${session.length}`;
-    elements.average.textContent = `1問あたり平均 ${average.toFixed(1)}秒`;
     elements.retry.focus({ preventScroll: true });
   }
 

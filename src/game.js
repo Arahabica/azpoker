@@ -27,11 +27,6 @@
     flop: "フロップ",
     turn: "ターン",
   });
-  const TARGET_LABELS = Object.freeze({
-    flush: "フラッシュ",
-    straight: "ストレート",
-    flush_or_straight: "フラッシュかストレート",
-  });
 
   function shuffle(items, random = Math.random) {
     const result = [...items];
@@ -44,7 +39,12 @@
     return result;
   }
 
-  function sampleStageQuestions(questions, count, random) {
+  function sampleStageQuestions(
+    questions,
+    count,
+    random,
+    requiredCategories = [],
+  ) {
     const byCategory = new Map();
 
     for (const question of questions) {
@@ -53,7 +53,19 @@
       byCategory.set(question.category, existing);
     }
 
-    const categoryOrder = shuffle([...byCategory.keys()], random);
+    for (const category of requiredCategories) {
+      if (!byCategory.has(category)) {
+        throw new Error(`必須カテゴリの問題がありません: ${category}`);
+      }
+    }
+
+    const remainingCategories = [...byCategory.keys()].filter(
+      (category) => !requiredCategories.includes(category),
+    );
+    const categoryOrder = [
+      ...requiredCategories,
+      ...shuffle(remainingCategories, random),
+    ];
     const selected = [];
     let categoryIndex = 0;
 
@@ -82,12 +94,24 @@
     }
 
     const selected = [];
+    const requiredByStage = {
+      preflop: ["flush_draw", "rank_trips"],
+      flop: ["rank_hit"],
+      turn: ["rank_trips"],
+    };
     for (const [stage, count] of Object.entries(SESSION_STAGE_COUNTS)) {
       const stageQuestions = bank.filter((question) => question.stage === stage);
       if (stageQuestions.length < count) {
         throw new Error(`${STAGE_LABELS[stage]}の問題が不足しています`);
       }
-      selected.push(...sampleStageQuestions(stageQuestions, count, random));
+      selected.push(
+        ...sampleStageQuestions(
+          stageQuestions,
+          count,
+          random,
+          requiredByStage[stage],
+        ),
+      );
     }
 
     return shuffle(selected, random);
@@ -106,21 +130,25 @@
     return cards.map(formatCard).join(" ");
   }
 
-  function stageLabel(stage) {
-    return STAGE_LABELS[stage] ?? stage;
+  function formatActualPercent(value) {
+    if (!Number.isFinite(value)) {
+      throw new TypeError(`不正な確率です: ${String(value)}`);
+    }
+
+    return `${(Math.round(value * 10) / 10).toFixed(1)}%`;
   }
 
-  function targetLabel(target) {
-    return TARGET_LABELS[target] ?? target;
+  function stageLabel(stage) {
+    return STAGE_LABELS[stage] ?? stage;
   }
 
   return Object.freeze({
     SESSION_STAGE_COUNTS,
     createSession,
+    formatActualPercent,
     formatCard,
     formatCards,
     shuffle,
     stageLabel,
-    targetLabel,
   });
 });

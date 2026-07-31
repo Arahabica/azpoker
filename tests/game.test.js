@@ -6,6 +6,7 @@ const bank = require("../src/question-bank.js");
 const {
   SESSION_STAGE_COUNTS,
   createSession,
+  formatActualPercent,
   formatCard,
   formatCards,
 } = require("../src/game.js");
@@ -43,7 +44,23 @@ test("フロップとターンは1セット内でカテゴリを重複させな�
   }
 });
 
+test("各セットにランクを絞った問題を含める", () => {
+  for (let seed = 0; seed < 20; seed += 1) {
+    const session = createSession(bank, seededRandom(seed));
+    const categories = session.map((question) => question.category);
+
+    assert.ok(categories.includes("rank_hit"));
+    assert.ok(categories.includes("rank_trips"));
+  }
+});
+
 test("カードを本番と同じスート先頭表記にする", () => {
   assert.equal(formatCard("Ah"), "♥A");
   assert.equal(formatCards(["Ah", "Ts"]), "♥A ♠T");
+});
+
+test("回答後の確率を小数1桁で表示する", () => {
+  assert.equal(formatActualPercent(31.45), "31.5%");
+  assert.equal(formatActualPercent(34.97), "35.0%");
+  assert.equal(formatActualPercent(6.4), "6.4%");
 });
