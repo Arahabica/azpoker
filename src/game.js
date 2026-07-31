@@ -22,6 +22,13 @@
     h: "♥",
     s: "♠",
   });
+  const SUIT_NAMES = Object.freeze({
+    c: "クラブ",
+    d: "ダイヤ",
+    h: "ハート",
+    s: "スペード",
+  });
+  const RANKS = "23456789TJQKA";
   const STAGE_LABELS = Object.freeze({
     preflop: "プリフロップ",
     flop: "フロップ",
@@ -117,13 +124,32 @@
     return shuffle(selected, random);
   }
 
-  function formatCard(card) {
-    const rank = card[0];
-    const suit = SUIT_SYMBOLS[card[1]];
-    if (!suit) {
+  function cardDetails(card) {
+    if (
+      typeof card !== "string" ||
+      card.length !== 2 ||
+      !RANKS.includes(card[0]) ||
+      !SUIT_SYMBOLS[card[1]]
+    ) {
       throw new TypeError(`不正なカード表記です: ${card}`);
     }
-    return `${suit}${rank}`;
+
+    const sourceRank = card[0];
+    const rank = sourceRank === "T" ? "10" : sourceRank;
+    const suit = card[1];
+    return Object.freeze({
+      rank,
+      suit,
+      symbol: SUIT_SYMBOLS[suit],
+      suitName: SUIT_NAMES[suit],
+      tone: suit === "d" || suit === "h" ? "red" : "black",
+      ariaLabel: `${SUIT_NAMES[suit]}の${rank}`,
+    });
+  }
+
+  function formatCard(card) {
+    const details = cardDetails(card);
+    return `${details.symbol}${details.rank}`;
   }
 
   function formatCards(cards) {
@@ -138,12 +164,37 @@
     return `${(Math.round(value * 10) / 10).toFixed(1)}%`;
   }
 
+  function boardRevealSteps(question) {
+    if (!question || !Array.isArray(question.board)) {
+      throw new TypeError("問題のボードが不正です");
+    }
+
+    if (question.stage === "preflop" && question.board.length === 0) {
+      return [];
+    }
+
+    if (question.stage === "flop" && question.board.length === 3) {
+      return [{ street: "flop", cards: [...question.board] }];
+    }
+
+    if (question.stage === "turn" && question.board.length === 4) {
+      return [
+        { street: "flop", cards: question.board.slice(0, 3) },
+        { street: "turn", cards: question.board.slice(3) },
+      ];
+    }
+
+    throw new TypeError(`ステージとボード枚数が一致しません: ${question.stage}`);
+  }
+
   function stageLabel(stage) {
     return STAGE_LABELS[stage] ?? stage;
   }
 
   return Object.freeze({
     SESSION_STAGE_COUNTS,
+    boardRevealSteps,
+    cardDetails,
     createSession,
     formatActualPercent,
     formatCard,
