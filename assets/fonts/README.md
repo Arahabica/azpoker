@@ -15,7 +15,7 @@
 `fontslice`が`PATH`にある環境で、リポジトリルートから実行する。
 
 ```sh
-npm run fonts:build
+pnpm fonts:build
 ```
 
 スクリプトはGoogle Fontsリポジトリから次の原本を一時ディレクトリへ取得し、`fontslice --text`で指定文字用の先頭WOFF2だけを取り出す。
@@ -38,7 +38,7 @@ MPLUSRounded1c-Regular.ttf
 ```
 
 ```sh
-npm run fonts:build -- --source-dir /path/to/font-sources
+pnpm fonts:build -- --source-dir /path/to/font-sources
 ```
 
 問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`と`src/**/*.svelte`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
@@ -46,8 +46,8 @@ npm run fonts:build -- --source-dir /path/to/font-sources
 生成後は、スクリプトが表示する文字数、Unicode range、容量、SHA-256を確認し、次を実行する。
 
 ```sh
-npm test
-npm run build
+pnpm test
+pnpm build
 ```
 
 ## 現在のSHA-256

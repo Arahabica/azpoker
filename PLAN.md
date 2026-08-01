@@ -311,6 +311,6 @@ UIは **Svelte 5 + Vite** の最小構成とし、SvelteKitは使わない。ト
 - UIは Svelte 5、開発サーバーと本番ビルドは Vite
 - SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使わない
 - 確率計算と問題選択はフレームワーク非依存のES Modulesとして保つ
-- `npm run build` が生成する `dist/` は静的ファイルだけで構成する
+- `pnpm build` が生成する `dist/` は静的ファイルだけで構成する
 - 公開先は GitHub Pages または Cloudflare Pages。公開はフェーズ4完了後
 - 問題バンクの生成のみ Python

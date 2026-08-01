@@ -8,8 +8,8 @@ UIは **Svelte 5**、開発・ビルドは **Vite** を使います。SvelteKit�
 ## 起動
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Viteが表示したローカルURLをブラウザで開きます。
@@ -17,7 +17,7 @@ Viteが表示したローカルURLをブラウザで開きます。
 ## 検証
 
 ```sh
-npm run check
+pnpm check
 ```
 
 `check` はテスト、問題バンクの再生成チェック、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
