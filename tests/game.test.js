@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   SESSION_STAGE_COUNTS,
-  boardRevealSteps,
   cardDetails,
   createSession,
   formatActualPercent,
@@ -77,20 +76,6 @@ test("カード表示に色と読み上げ用の情報を持たせる", () => {
     tone: "black",
     ariaLabel: "スペードの10",
   });
-});
-
-test("ターン問題はフロップ3枚とターン1枚に分けて表示する", () => {
-  assert.deepEqual(
-    boardRevealSteps({
-      stage: "turn",
-      board: ["2h", "9h", "Jd", "4c"],
-    }),
-    [
-      { street: "flop", cards: ["2h", "9h", "Jd"] },
-      { street: "turn", cards: ["4c"] },
-    ],
-  );
-  assert.deepEqual(boardRevealSteps({ stage: "preflop", board: [] }), []);
 });
 
 test("回答後の確率を小数1桁で表示する", () => {

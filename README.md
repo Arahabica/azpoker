@@ -17,10 +17,10 @@ Viteが表示したローカルURLをブラウザで開きます。
 ## 検証
 
 ```sh
-npm test
-npm run check:bank
-npm run build
+npm run check
 ```
+
+`check` はテスト、問題バンクの再生成チェック、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
 
 問題バンクを再生成する場合:
 
@@ -38,10 +38,14 @@ python3 scripts/generate_question_bank.py
 
 - `src/App.svelte`: セッションと画面遷移
 - `src/screens/`: トップ、問題、結果の各画面
+- `src/components/Board.svelte`: ボードの5列配置と同時フェード
+- `src/components/HoleCards.svelte`: 手札2枚の重なりと傾き
 - `src/components/PlayingCard.svelte`: サイズ・回転・色を受け持つ共通カード枠
 - `src/components/card-faces/CardFace.svelte`: 採用したランクとスートの配置
+- `src/components/ActionButton.svelte`: 主要・副操作ボタンの共通表示
 - `src/components/ChoiceButton.svelte`: 選択肢の中央配置と文字のベースライン
 - `src/components/AnswerSheet.svelte`: 回答後のパネル
+- `styles.css`: フォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを持つグローバルCSS
 - `src/game.js`: 問題選択と表示用の純粋関数
 - `src/probability-engine.js`: 確率計算の純粋関数
 - `src/question-bank.js`: スクリプトから生成する100問

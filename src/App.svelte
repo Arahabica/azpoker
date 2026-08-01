@@ -2,7 +2,7 @@
   import { tick } from "svelte";
 
   import questionBank from "./question-bank.js";
-  import { boardRevealSteps, createSession, shuffle } from "./game.js";
+  import { createSession, shuffle } from "./game.js";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
@@ -11,25 +11,11 @@
   let session = $state([]);
   let currentIndex = $state(0);
   let score = $state(0);
-  let visibleBoard = $state([]);
   let choices = $state([]);
-  let choicesReady = $state(false);
   let answerResult = $state(null);
   let startupError = $state("");
-  let renderSequence = 0;
 
   const currentQuestion = $derived(session[currentIndex]);
-  const reducedMotion = window.matchMedia
-    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    : false;
-
-  $effect(() => {
-    document.body.dataset.view = view;
-  });
-
-  function wait(milliseconds) {
-    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-  }
 
   async function focusElement(selector) {
     await tick();
@@ -39,42 +25,13 @@
   }
 
   function showStartupError(error) {
-    renderSequence += 1;
     startupError = error instanceof Error ? error.message : String(error);
   }
 
-  async function prepareQuestion(question) {
-    const sequence = ++renderSequence;
-    const revealSteps = boardRevealSteps(question);
-
+  function prepareQuestion(question) {
     answerResult = null;
-    visibleBoard = [];
-    choices = [];
-    choicesReady = false;
-
-    if (revealSteps.length > 0) {
-      visibleBoard = [...revealSteps[0].cards];
-    }
-
-    if (revealSteps.length > 1) {
-      await wait(reducedMotion ? 0 : 520);
-      if (sequence !== renderSequence) {
-        return;
-      }
-      visibleBoard = [...revealSteps[0].cards, ...revealSteps[1].cards];
-    }
-
-    if (sequence !== renderSequence) {
-      return;
-    }
-
     choices = shuffle([question.answer, question.distractor]);
-    choicesReady = true;
-    await focusElement("#prompt");
-  }
-
-  function showQuestion(question) {
-    prepareQuestion(question).catch(showStartupError);
+    focusElement("#prompt");
   }
 
   function startSession() {
@@ -84,14 +41,14 @@
       score = 0;
       startupError = "";
       view = "game";
-      showQuestion(session[0]);
+      prepareQuestion(session[0]);
     } catch (error) {
       showStartupError(error);
     }
   }
 
   function handleAnswer(selected) {
-    if (answerResult || !choicesReady) {
+    if (answerResult) {
       return;
     }
 
@@ -104,7 +61,6 @@
   }
 
   function showResult() {
-    renderSequence += 1;
     view = "result";
     focusElement("#retry");
   }
@@ -116,11 +72,10 @@
     }
 
     currentIndex += 1;
-    showQuestion(session[currentIndex]);
+    prepareQuestion(session[currentIndex]);
   }
 
   function showLanding(shouldFocus = true) {
-    renderSequence += 1;
     startupError = "";
     answerResult = null;
     view = "landing";
@@ -140,9 +95,7 @@
       question={currentQuestion}
       {currentIndex}
       total={session.length}
-      {visibleBoard}
       {choices}
-      {choicesReady}
       {answerResult}
       onLeave={showLanding}
       onAnswer={handleAnswer}
@@ -157,3 +110,61 @@
     />
   {/if}
 </main>
+
+<style>
+  .app-shell {
+    position: relative;
+    width: 100%;
+    max-width: var(--app-max-width);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 32%, rgb(87 236 186 / 16%), transparent 54%),
+      repeating-linear-gradient(
+        118deg,
+        transparent 0,
+        transparent 4px,
+        rgb(255 255 255 / 1.8%) 5px,
+        transparent 6px
+      ),
+      linear-gradient(160deg, var(--felt-light), var(--felt) 50%, var(--felt-dark));
+    isolation: isolate;
+  }
+
+  .app-shell::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(90deg, rgb(0 0 0 / 12%), transparent 9%, transparent 91%, rgb(0 0 0 / 12%)),
+      radial-gradient(ellipse at 50% 56%, transparent 45%, rgb(0 31 24 / 18%) 100%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .error {
+    position: absolute;
+    top: 50%;
+    right: var(--gutter);
+    left: var(--gutter);
+    z-index: 20;
+    padding: 1rem;
+    border: 1px solid var(--wrong);
+    border-radius: 0.9rem;
+    background: #231619;
+    color: #ffd7d9;
+    font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
+    line-height: 1.6;
+    transform: translateY(-50%);
+  }
+
+  @media (min-width: 481px) {
+    .app-shell {
+      border-right: 1px solid rgb(255 255 255 / 8%);
+      border-left: 1px solid rgb(255 255 255 / 8%);
+      box-shadow: 0 0 4rem rgb(0 0 0 / 46%);
+    }
+  }
+</style>

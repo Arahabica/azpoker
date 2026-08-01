@@ -17,13 +17,18 @@ const app = read("src/App.svelte");
 const landing = read("src/screens/LandingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
+const actionButton = read("src/components/ActionButton.svelte");
+const answerSheet = read("src/components/AnswerSheet.svelte");
+const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
+const holeCards = read("src/components/HoleCards.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
+const uiTiming = read("src/ui-timing.js");
 const viteConfig = read("vite.config.js");
 const cardFontPath = path.join(
   root,
@@ -92,16 +97,18 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     /font-family: "M PLUS Rounded 1c UI"[\s\S]*MPLUSRounded1c-UI\.woff2/,
   );
   assert.match(
-    styles,
-    /\.landing-screen \{\s*font-family: "Kosugi Maru Landing", sans-serif;/,
+    landing,
+    /\.landing-screen \{[\s\S]*font-family: "Kosugi Maru Landing", sans-serif;/,
   );
   assert.match(
-    styles,
-    /\.game-screen,[\s\S]*\.error \{\s*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
+    quiz,
+    /\.game-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
   );
+  assert.match(result, /\.result-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
+  assert.match(app, /\.error \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
   assert.doesNotMatch(styles, /fonts\.googleapis/);
-  const landingRule = styles.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
+  const landingRule = landing.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
   assert.doesNotMatch(landingRule, /Kosugi Maru Game|M PLUS Rounded/);
 
   const landingFontSize = fs.statSync(landingFontPath).size;
@@ -129,14 +136,17 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     /\.mplus \{[\s\S]*font-family: "M PLUS Rounded 1c UI"[\s\S]*font-weight: 400/,
   );
   assert.match(choiceButton, /\.choice-value \{[\s\S]*font-weight: 400/);
-  assert.match(styles, /\.actual-probability \{[\s\S]*font-weight: 400/);
-  assert.match(styles, /\.score \{[\s\S]*font-weight: 400/);
+  assert.match(answerSheet, /\.actual-probability \{[\s\S]*font-weight: 400/);
+  assert.match(result, /\.score \{[\s\S]*font-weight: 400/);
 });
 
 test("問題画面はボードを上、傾けた手札を下に置く", () => {
-  assert.ok(quiz.indexOf('class="board-lane"') < quiz.indexOf('class="hand-cards"'));
-  assert.match(quiz, /id="hole-label" class="hand-label">手札<\/p>/);
-  assert.match(styles, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.ok(quiz.indexOf("<Board") < quiz.indexOf("<HoleCards"));
+  assert.match(quiz, /<Board cards=\{question\.board\}/);
+  assert.match(quiz, /<HoleCards cards=\{question\.hole\}/);
+  assert.match(board, /aria-label="コミュニティカード"/);
+  assert.match(holeCards, /class="hand-cards" role="group" aria-label="手札"/);
+  assert.match(board, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(card, /index === 0[\s\S]*"-6deg"[\s\S]*"6deg"/);
 });
 
@@ -161,12 +171,28 @@ test("選択肢をコンポーネント化し、中央配置とベースライ�
   assert.match(choiceButton, /<span class="choice-percent">\{suffix\}<\/span>/);
 });
 
+test("選択肢は初回描画から領域を確保し、表示時に卓を動かさない", () => {
+  assert.match(
+    quiz,
+    /const choicesConcealed = \$derived\(!choicesReady \|\| Boolean\(answerResult\)\)/,
+  );
+  assert.doesNotMatch(quiz, /hidden=\{!choicesReady\}/);
+  assert.match(quiz, /class:is-concealed=\{choicesConcealed\}/);
+  assert.match(quiz, /disabled=\{choicesConcealed\}/);
+  const concealedRule =
+    quiz.match(/\.choices\.is-concealed \{([^}]*)\}/)?.[1] ?? "";
+  assert.match(concealedRule, /visibility: hidden/);
+  assert.match(concealedRule, /pointer-events: none/);
+  assert.doesNotMatch(concealedRule, /display:\s*none/);
+});
+
 test("問題画面に説明用ラベルを増やさない", () => {
   const visibleUi = `${landing}\n${quiz}\n${result}`;
   for (const copy of [
     ">FLOP<",
     ">TURN<",
     ">ボード<",
+    ">手札<",
     "あなたの手札",
     "表示された時点から",
     "5%刻みの2択",
@@ -211,7 +237,8 @@ test("カードは4つの共通スートを使う", () => {
 
 test("トップと問題画面で共通のカード面を使う", () => {
   assert.match(landing, /PlayingCard/);
-  assert.match(quiz, /PlayingCard/);
+  assert.match(board, /PlayingCard/);
+  assert.match(holeCards, /PlayingCard/);
   assert.deepEqual(
     fs.readdirSync(path.join(root, "src", "components", "card-faces")),
     ["CardFace.svelte"],
@@ -221,15 +248,68 @@ test("トップと問題画面で共通のカード面を使う", () => {
 
 test("480pxのモバイル領域とPCの左右余白を持つ", () => {
   assert.match(styles, /--app-max-width: 480px/);
-  assert.match(styles, /max-width: var\(--app-max-width\)/);
-  assert.match(styles, /@media \(min-width: 481px\)/);
-  assert.match(styles, /margin: 0 auto/);
+  assert.match(app, /max-width: var\(--app-max-width\)/);
+  assert.match(app, /@media \(min-width: 481px\)/);
+  assert.match(app, /margin: 0 auto/);
 });
 
-test("ターンの段階表示と回答パネルを持つ", () => {
-  assert.match(app, /await wait\(reducedMotion \? 0 : 520\)/);
-  assert.match(quiz, /data-phase=\{answerResult \? "answer" : "question"\}/);
+test("ボードは表示とモーションを専用コンポーネントで管理する", () => {
+  assert.match(quiz, /import Board from/);
+  assert.match(quiz, /<Board cards=\{question\.board\} revealKey=\{currentIndex\}/);
+  assert.doesNotMatch(app, /visibleBoard|boardCards|REVEAL_DELAY_MS/);
+  assert.match(uiTiming, /CHOICE_REVEAL_DELAY_MS = 300/);
+  assert.doesNotMatch(board, /REVEAL_DELAY_MS|animation-delay/);
+  assert.match(board, /`\$\{revealKey\}-\$\{card\}-\$\{index\}`/);
+  assert.match(
+    board,
+    /\.board-card \{[\s\S]*animation: reveal-board-card 400ms ease-in-out both;/,
+  );
+  const boardAnimation =
+    board.match(/@keyframes reveal-board-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  assert.match(boardAnimation, /opacity: 0\.6/);
+  assert.match(boardAnimation, /opacity: 1/);
+  assert.doesNotMatch(boardAnimation, /transform|translate|scale/);
+  assert.match(
+    quiz,
+    /const choicesReady = \$derived\(revealedChoiceIndex === currentIndex\)/,
+  );
+  assert.match(quiz, /window\.setTimeout\([\s\S]*CHOICE_REVEAL_DELAY_MS/);
+});
+
+test("コンポーネント固有のスタイルをグローバルCSSに漏らさない", () => {
+  for (const selector of [
+    "app-shell",
+    "landing-screen",
+    "game-screen",
+    "board",
+    "hand-cards",
+    "choice",
+    "answer-sheet",
+    "result-screen",
+    "action-button",
+    "playing-card",
+  ]) {
+    assert.doesNotMatch(styles, new RegExp(`\\.${selector}\\b`));
+  }
+
+  for (const component of [
+    app,
+    landing,
+    quiz,
+    result,
+    actionButton,
+    answerSheet,
+    board,
+    holeCards,
+    card,
+    choiceButton,
+  ]) {
+    assert.match(component, /<style>/);
+  }
+});
+
+test("問題画面は回答パネルをコンポーネントで表示する", () => {
   assert.match(quiz, /<AnswerSheet/);
-  assert.match(styles, /@keyframes raise-sheet/);
+  assert.match(answerSheet, /@keyframes raise-sheet/);
   assert.match(styles, /prefers-reduced-motion/);
 });

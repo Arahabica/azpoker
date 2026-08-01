@@ -7,7 +7,6 @@
     card,
     index = 0,
     variant = "board",
-    isNew = false,
     decorative = variant === "logo",
   } = $props();
 
@@ -31,7 +30,6 @@
   class:playing-card--board={variant === "board"}
   class:playing-card--hole={variant === "hole"}
   class:playing-card--logo={variant === "logo"}
-  class:is-new-card={isNew}
   data-tone={details.tone}
   data-rank={details.rank}
   style={`--deal-index: ${index}; --card-rotation: ${rotation};`}
@@ -68,8 +66,6 @@
       inset 0 0 0 1px rgb(255 255 255 / 64%);
     transform: rotate(var(--card-rotation));
     transform-origin: 50% 88%;
-    animation: deal-card 240ms cubic-bezier(0.18, 0.78, 0.25, 1) both;
-    animation-delay: calc(var(--deal-index) * 42ms);
   }
 
   .playing-card[data-tone="red"] {
@@ -88,6 +84,12 @@
     width: 100%;
   }
 
+  .playing-card--hole,
+  .playing-card--logo {
+    animation: deal-card 240ms cubic-bezier(0.18, 0.78, 0.25, 1) both;
+    animation-delay: calc(var(--deal-index) * 42ms);
+  }
+
   .playing-card--hole {
     width: clamp(4.35rem, 21vw, 5.5rem);
   }
@@ -99,8 +101,15 @@
       inset 0 0 0 1px rgb(255 255 255 / 72%);
   }
 
-  .playing-card.is-new-card {
-    animation-duration: 300ms;
-  }
+  @keyframes deal-card {
+    from {
+      opacity: 0;
+      transform: translateY(-0.8rem) rotate(calc(var(--card-rotation) - 2deg)) scale(0.96);
+    }
 
+    to {
+      opacity: 1;
+      transform: translateY(0) rotate(var(--card-rotation)) scale(1);
+    }
+  }
 </style>

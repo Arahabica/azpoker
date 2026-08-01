@@ -1,0 +1,3 @@
+const CHOICE_REVEAL_DELAY_MS = 300;
+
+export { CHOICE_REVEAL_DELAY_MS };
