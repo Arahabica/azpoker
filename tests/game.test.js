@@ -1,9 +1,7 @@
-"use strict";
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const bank = require("../src/question-bank.js");
-const {
+import {
   SESSION_STAGE_COUNTS,
   boardRevealSteps,
   cardDetails,
@@ -11,7 +9,8 @@ const {
   formatActualPercent,
   formatCard,
   formatCards,
-} = require("../src/game.js");
+} from "../src/game.js";
+import bank from "../src/question-bank.js";
 
 function seededRandom(seed) {
   let state = seed >>> 0;

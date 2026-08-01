@@ -1,12 +1,11 @@
-"use strict";
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const bank = require("../src/question-bank.js");
-const {
+import bank from "../src/question-bank.js";
+import {
   calculateProbability,
   isTargetComplete,
-} = require("../src/probability-engine.js");
+} from "../src/probability-engine.js";
 
 function choicePercent(value) {
   assert.match(value, /^\d+%$/);

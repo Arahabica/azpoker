@@ -1,6 +1,5 @@
 /* scripts/generate_question_bank.py から生成。直接編集しないでください。 */
-(function attachQuestionBank(root) {
-  const questions = [
+const questions = [
   {
     "id": "preflop-flush-01",
     "mode": "A",
@@ -2132,13 +2131,9 @@
     "explain": "残り1枚でポケットペアを3カードにできるのは、約23回に1回です。"
   }
 ];
-  const bank = Object.freeze(questions.map((question) => Object.freeze(question)));
 
-  if (typeof module === "object" && module.exports) {
-    module.exports = bank;
-  }
+const questionBank = Object.freeze(
+  questions.map((question) => Object.freeze(question)),
+);
 
-  if (root) {
-    root.QUESTION_BANK = bank;
-  }
-})(typeof globalThis !== "undefined" ? globalThis : this);
+export default questionBank;

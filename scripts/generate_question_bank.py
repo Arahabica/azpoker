@@ -494,18 +494,13 @@ def render_bank(bank: list[dict[str, object]]) -> str:
     payload = json.dumps(bank, ensure_ascii=False, indent=2)
     return (
         "/* scripts/generate_question_bank.py から生成。直接編集しないでください。 */\n"
-        "(function attachQuestionBank(root) {\n"
-        f"  const questions = {payload};\n"
-        "  const bank = Object.freeze(questions.map((question) => Object.freeze(question)));\n"
+        f"const questions = {payload};\n"
         "\n"
-        '  if (typeof module === "object" && module.exports) {\n'
-        "    module.exports = bank;\n"
-        "  }\n"
+        "const questionBank = Object.freeze(\n"
+        "  questions.map((question) => Object.freeze(question)),\n"
+        ");\n"
         "\n"
-        "  if (root) {\n"
-        "    root.QUESTION_BANK = bank;\n"
-        "  }\n"
-        '})(typeof globalThis !== "undefined" ? globalThis : this);\n'
+        "export default questionBank;\n"
     )
 
 

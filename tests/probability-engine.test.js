@@ -1,13 +1,12 @@
-"use strict";
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const {
+import {
   calculateProbability,
   hasFlushUsingHole,
   hasStraightUsingHole,
   hasThreeOfAKindUsingHole,
-} = require("../src/probability-engine.js");
+} from "../src/probability-engine.js";
 
 function assertRoundsTo(actual, expected, digits = 1) {
   assert.equal(actual.toFixed(digits), expected.toFixed(digits));

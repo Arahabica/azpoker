@@ -3,21 +3,23 @@
 ポーカーのドロー確率を2択で答える、10問1セットのブラウザドリルです。
 現在は `PLAN.md` のフェーズ3.7相当まで実装した、モバイル向けカードUI版です。
 
+UIは **Svelte 5**、開発・ビルドは **Vite** を使います。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
+
 ## 起動
 
-追加パッケージは不要です。
-
 ```sh
-npm run serve
+npm install
+npm run dev
 ```
 
-ブラウザで `http://localhost:8000` を開きます。
+Viteが表示したローカルURLをブラウザで開きます。採用スートの確認ページは `/suit-mark-preview.html` です。
 
 ## 検証
 
 ```sh
 npm test
 npm run check:bank
+npm run build
 ```
 
 問題バンクを再生成する場合:
@@ -25,6 +27,17 @@ npm run check:bank
 ```sh
 python3 scripts/generate_question_bank.py
 ```
+
+## コード構成
+
+- `src/App.svelte`: セッションと画面遷移
+- `src/screens/`: トップ、問題、結果の各画面
+- `src/components/PlayingCard.svelte`: サイズ・回転・色を受け持つ共通カード枠
+- `src/components/card-faces/CardFace.svelte`: 採用したランクとスートの配置
+- `src/components/AnswerSheet.svelte`: 回答後のパネル
+- `src/game.js`: 問題選択と表示用の純粋関数
+- `src/probability-engine.js`: 確率計算の純粋関数
+- `src/question-bank.js`: スクリプトから生成する100問
 
 ## 現在の仕様判断
 
@@ -38,7 +51,8 @@ python3 scripts/generate_question_bank.py
 - 問題画面はボードを上、傾けた手札を下に置き、ステージ名やボード名は表示しません。
 - カードの10は、常に数字の `10` として表示します。
 - カードランクには同梱した Arbutus Slab を使い、外部フォントCDNには依存しません。
-- カード面は `poker001.png` 寄せを暫定採用し、比較ページに4案を残しています。
+- カード面は、採用した「今の配置＋小マーク調整」の1種類だけを持ちます。
+- スートは「シャープ」の1種類だけを採用しています。ハートの下端を尖らせ、スペードとクラブには底辺が水平で左右端の尖った共通台座を使い、ダイヤはModianoを基にしています。
 - UIは最大480px幅で、PCでは中央配置して左右に余白を取ります。
 - ターン問題はフロップ3枚を先に見せ、一拍置いて4枚目を表示します。
 - コンボドローは、フラッシュとストレートの両方を完成させる1枚を二重計上しません。
