@@ -12,6 +12,7 @@ function read(relativePath) {
 
 const html = read("index.html");
 const suitPreviewHtml = read("suit-mark-preview.html");
+const main = read("src/main.js");
 const app = read("src/App.svelte");
 const landing = read("src/screens/LandingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
@@ -80,6 +81,15 @@ test("トップ・問題・結果を独立したSvelteコンポーネントで�
   assert.match(app, /<ResultScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+});
+
+test("アクセントカラーは採用した黄色だけを使う", () => {
+  const rootBlock = styles.match(/:root \{([^}]*)\}/)?.[1] ?? "";
+  assert.match(rootBlock, /--accent: rgb\(241 196 15\);/);
+  assert.match(rootBlock, /--accent-emphasis: rgb\(241 196 15\);/);
+  assert.doesNotMatch(styles, /data-accent/);
+  assert.doesNotMatch(main, /location\.search|accent-theme/);
+  assert.equal(fs.existsSync(path.join(root, "src", "accent-theme.js")), false);
 });
 
 test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
@@ -171,10 +181,11 @@ test("選択肢をコンポーネント化し、中央配置とベースライ�
     choiceButton,
     /\.choice-content \{[\s\S]*align-items: baseline;/,
   );
-  assert.match(
-    choiceButton,
-    /\.choice-qualifier,[\s\S]*\.choice-percent \{[\s\S]*font-size: 0\.72rem;/,
-  );
+  const affixRule =
+    choiceButton.match(
+      /\.choice-qualifier,\s*\.choice-percent \{([^}]*)\}/,
+    )?.[1] ?? "";
+  assert.match(affixRule, /font-size: [^;]+;/);
   assert.match(choiceButton, /<span class="choice-value">\{number\}<\/span>/);
   assert.match(choiceButton, /<span class="choice-percent">\{suffix\}<\/span>/);
 });

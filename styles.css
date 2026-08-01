@@ -47,8 +47,12 @@
   --paper-shadow: #e7e2d7;
   --text: #f7faf8;
   --muted: #a9c2b9;
-  --accent: #f1cb54;
-  --accent-pressed: #dcb53b;
+  --accent: rgb(241 196 15);
+  --accent-hover: #f6d137;
+  --accent-pressed: #d7ad0d;
+  --accent-ink: #29220d;
+  --accent-emphasis: rgb(241 196 15);
+  --accent-glow: rgb(241 196 15 / 42%);
   --correct: #20ca91;
   --wrong: #ff6b6f;
   --red-suit: #c82d3c;
@@ -201,7 +205,7 @@ p {
 .primary-action {
   border: 1px solid rgb(255 255 255 / 20%);
   background: var(--accent);
-  color: #29220d;
+  color: var(--accent-ink);
   box-shadow:
     0 0.3rem 0 var(--accent-pressed),
     0 0.8rem 1.7rem rgb(0 30 22 / 22%);
@@ -275,8 +279,8 @@ p {
   width: 10%;
   height: 100%;
   border-radius: inherit;
-  background: var(--accent);
-  box-shadow: 0 0 0.7rem rgb(241 203 84 / 42%);
+  background: var(--accent-emphasis);
+  box-shadow: 0 0 0.7rem var(--accent-glow);
   transition: width 260ms ease;
 }
 
@@ -432,7 +436,7 @@ p {
 
 .actual-probability {
   margin-top: 0.35rem;
-  color: var(--accent);
+  color: var(--accent-emphasis);
   font-size: clamp(2.5rem, 12vw, 3.4rem);
   font-weight: 400;
   letter-spacing: -0.06em;
@@ -539,7 +543,7 @@ p {
   }
 
   .primary-action:hover {
-    background: #ffda64;
+    background: var(--accent-hover);
   }
 
   .icon-button:hover {
