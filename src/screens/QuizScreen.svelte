@@ -1,5 +1,6 @@
 <script>
   import AnswerSheet from "../components/AnswerSheet.svelte";
+  import ChoiceButton from "../components/ChoiceButton.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
   import PlayingCard from "../components/PlayingCard.svelte";
 
@@ -77,15 +78,11 @@
       hidden={!choicesReady}
     >
       {#each choices as choice (choice)}
-        <button
-          class="choice"
-          type="button"
+        <ChoiceButton
+          value={choice}
           disabled={Boolean(answerResult)}
-          onclick={() => onAnswer(choice)}
-        >
-          <span class="choice-qualifier">約</span>
-          <span class="choice-value">{choice}</span>
-        </button>
+          onSelect={onAnswer}
+        />
       {/each}
     </div>
   </div>

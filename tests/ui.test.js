@@ -17,6 +17,7 @@ const landing = read("src/screens/LandingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const card = read("src/components/PlayingCard.svelte");
+const choiceButton = read("src/components/ChoiceButton.svelte");
 const suitPreview = read("src/SuitMarkPreview.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
@@ -146,7 +147,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     mixedFontText,
     /\.mplus \{[\s\S]*font-family: "M PLUS Rounded 1c UI"[\s\S]*font-weight: 400/,
   );
-  assert.match(styles, /\.choice-value \{[\s\S]*font-weight: 400/);
+  assert.match(choiceButton, /\.choice-value \{[\s\S]*font-weight: 400/);
   assert.match(styles, /\.actual-probability \{[\s\S]*font-weight: 400/);
   assert.match(styles, /\.score \{[\s\S]*font-weight: 400/);
 });
@@ -156,6 +157,26 @@ test("問題画面はボードを上、傾けた手札を下に置く", () => {
   assert.match(quiz, /id="hole-label" class="hand-label">手札<\/p>/);
   assert.match(styles, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(card, /index === 0[\s\S]*"-6deg"[\s\S]*"6deg"/);
+});
+
+test("選択肢をコンポーネント化し、中央配置とベースラインを分ける", () => {
+  assert.match(quiz, /import ChoiceButton/);
+  assert.match(quiz, /<ChoiceButton[\s\S]*value=\{choice\}/);
+  assert.doesNotMatch(quiz, /<button[\s\S]*class="choice"/);
+  assert.match(
+    choiceButton,
+    /\.choice \{[\s\S]*display: grid;[\s\S]*place-items: center;/,
+  );
+  assert.match(
+    choiceButton,
+    /\.choice-content \{[\s\S]*align-items: baseline;/,
+  );
+  assert.match(
+    choiceButton,
+    /\.choice-qualifier,[\s\S]*\.choice-percent \{[\s\S]*font-size: 0\.72rem;/,
+  );
+  assert.match(choiceButton, /<span class="choice-value">\{number\}<\/span>/);
+  assert.match(choiceButton, /<span class="choice-percent">\{suffix\}<\/span>/);
 });
 
 test("問題画面に説明用ラベルを増やさない", () => {

@@ -369,39 +369,6 @@ p {
   visibility: hidden;
 }
 
-.choice {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  min-height: 4rem;
-  gap: 0.22rem;
-  border: 1px solid rgb(255 255 255 / 23%);
-  border-radius: 1rem;
-  background: rgb(2 33 25 / 68%);
-  color: var(--text);
-  cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 8%),
-    0 0.55rem 1.1rem rgb(0 35 27 / 14%);
-  transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    background 120ms ease;
-}
-
-.choice-qualifier {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 650;
-}
-
-.choice-value {
-  font-size: clamp(1.35rem, 6.5vw, 1.75rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  font-variant-numeric: tabular-nums;
-}
-
 .answer-sheet {
   position: absolute;
   right: 0;
@@ -565,7 +532,6 @@ p {
 }
 
 @media (hover: hover) {
-  .choice:hover,
   .secondary-action:hover {
     border-color: rgb(255 255 255 / 48%);
     background: rgb(2 33 25 / 82%);

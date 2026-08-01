@@ -36,6 +36,7 @@ python3 scripts/generate_question_bank.py
 - `src/screens/`: トップ、問題、結果の各画面
 - `src/components/PlayingCard.svelte`: サイズ・回転・色を受け持つ共通カード枠
 - `src/components/card-faces/CardFace.svelte`: 採用したランクとスートの配置
+- `src/components/ChoiceButton.svelte`: 選択肢の中央配置と文字のベースライン
 - `src/components/AnswerSheet.svelte`: 回答後のパネル
 - `src/game.js`: 問題選択と表示用の純粋関数
 - `src/probability-engine.js`: 確率計算の純粋関数
