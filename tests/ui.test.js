@@ -4,6 +4,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
+import { CARD_SUITS } from "../src/components/card-suits.js";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function read(relativePath) {
@@ -11,15 +13,12 @@ function read(relativePath) {
 }
 
 const html = read("index.html");
-const suitPreviewHtml = read("suit-mark-preview.html");
-const main = read("src/main.js");
 const app = read("src/App.svelte");
 const landing = read("src/screens/LandingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
-const suitPreview = read("src/SuitMarkPreview.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
@@ -54,23 +53,11 @@ const mplusFontPath = path.join(
   "m-plus-rounded-1c",
   "MPLUSRounded1c-UI.woff2",
 );
-test("Svelte + Viteのアプリと採用スート確認エントリを持つ", () => {
+test("Svelte + Viteのアプリを構成する", () => {
   assert.match(html, /<div id="app"><\/div>/);
   assert.match(html, /type="module" src="\/src\/main\.js"/);
-  assert.match(
-    suitPreviewHtml,
-    /type="module" src="\/src\/suit-preview\.js"/,
-  );
   assert.match(viteConfig, /svelte\(\)/);
   assert.match(viteConfig, /assetsInlineLimit: 0/);
-  assert.match(viteConfig, /suit-mark-preview\.html/);
-  assert.doesNotMatch(
-    viteConfig,
-    /cardPreview|card-balance-preview|titleFontPreview|title-font-preview/,
-  );
-  assert.equal(fs.existsSync(path.join(root, "title-font-preview.html")), false);
-  assert.equal(fs.existsSync(path.join(root, "src", "TitleFontPreview.svelte")), false);
-  assert.equal(fs.existsSync(path.join(root, "src", "title-font-preview.js")), false);
 });
 
 test("トップ・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
@@ -83,17 +70,13 @@ test("トップ・問題・結果を独立したSvelteコンポーネントで�
   assert.match(result, /id="back-home"/);
 });
 
-test("アクセントカラーは採用した黄色だけを使う", () => {
+test("アクセントカラーに黄色を使う", () => {
   const rootBlock = styles.match(/:root \{([^}]*)\}/)?.[1] ?? "";
   assert.match(rootBlock, /--accent: rgb\(241 196 15\);/);
   assert.match(rootBlock, /--accent-emphasis: rgb\(241 196 15\);/);
-  assert.doesNotMatch(styles, /data-accent/);
-  assert.doesNotMatch(main, /location\.search|accent-theme/);
-  assert.equal(fs.existsSync(path.join(root, "src", "accent-theme.js")), false);
 });
 
 test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
-  assert.doesNotMatch(landing, /instanceId|titleFont|titleWeight|idSuffix/);
   assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/);
   assert.doesNotMatch(html, /<link[^>]+rel="preconnect"/);
   assert.match(
@@ -114,10 +97,10 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(
     styles,
-    /\.game-screen,[\s\S]*\.suit-preview \{\s*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
+    /\.game-screen,[\s\S]*\.error \{\s*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
   );
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
-  assert.doesNotMatch(styles, /Kosugi Maru Title|fonts\.googleapis/);
+  assert.doesNotMatch(styles, /fonts\.googleapis/);
   const landingRule = styles.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
   assert.doesNotMatch(landingRule, /Kosugi Maru Game|M PLUS Rounded/);
 
@@ -127,18 +110,6 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.ok(landingFontSize > 0 && landingFontSize < 3_000);
   assert.ok(gameFontSize > landingFontSize && gameFontSize < 50_000);
   assert.ok(mplusFontSize > 0 && mplusFontSize < 10_000);
-  assert.equal(
-    fs.existsSync(
-      path.join(
-        root,
-        "assets",
-        "fonts",
-        "kosugi-maru",
-        "KosugiMaru-Title.woff2",
-      ),
-    ),
-    false,
-  );
   assert.match(fontBuildScript, /const landingText = "暗算ポーカーはじめる"/);
   assert.match(
     fontBuildScript,
@@ -206,9 +177,9 @@ test("問題画面に説明用ラベルを増やさない", () => {
 
 test("カード枠とカード面を分け、SVGスートと10表記に対応する", () => {
   assert.match(card, /import \{ cardDetails \}/);
-  assert.match(card, /import \{ SHARP_SUITS \}/);
+  assert.match(card, /import \{ CARD_SUITS \}/);
   assert.match(card, /import CardFace/);
-  assert.match(card, /suitSet = SHARP_SUITS/);
+  assert.match(card, /CARD_SUITS\[details\.suit\]/);
   assert.match(card, /<CardFace/);
   assert.match(card, /container-type: inline-size/);
   assert.match(card, /--corner-center-x: 22%/);
@@ -227,27 +198,18 @@ test("カード枠とカード面を分け、SVGスートと10表記に対応す
   assert.ok(fs.statSync(cardFontPath).size > 0);
 });
 
-test("採用スートはシャープ1種類だけを持つ", () => {
-  assert.match(cardSuits, /export const SHARP_SUITS/);
+test("カードは4つの共通スートを使う", () => {
+  assert.deepEqual(Object.keys(CARD_SUITS), ["h", "d", "s", "c"]);
+  assert.match(cardSuits, /export const CARD_SUITS/);
+  assert.match(cardSuits, /const SUIT_PEDESTAL_PATH/);
   assert.equal(
-    cardSuits.match(/export const [A-Z_]+_SUITS/g)?.length,
-    1,
-    "スートセットを複数残さない",
-  );
-  assert.match(cardSuits, /const SHARP_PEDESTAL_PATH/);
-  assert.equal(
-    cardSuits.match(/\$\{SHARP_PEDESTAL_PATH\}/g)?.length,
+    cardSuits.match(/\$\{SUIT_PEDESTAL_PATH\}/g)?.length,
     2,
     "スペードとクラブが同じ台座パスを使う",
   );
-  assert.match(suitPreview, /import \{ SHARP_SUITS \}/);
-  assert.match(suitPreview, /<h1>シャープ<\/h1>/);
-  assert.match(suitPreview, /const suitCards = \["As", "Ah", "Ad", "Ac"\]/);
-  assert.match(suitPreview, /suitSet=\{SHARP_SUITS\}/);
-  assert.doesNotMatch(suitPreview, /candidate|groups|比較/);
 });
 
-test("本番用カード面コンポーネントだけを残す", () => {
+test("トップと問題画面で共通のカード面を使う", () => {
   assert.match(landing, /PlayingCard/);
   assert.match(quiz, /PlayingCard/);
   assert.deepEqual(
@@ -255,7 +217,6 @@ test("本番用カード面コンポーネントだけを残す", () => {
     ["CardFace.svelte"],
   );
   assert.match(cardFace, /width: 19cqi/);
-  assert.doesNotMatch(card, /faceComponent|FaceComponent/);
 });
 
 test("480pxのモバイル領域とPCの左右余白を持つ", () => {

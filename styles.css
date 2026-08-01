@@ -145,8 +145,7 @@ p {
 
 .game-screen,
 .result-screen,
-.error,
-.suit-preview {
+.error {
   font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
 }
 

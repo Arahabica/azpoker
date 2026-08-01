@@ -1,20 +1,18 @@
 <script>
   import { cardDetails } from "../game.js";
-  import { SHARP_SUITS } from "./card-suits.js";
+  import { CARD_SUITS } from "./card-suits.js";
   import CardFace from "./card-faces/CardFace.svelte";
 
   let {
     card,
     index = 0,
     variant = "board",
-    suitSet = SHARP_SUITS,
     isNew = false,
     decorative = variant === "logo",
-    animate = true,
   } = $props();
 
   const details = $derived(cardDetails(card));
-  const suit = $derived(suitSet[details.suit]);
+  const suit = $derived(CARD_SUITS[details.suit]);
   const rotation = $derived(
     variant === "hole"
       ? index === 0
@@ -34,7 +32,6 @@
   class:playing-card--hole={variant === "hole"}
   class:playing-card--logo={variant === "logo"}
   class:is-new-card={isNew}
-  class:is-static={!animate}
   data-tone={details.tone}
   data-rank={details.rank}
   style={`--deal-index: ${index}; --card-rotation: ${rotation};`}
@@ -73,10 +70,6 @@
     transform-origin: 50% 88%;
     animation: deal-card 240ms cubic-bezier(0.18, 0.78, 0.25, 1) both;
     animation-delay: calc(var(--deal-index) * 42ms);
-  }
-
-  .playing-card.is-static {
-    animation: none;
   }
 
   .playing-card[data-tone="red"] {

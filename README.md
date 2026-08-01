@@ -31,7 +31,7 @@ python3 scripts/generate_question_bank.py
 ## ドキュメント
 
 - [`PLAN.md`](PLAN.md): ゲーム仕様、確率、問題データ、実装フェーズ
-- [`DESIGN.md`](DESIGN.md): 採用中の画面構成、ビジュアル、カード、表示文言
+- [`DESIGN.md`](DESIGN.md): 現在の画面構成、ビジュアル、カード、表示文言
 - [`assets/fonts/README.md`](assets/fonts/README.md): UIフォントの収録文字とサブセット再生成
 
 ## コード構成
