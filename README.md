@@ -22,6 +22,8 @@ npm run check:bank
 npm run build
 ```
 
+トップタイトル用Kosugi Maruの再生成方法は、[`assets/fonts/kosugi-maru/README.md`](assets/fonts/kosugi-maru/README.md) に記録しています。
+
 問題バンクを再生成する場合:
 
 ```sh
@@ -51,6 +53,7 @@ python3 scripts/generate_question_bank.py
 - 問題画面はボードを上、傾けた手札を下に置き、ステージ名やボード名は表示しません。
 - カードの10は、常に数字の `10` として表示します。
 - カードランクには同梱した Arbutus Slab を使い、外部フォントCDNには依存しません。
+- トップタイトルには、`fontslice --text '暗算ポーカー'` で5文字だけにした1.5KBのKosugi Maru WOFF2を同梱して使います。
 - カード面は、採用した「今の配置＋小マーク調整」の1種類だけを持ちます。
 - スートは「シャープ」の1種類だけを採用しています。ハートの下端を尖らせ、スペードとクラブには底辺が水平で左右端の尖った共通台座を使い、ダイヤはModianoを基にしています。
 - UIは最大480px幅で、PCでは中央配置して左右に余白を取ります。

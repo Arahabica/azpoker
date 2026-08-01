@@ -29,6 +29,13 @@ const cardFontPath = path.join(
   "arbutus-slab",
   "ArbutusSlab-Regular-latin.woff2",
 );
+const titleFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "kosugi-maru",
+  "KosugiMaru-Title.woff2",
+);
 
 test("Svelte + Viteのアプリと採用スート確認エントリを持つ", () => {
   assert.match(html, /<div id="app"><\/div>/);
@@ -39,7 +46,13 @@ test("Svelte + Viteのアプリと採用スート確認エントリを持つ", (
   );
   assert.match(viteConfig, /svelte\(\)/);
   assert.match(viteConfig, /suit-mark-preview\.html/);
-  assert.doesNotMatch(viteConfig, /cardPreview|card-balance-preview/);
+  assert.doesNotMatch(
+    viteConfig,
+    /cardPreview|card-balance-preview|titleFontPreview|title-font-preview/,
+  );
+  assert.equal(fs.existsSync(path.join(root, "title-font-preview.html")), false);
+  assert.equal(fs.existsSync(path.join(root, "src", "TitleFontPreview.svelte")), false);
+  assert.equal(fs.existsSync(path.join(root, "src", "title-font-preview.js")), false);
 });
 
 test("トップ・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
@@ -50,6 +63,20 @@ test("トップ・問題・結果を独立したSvelteコンポーネントで�
   assert.match(app, /<ResultScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+});
+
+test("本番タイトルは5文字だけのKosugi Maruサブセットを使う", () => {
+  assert.doesNotMatch(landing, /instanceId|titleFont|titleWeight|idSuffix/);
+  assert.match(styles, /font-family: "Kosugi Maru Title"/);
+  assert.match(styles, /\.brand-lockup h1 \{[\s\S]*font-weight: 400/);
+  assert.match(styles, /KosugiMaru-Title\.woff2/);
+  assert.match(
+    styles,
+    /unicode-range: U\+30AB, U\+30DD, U\+30FC, U\+6697, U\+7B97/,
+  );
+  const titleFontSize = fs.statSync(titleFontPath).size;
+  assert.ok(titleFontSize > 0);
+  assert.ok(titleFontSize < 2_000, `タイトルフォントが大きすぎます: ${titleFontSize}`);
 });
 
 test("問題画面はボードを上、傾けた手札を下に置く", () => {

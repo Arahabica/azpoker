@@ -1,4 +1,14 @@
 @font-face {
+  font-family: "Kosugi Maru Title";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Title.woff2")
+    format("woff2");
+  unicode-range: U+30AB, U+30DD, U+30FC, U+6697, U+7B97;
+}
+
+@font-face {
   font-family: "Arbutus Slab";
   font-style: normal;
   font-weight: 400;
@@ -131,8 +141,9 @@ p {
 }
 
 .brand-lockup h1 {
+  font-family: "Kosugi Maru Title", sans-serif;
   font-size: clamp(2.1rem, 10vw, 2.9rem);
-  font-weight: 850;
+  font-weight: 400;
   letter-spacing: -0.055em;
   text-shadow: 0 0.15rem 0.5rem rgb(0 0 0 / 18%);
 }

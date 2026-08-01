@@ -47,3 +47,12 @@ The diamond path in `src/components/card-suits.js` is derived from
 public domain.
 
 Source: https://commons.wikimedia.org/wiki/File:SuitDiamonds.svg
+
+## Kosugi Maru
+
+The production title uses `assets/fonts/kosugi-maru/KosugiMaru-Title.woff2`, a
+modified subset of Kosugi Maru generated with `fontslice` for the five unique
+characters in `暗算ポーカー`. Kosugi Maru is licensed under the Apache License
+2.0; the complete license is included beside the subset font.
+
+Source and license: https://github.com/google/fonts/tree/main/apache/kosugimaru
