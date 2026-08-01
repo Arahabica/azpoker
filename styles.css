@@ -57,6 +57,10 @@
   --wrong: #ff6b6f;
   --red-suit: #c82d3c;
   --card-rank-font: "Arbutus Slab", serif;
+  --card-reveal-duration: 350ms;
+  --card-reveal-easing: ease-in-out;
+  --card-reveal-start-opacity: 0.4;
+  --card-reveal-start-y: 4px;
   font-family: sans-serif;
 }
 

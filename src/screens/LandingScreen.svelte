@@ -1,20 +1,13 @@
 <script>
   import ActionButton from "../components/ActionButton.svelte";
-  import PlayingCard from "../components/PlayingCard.svelte";
+  import LogoCards from "../components/LogoCards.svelte";
 
   let { onStart } = $props();
 </script>
 
 <section id="landing" class="landing-screen" aria-labelledby="app-title">
   <div class="brand-lockup">
-    <div class="logo-cards" aria-hidden="true">
-      <div class="logo-card">
-        <PlayingCard card="As" index={0} variant="logo" />
-      </div>
-      <div class="logo-card">
-        <PlayingCard card="Th" index={1} variant="logo" />
-      </div>
-    </div>
+    <LogoCards />
     <h1 id="app-title">暗算ポーカー</h1>
   </div>
   <div class="start-action">
@@ -51,18 +44,9 @@
     font-size: clamp(2.1rem, 10vw, 2.9rem);
     font-weight: 400;
     letter-spacing: -0.055em;
+    line-height: 1;
+    white-space: nowrap;
     text-shadow: 0 0.15rem 0.5rem rgb(0 0 0 / 18%);
-  }
-
-  .logo-cards {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 8.5rem;
-  }
-
-  .logo-card + .logo-card {
-    margin-left: -1.15rem;
   }
 
   .start-action {

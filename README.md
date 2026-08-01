@@ -38,9 +38,10 @@ python3 scripts/generate_question_bank.py
 
 - `src/App.svelte`: セッションと画面遷移
 - `src/screens/`: トップ、問題、結果の各画面
-- `src/components/Board.svelte`: ボードの5列配置と同時フェード
-- `src/components/HoleCards.svelte`: 手札2枚の重なりと傾き
-- `src/components/PlayingCard.svelte`: サイズ・回転・色を受け持つ共通カード枠
+- `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
+- `src/components/HoleCards.svelte`: 手札2枚のサイズ、重なり、角度、モーション
+- `src/components/LogoCards.svelte`: ロゴカードの内容、サイズ、重なり、角度、モーション
+- `src/components/PlayingCard.svelte`: カード情報、共通カード枠、色、読み上げ
 - `src/components/card-faces/CardFace.svelte`: 採用したランクとスートの配置
 - `src/components/ActionButton.svelte`: 主要・副操作ボタンの共通表示
 - `src/components/ChoiceButton.svelte`: 選択肢の中央配置と文字のベースライン

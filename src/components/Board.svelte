@@ -11,7 +11,7 @@
 >
   {#each cards as card, index (`${revealKey}-${card}-${index}`)}
     <div class="board-card">
-      <PlayingCard {card} {index} variant="board" />
+      <PlayingCard {card} />
     </div>
   {/each}
 </div>
@@ -28,14 +28,19 @@
 
   .board-card {
     min-width: 0;
-    animation: reveal-board-card 350ms ease-in-out both;
+    animation:
+      reveal-board-card
+      var(--card-reveal-duration)
+      var(--card-reveal-easing)
+      both;
   }
 
   @keyframes reveal-board-card {
     from {
-      opacity: 0.4;
-      transform: translateY(4px);
+      opacity: var(--card-reveal-start-opacity);
+      transform: translateY(var(--card-reveal-start-y));
     }
+
     to {
       opacity: 1;
       transform: translateY(0);

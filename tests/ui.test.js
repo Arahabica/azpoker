@@ -23,6 +23,7 @@ const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
 const holeCards = read("src/components/HoleCards.svelte");
+const logoCards = read("src/components/LogoCards.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
@@ -84,6 +85,12 @@ test("アクセントカラーに黄色を使う", () => {
 test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
   assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/);
   assert.doesNotMatch(html, /<link[^>]+rel="preconnect"/);
+  const landingPreload =
+    html.match(/<link[^>]+KosugiMaru-Landing\.woff2[^>]*>/)?.[0] ?? "";
+  assert.match(landingPreload, /rel="preload"/);
+  assert.match(landingPreload, /as="font"/);
+  assert.match(landingPreload, /type="font\/woff2"/);
+  assert.match(landingPreload, /crossorigin/);
   assert.match(
     styles,
     /font-family: "Kosugi Maru Landing"[\s\S]*KosugiMaru-Landing\.woff2/,
@@ -123,6 +130,8 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%/,
   );
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
+  assert.match(landing, /\.brand-lockup h1 \{[\s\S]*line-height: 1;/);
+  assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
 
   assert.match(quiz, /MixedFontText text=\{question\.prompt\}/);
   assert.match(mixedFontText, /\[A-Za-z0-9%\]/);
@@ -147,7 +156,6 @@ test("問題画面はボードを上、傾けた手札を下に置く", () => {
   assert.match(board, /aria-label="コミュニティカード"/);
   assert.match(holeCards, /class="hand-cards" role="group" aria-label="手札"/);
   assert.match(board, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
-  assert.match(card, /index === 0[\s\S]*"-6deg"[\s\S]*"6deg"/);
 });
 
 test("選択肢をコンポーネント化し、中央配置とベースラインを分ける", () => {
@@ -224,6 +232,15 @@ test("カード枠とカード面を分け、SVGスートと10表記に対応す
   assert.ok(fs.statSync(cardFontPath).size > 0);
 });
 
+test("PlayingCardはカードの描画と読み上げだけを担当する", () => {
+  assert.match(card, /let \{ card, decorative = false \} = \$props\(\)/);
+  assert.match(card, /role=\{decorative \? undefined : "img"\}/);
+  assert.match(card, /aria-label=\{decorative \? undefined : details\.ariaLabel\}/);
+  assert.match(card, /width: 100%/);
+  assert.doesNotMatch(card, /variant|index|CARD_ANGLES|start-angle|end-angle/);
+  assert.doesNotMatch(card, /@keyframes|animation:|transform:|playing-card--/);
+});
+
 test("カードは4つの共通スートを使う", () => {
   assert.deepEqual(Object.keys(CARD_SUITS), ["h", "d", "s", "c"]);
   assert.match(cardSuits, /export const CARD_SUITS/);
@@ -236,7 +253,9 @@ test("カードは4つの共通スートを使う", () => {
 });
 
 test("トップと問題画面で共通のカード面を使う", () => {
-  assert.match(landing, /PlayingCard/);
+  assert.match(landing, /LogoCards/);
+  assert.match(logoCards, /PlayingCard/);
+  assert.match(logoCards, /decorative/);
   assert.match(board, /PlayingCard/);
   assert.match(holeCards, /PlayingCard/);
   assert.deepEqual(
@@ -253,22 +272,48 @@ test("480pxのモバイル領域とPCの左右余白を持つ", () => {
   assert.match(app, /margin: 0 auto/);
 });
 
-test("ボードは表示とモーションを専用コンポーネントで管理する", () => {
+test("ボード・手札・ロゴは利用側で共通トークンを使う", () => {
   assert.match(quiz, /import Board from/);
   assert.match(quiz, /<Board cards=\{question\.board\} revealKey=\{currentIndex\}/);
   assert.doesNotMatch(app, /visibleBoard|boardCards|REVEAL_DELAY_MS/);
   assert.match(uiTiming, /CHOICE_REVEAL_DELAY_MS = 300/);
   assert.doesNotMatch(board, /REVEAL_DELAY_MS|animation-delay/);
+  assert.doesNotMatch(`${card}\n${holeCards}\n${logoCards}`, /animation-delay|--deal-index|42ms|240ms/);
   assert.match(board, /`\$\{revealKey\}-\$\{card\}-\$\{index\}`/);
+  assert.match(styles, /--card-reveal-duration:/);
+  assert.match(styles, /--card-reveal-easing:/);
+  assert.match(styles, /--card-reveal-start-opacity:/);
+  assert.match(styles, /--card-reveal-start-y:/);
   assert.match(
     board,
-    /\.board-card \{[\s\S]*animation: reveal-board-card 400ms ease-in-out both;/,
+    /\.board-card \{[\s\S]*animation:[\s\S]*reveal-board-card[\s\S]*var\(--card-reveal-duration\)[\s\S]*var\(--card-reveal-easing\)[\s\S]*both;/,
+  );
+  assert.match(
+    holeCards,
+    /\.hand-card \{[\s\S]*animation:[\s\S]*reveal-hole-card[\s\S]*var\(--card-reveal-duration\)[\s\S]*var\(--card-reveal-easing\)[\s\S]*both;/,
+  );
+  assert.match(
+    logoCards,
+    /\.logo-card \{[\s\S]*animation:[\s\S]*reveal-logo-card[\s\S]*var\(--card-reveal-duration\)[\s\S]*var\(--card-reveal-easing\)[\s\S]*both;/,
   );
   const boardAnimation =
     board.match(/@keyframes reveal-board-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
-  assert.match(boardAnimation, /opacity: 0\.6/);
+  const handAnimation =
+    holeCards.match(/@keyframes reveal-hole-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  const logoAnimation =
+    logoCards.match(/@keyframes reveal-logo-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  assert.match(boardAnimation, /opacity: var\(--card-reveal-start-opacity\)/);
   assert.match(boardAnimation, /opacity: 1/);
-  assert.doesNotMatch(boardAnimation, /transform|translate|scale/);
+  assert.match(boardAnimation, /translateY\(var\(--card-reveal-start-y\)\)/);
+  assert.doesNotMatch(boardAnimation, /scale|rotate/);
+  assert.match(handAnimation, /opacity: var\(--card-reveal-start-opacity\)/);
+  assert.match(handAnimation, /translateY\(var\(--card-reveal-start-y\)\)/);
+  assert.match(handAnimation, /rotate\(var\(--card-start-angle\)\)/);
+  assert.match(handAnimation, /rotate\(var\(--card-end-angle\)\)/);
+  assert.match(logoAnimation, /opacity: var\(--card-reveal-start-opacity\)/);
+  assert.match(logoAnimation, /translateY\(var\(--card-reveal-start-y\)\)/);
+  assert.match(logoAnimation, /rotate\(var\(--card-start-angle\)\)/);
+  assert.match(logoAnimation, /rotate\(var\(--card-end-angle\)\)/);
   assert.match(
     quiz,
     /const choicesReady = \$derived\(revealedChoiceIndex === currentIndex\)/,
@@ -283,6 +328,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "game-screen",
     "board",
     "hand-cards",
+    "logo-cards",
     "choice",
     "answer-sheet",
     "result-screen",
@@ -301,6 +347,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     answerSheet,
     board,
     holeCards,
+    logoCards,
     card,
     choiceButton,
   ]) {
