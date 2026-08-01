@@ -1,5 +1,6 @@
 <script>
   import { formatActualPercent } from "../game.js";
+  import MixedFontText from "./MixedFontText.svelte";
 
   let { correct, question, isLast, onNext } = $props();
 </script>
@@ -24,7 +25,7 @@
     {correct ? "正解" : "不正解"}
   </p>
   <p class="actual-probability">{formatActualPercent(question.trueP)}</p>
-  <p class="explanation">{question.explain}</p>
+  <p class="explanation"><MixedFontText text={question.explain} /></p>
   <button
     id="next-question"
     class="primary-action next-action"

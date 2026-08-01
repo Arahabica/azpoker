@@ -1,0 +1,59 @@
+# UIフォントサブセットの再生成
+
+カードランク用Arbutus Slabを含め、アプリが使うフォントはすべて`assets/fonts/`から自己配信する。UI用フォントは初期転送量を抑えるため、次の3ファイルに分けている。
+
+| ファイル | 用途 | 収録内容 | サイズ |
+| --- | --- | --- | ---: |
+| `kosugi-maru/KosugiMaru-Landing.woff2` | 初期トップ | `暗算ポーカー`と`はじめる`の固有9文字 | 2,176 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2` | 問題・回答・結果・エラー | `src/`内で使う日本語とUI用句読点 | 33,060 bytes |
+| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字 | `A-Z`、`a-z`、`0-9`、`%` | 4,616 bytes |
+
+トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。問題・結果画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
+
+## 生成
+
+`fontslice`が`PATH`にある環境で、リポジトリルートから実行する。
+
+```sh
+npm run fonts:build
+```
+
+スクリプトはGoogle Fontsリポジトリから次の原本を一時ディレクトリへ取得し、`fontslice --text`で指定文字用の先頭WOFF2だけを取り出す。
+
+- Kosugi Maru Regular: https://raw.githubusercontent.com/google/fonts/main/apache/kosugimaru/KosugiMaru-Regular.ttf
+- M PLUS Rounded 1c Regular: https://raw.githubusercontent.com/google/fonts/main/ofl/mplusrounded1c/MPLUSRounded1c-Regular.ttf
+
+今回使った原本のSHA-256は次のとおり。
+
+```text
+4b8d0022c8dadd090ef67cd1f71f130714767af7806cba2eb4ebe4b0271c1d68  KosugiMaru-Regular.ttf
+b75708b53e45b06d17d470aeeca5b766e3d1b3999f03f13ec4eb863ca846c14c  MPLUSRounded1c-Regular.ttf
+```
+
+ネットワークを使わず、取得済み原本から作る場合は、下記2ファイルを同じディレクトリに置いて指定する。
+
+```text
+KosugiMaru-Regular.ttf
+MPLUSRounded1c-Regular.ttf
+```
+
+```sh
+npm run fonts:build -- --source-dir /path/to/font-sources
+```
+
+問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`と`src/**/*.svelte`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
+
+生成後は、スクリプトが表示する文字数、Unicode range、容量、SHA-256を確認し、次を実行する。
+
+```sh
+npm test
+npm run build
+```
+
+## 現在のSHA-256
+
+```text
+10df416b9d33d7739b4e08441a18fa2690ee763e6d0e782e64bbff67a7314afd  KosugiMaru-Landing.woff2
+df4991ecdb5fcb40d3a838e0372daac1c68424dda9e404babf359471a45136de  KosugiMaru-Game.woff2
+0026c0d49102bf3ec98878f74ee16e23c8351d463d757e81be8e443b6852d020  MPLUSRounded1c-UI.woff2
+```

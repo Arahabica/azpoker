@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "check:bank": "python3 scripts/generate_question_bank.py --check"
+    "check:bank": "python3 scripts/generate_question_bank.py --check",
+    "fonts:build": "node scripts/build_font_subsets.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",

@@ -1,11 +1,28 @@
 @font-face {
-  font-family: "Kosugi Maru Title";
+  font-family: "Kosugi Maru Landing";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Title.woff2")
+  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Landing.woff2")
     format("woff2");
-  unicode-range: U+30AB, U+30DD, U+30FC, U+6697, U+7B97;
+}
+
+@font-face {
+  font-family: "Kosugi Maru Game";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Game.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "M PLUS Rounded 1c UI";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/m-plus-rounded-1c/MPLUSRounded1c-UI.woff2")
+    format("woff2");
 }
 
 @font-face {
@@ -36,8 +53,7 @@
   --wrong: #ff6b6f;
   --red-suit: #c82d3c;
   --card-rank-font: "Arbutus Slab", serif;
-  font-family:
-    Inter, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", system-ui, sans-serif;
+  font-family: sans-serif;
 }
 
 * {
@@ -119,6 +135,17 @@ p {
   min-height: 100dvh;
 }
 
+.landing-screen {
+  font-family: "Kosugi Maru Landing", sans-serif;
+}
+
+.game-screen,
+.result-screen,
+.error,
+.suit-preview {
+  font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
+}
+
 .landing-screen,
 .result-screen {
   display: flex;
@@ -141,7 +168,6 @@ p {
 }
 
 .brand-lockup h1 {
-  font-family: "Kosugi Maru Title", sans-serif;
   font-size: clamp(2.1rem, 10vw, 2.9rem);
   font-weight: 400;
   letter-spacing: -0.055em;
@@ -371,7 +397,7 @@ p {
 
 .choice-value {
   font-size: clamp(1.35rem, 6.5vw, 1.75rem);
-  font-weight: 850;
+  font-weight: 400;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
@@ -441,7 +467,7 @@ p {
   margin-top: 0.35rem;
   color: var(--accent);
   font-size: clamp(2.5rem, 12vw, 3.4rem);
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
 }
@@ -481,7 +507,7 @@ p {
 .score {
   color: var(--text);
   font-size: clamp(4.2rem, 22vw, 6.2rem);
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: -0.075em;
   text-shadow: 0 0.35rem 1.2rem rgb(0 38 29 / 22%);
 }

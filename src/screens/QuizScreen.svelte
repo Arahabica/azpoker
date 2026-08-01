@@ -1,5 +1,6 @@
 <script>
   import AnswerSheet from "../components/AnswerSheet.svelte";
+  import MixedFontText from "../components/MixedFontText.svelte";
   import PlayingCard from "../components/PlayingCard.svelte";
 
   let {
@@ -43,7 +44,9 @@
   </header>
 
   <div class="question-content">
-    <h2 id="prompt" class="prompt" tabindex="-1">{question.prompt}</h2>
+    <h2 id="prompt" class="prompt" tabindex="-1">
+      <MixedFontText text={question.prompt} />
+    </h2>
 
     <div class="table-area">
       <div class="board-lane" role="group" aria-label="コミュニティカード">

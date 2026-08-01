@@ -20,6 +20,8 @@ const card = read("src/components/PlayingCard.svelte");
 const suitPreview = read("src/SuitMarkPreview.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
+const mixedFontText = read("src/components/MixedFontText.svelte");
+const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const viteConfig = read("vite.config.js");
 const cardFontPath = path.join(
@@ -29,14 +31,27 @@ const cardFontPath = path.join(
   "arbutus-slab",
   "ArbutusSlab-Regular-latin.woff2",
 );
-const titleFontPath = path.join(
+const landingFontPath = path.join(
   root,
   "assets",
   "fonts",
   "kosugi-maru",
-  "KosugiMaru-Title.woff2",
+  "KosugiMaru-Landing.woff2",
 );
-
+const gameFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "kosugi-maru",
+  "KosugiMaru-Game.woff2",
+);
+const mplusFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "m-plus-rounded-1c",
+  "MPLUSRounded1c-UI.woff2",
+);
 test("Svelte + Viteのアプリと採用スート確認エントリを持つ", () => {
   assert.match(html, /<div id="app"><\/div>/);
   assert.match(html, /type="module" src="\/src\/main\.js"/);
@@ -45,6 +60,7 @@ test("Svelte + Viteのアプリと採用スート確認エントリを持つ", (
     /type="module" src="\/src\/suit-preview\.js"/,
   );
   assert.match(viteConfig, /svelte\(\)/);
+  assert.match(viteConfig, /assetsInlineLimit: 0/);
   assert.match(viteConfig, /suit-mark-preview\.html/);
   assert.doesNotMatch(
     viteConfig,
@@ -65,18 +81,74 @@ test("トップ・問題・結果を独立したSvelteコンポーネントで�
   assert.match(result, /id="back-home"/);
 });
 
-test("本番タイトルは5文字だけのKosugi Maruサブセットを使う", () => {
+test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
   assert.doesNotMatch(landing, /instanceId|titleFont|titleWeight|idSuffix/);
-  assert.match(styles, /font-family: "Kosugi Maru Title"/);
-  assert.match(styles, /\.brand-lockup h1 \{[\s\S]*font-weight: 400/);
-  assert.match(styles, /KosugiMaru-Title\.woff2/);
+  assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/);
+  assert.doesNotMatch(html, /<link[^>]+rel="preconnect"/);
   assert.match(
     styles,
-    /unicode-range: U\+30AB, U\+30DD, U\+30FC, U\+6697, U\+7B97/,
+    /font-family: "Kosugi Maru Landing"[\s\S]*KosugiMaru-Landing\.woff2/,
   );
-  const titleFontSize = fs.statSync(titleFontPath).size;
-  assert.ok(titleFontSize > 0);
-  assert.ok(titleFontSize < 2_000, `タイトルフォントが大きすぎます: ${titleFontSize}`);
+  assert.match(
+    styles,
+    /font-family: "Kosugi Maru Game"[\s\S]*KosugiMaru-Game\.woff2/,
+  );
+  assert.match(
+    styles,
+    /font-family: "M PLUS Rounded 1c UI"[\s\S]*MPLUSRounded1c-UI\.woff2/,
+  );
+  assert.match(
+    styles,
+    /\.landing-screen \{\s*font-family: "Kosugi Maru Landing", sans-serif;/,
+  );
+  assert.match(
+    styles,
+    /\.game-screen,[\s\S]*\.suit-preview \{\s*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
+  );
+  assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
+  assert.doesNotMatch(styles, /Kosugi Maru Title|fonts\.googleapis/);
+  const landingRule = styles.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
+  assert.doesNotMatch(landingRule, /Kosugi Maru Game|M PLUS Rounded/);
+
+  const landingFontSize = fs.statSync(landingFontPath).size;
+  const gameFontSize = fs.statSync(gameFontPath).size;
+  const mplusFontSize = fs.statSync(mplusFontPath).size;
+  assert.ok(landingFontSize > 0 && landingFontSize < 3_000);
+  assert.ok(gameFontSize > landingFontSize && gameFontSize < 50_000);
+  assert.ok(mplusFontSize > 0 && mplusFontSize < 10_000);
+  assert.equal(
+    fs.existsSync(
+      path.join(
+        root,
+        "assets",
+        "fonts",
+        "kosugi-maru",
+        "KosugiMaru-Title.woff2",
+      ),
+    ),
+    false,
+  );
+  assert.match(fontBuildScript, /const landingText = "暗算ポーカーはじめる"/);
+  assert.match(
+    fontBuildScript,
+    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%/,
+  );
+  assert.match(fontBuildScript, /LandingScreen\.svelte/);
+
+  assert.match(quiz, /MixedFontText text=\{question\.prompt\}/);
+  assert.match(mixedFontText, /\[A-Za-z0-9%\]/);
+  assert.match(
+    mixedFontText,
+    /<span class="mixed-font-text">[\s\S]*\{#each parts/,
+  );
+  assert.match(mixedFontText, /\.mixed-font-text \{[\s\S]*display: inline/);
+  assert.match(
+    mixedFontText,
+    /\.mplus \{[\s\S]*font-family: "M PLUS Rounded 1c UI"[\s\S]*font-weight: 400/,
+  );
+  assert.match(styles, /\.choice-value \{[\s\S]*font-weight: 400/);
+  assert.match(styles, /\.actual-probability \{[\s\S]*font-weight: 400/);
+  assert.match(styles, /\.score \{[\s\S]*font-weight: 400/);
 });
 
 test("問題画面はボードを上、傾けた手札を下に置く", () => {

@@ -50,9 +50,21 @@ Source: https://commons.wikimedia.org/wiki/File:SuitDiamonds.svg
 
 ## Kosugi Maru
 
-The production title uses `assets/fonts/kosugi-maru/KosugiMaru-Title.woff2`, a
-modified subset of Kosugi Maru generated with `fontslice` for the five unique
-characters in `暗算ポーカー`. Kosugi Maru is licensed under the Apache License
-2.0; the complete license is included beside the subset font.
+The Japanese UI uses two locally hosted, modified subsets of Kosugi Maru
+Regular generated with `fontslice`. `KosugiMaru-Landing.woff2` contains the
+nine unique characters used by the title and start button, while
+`KosugiMaru-Game.woff2` contains the Japanese UI characters used after the game
+starts. Kosugi Maru is licensed under the Apache License 2.0; the complete
+license is included at `assets/fonts/kosugi-maru/LICENSE.txt`.
 
 Source and license: https://github.com/google/fonts/tree/main/apache/kosugimaru
+
+## M PLUS Rounded 1c
+
+The UI uses a locally hosted, modified subset of M PLUS Rounded 1c Regular 400
+for ASCII letters, digits, and the percent sign. It is bundled at
+`assets/fonts/m-plus-rounded-1c/MPLUSRounded1c-UI.woff2`. M PLUS Rounded 1c is
+licensed under the SIL Open Font License 1.1; the complete license is included
+at `assets/fonts/m-plus-rounded-1c/OFL.txt`.
+
+Source and license: https://github.com/google/fonts/tree/main/ofl/mplusrounded1c

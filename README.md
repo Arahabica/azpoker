@@ -22,7 +22,7 @@ npm run check:bank
 npm run build
 ```
 
-トップタイトル用Kosugi Maruの再生成方法は、[`assets/fonts/kosugi-maru/README.md`](assets/fonts/kosugi-maru/README.md) に記録しています。
+UIフォントの収録文字とサブセット再生成方法は、[`assets/fonts/README.md`](assets/fonts/README.md) に記録しています。
 
 問題バンクを再生成する場合:
 
@@ -52,8 +52,9 @@ python3 scripts/generate_question_bank.py
 - 初回はトップ画面を表示し、「はじめる」を押してから10問を開始します。
 - 問題画面はボードを上、傾けた手札を下に置き、ステージ名やボード名は表示しません。
 - カードの10は、常に数字の `10` として表示します。
-- カードランクには同梱した Arbutus Slab を使い、外部フォントCDNには依存しません。
-- トップタイトルには、`fontslice --text '暗算ポーカー'` で5文字だけにした1.5KBのKosugi Maru WOFF2を同梱して使います。
+- カードランクには同梱した Arbutus Slab を使います。UIフォントを含め、外部フォントCDNには依存しません。
+- カード面以外のUIは自己配信のKosugi Maruを基本にし、英数字と `%` だけM PLUS Rounded 1c Regularへ文字単位で切り替えます。周囲の太字指定に影響されず400で表示します。
+- 初期トップ用Kosugi Maruは「暗算ポーカー」「はじめる」の固有9文字だけを2.2KBの別ファイルにし、問題・回答・結果用Kosugi MaruとM PLUS Rounded 1cはゲーム開始後に読み込みます。
 - カード面は、採用した「今の配置＋小マーク調整」の1種類だけを持ちます。
 - スートは「シャープ」の1種類だけを採用しています。ハートの下端を尖らせ、スペードとクラブには底辺が水平で左右端の尖った共通台座を使い、ダイヤはModianoを基にしています。
 - UIは最大480px幅で、PCでは中央配置して左右に余白を取ります。
