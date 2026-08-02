@@ -38,26 +38,24 @@ A_COUNTS = {
     "straight_flush": 100,
 }
 NEW_A_COUNTS = {
-    "runner_straight": 400,
-    "runner_flush": 350,
-    "runner_flush_or_straight": 300,
-    "board_pair": 300,
-    "board_two_pair": 250,
-    "overcard": 350,
-    "four_flush_board": 300,
-    "straight_threat_board": 300,
-    "pocket_pair_counterfeit": 300,
-    "two_pair_counterfeit": 250,
-    "same_hand_category": 200,
-    "next_card_strong_draw": 300,
-    "nut_flush": 400,
+    "runner_straight": 450,
+    "runner_flush": 400,
+    "runner_flush_or_straight": 350,
+    "board_pair": 350,
+    "board_two_pair": 300,
+    "overcard": 400,
+    "four_flush_board": 350,
+    "pocket_pair_counterfeit": 350,
+    "two_pair_counterfeit": 300,
+    "same_hand_category": 250,
+    "nut_flush": 500,
 }
 NEW_B_COUNTS = {
     "tie_probability": 225,
     "trailing_hand_wins": 225,
     "same_final_category": 225,
     "clean_out": 225,
-    "safe_card": 225,
+    "next_card_reversal": 225,
     "board_straight_chop": 225,
     "board_flush_chop": 225,
     "leading_hand_holds": 225,
@@ -563,7 +561,7 @@ def build_mode_b(rng: random.Random) -> list[dict]:
                 "id": f"b-{len(questions) + 1:05d}", "mode": "B", "stage": stage,
                 "hands": [list(hand) for hand in hands], "board": list(board),
                 "equities": equities, "trueP": best, "answer": winner,
-                "category": "hand_comparison", "prompt": "どちらが強い？",
+                "category": "hand_comparison", "prompt": "勝率が高いのは？",
                 "explain": explain, "difficulty": difficulty,
                 "distractorModel": f"比較要素の一部だけを過大評価する: {factors}", "conceptKey": key,
             })
@@ -771,12 +769,6 @@ def new_a_event(
         return any(RANK_VALUE[card[0]] > pair_value for card in final_board[len(start_board):])
     if category == "four_flush_board":
         return max(Counter(card[1] for card in final_board).values()) >= 4
-    if category == "straight_threat_board":
-        values = {RANK_VALUE[card[0]] for card in final_board}
-        if 14 in values:
-            values.add(1)
-        sequences = ({14, 2, 3, 4, 5}, *(set(range(low, low + 5)) for low in range(2, 11)))
-        return any(len(sequence & values) == 4 for sequence in sequences)
     if category == "pocket_pair_counterfeit":
         pair_value = RANK_VALUE[hole[0][0]]
         return pair_value not in evaluate(cards)[1:]
@@ -792,22 +784,8 @@ def new_a_event(
     raise ValueError(category)
 
 
-def strong_draw_after_turn(hole: tuple[str, str], board: tuple[str, ...]) -> bool:
-    if has_straight_using_hole(hole, board) or has_flush_using_hole(hole, board):
-        return False
-    remaining = (card for card in DECK if card not in {*hole, *board})
-    outs = {
-        card for card in remaining
-        if has_straight_using_hole(hole, (*board, card)) or has_flush_using_hole(hole, (*board, card))
-    }
-    return len(outs) >= 8
-
-
 def exact_new_a_percent(category: str, hole: tuple[str, str], board: tuple[str, ...]) -> float:
     remaining = tuple(card for card in DECK if card not in {*hole, *board})
-    if category == "next_card_strong_draw":
-        hits = sum(strong_draw_after_turn(hole, (*board, card)) for card in remaining)
-        return hits / len(remaining) * 100
     runouts = tuple(itertools.combinations(remaining, 5 - len(board)))
     hits = sum(new_a_event(category, hole, board, (*board, *runout)) for runout in runouts)
     return hits / len(runouts) * 100
@@ -854,7 +832,7 @@ def build_new_a_state(category: str, rng: random.Random):
         stage = rng.choice(("flop", "turn"))
         board = draw_cards(rng, 3 if stage == "flop" else 4, set(hole))
         return stage, hole, board
-    stage = "flop" if category == "next_card_strong_draw" else rng.choice(("flop", "turn"))
+    stage = rng.choice(("flop", "turn"))
     cards = tuple(rng.sample(DECK, 5 if stage == "flop" else 6))
     return stage, cards[:2], cards[2:]
 
@@ -867,11 +845,9 @@ NEW_A_COPY = {
     "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2ランクがペアになる可能性です。"),
     "overcard": ("手札のペアより高いカードの確率は？", "ポケットペアより高いランクが出る可能性です。"),
     "four_flush_board": ("ボードに同じスートが4枚の確率は？", "1枚の同じスートを持つ相手にもフラッシュの可能性が生まれます。"),
-    "straight_threat_board": ("ボードがあと1枚でストレートの確率は？", "相手の1枚でストレートになり得るボードです。"),
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
     "two_pair_counterfeit": ("低いペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
     "same_hand_category": ("今の役のまま終わる確率は？", "役の種類が変わらない可能性です。"),
-    "next_card_strong_draw": ("次の1枚で強いドローになる確率は？", "次のカードで8枚以上の待ちができる可能性です。"),
     "nut_flush": ("最高のフラッシュの確率は？", "そのボードで作れる最も高いフラッシュになる可能性です。"),
 }
 
@@ -889,7 +865,7 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
             stage, hole, board = build_new_a_state(category, rng)
             if len(set((*hole, *board))) != len(hole) + len(board):
                 continue
-            if category != "same_hand_category" and category != "next_card_strong_draw":
+            if category != "same_hand_category":
                 if new_a_event(category, hole, board, board):
                     continue
             value = exact_new_a_percent(category, hole, board)
@@ -904,7 +880,7 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
                 "id": f"a-{LEGACY_MODE_COUNTS['A'] + len(questions) + 1:05d}",
                 "mode": "A", "stage": stage, "hole": list(hole), "board": list(board),
                 "target": category, "category": category, "prompt": prompt, "explain": explain,
-                "difficulty": "hard" if category in {"runner_flush_or_straight", "pocket_pair_counterfeit", "two_pair_counterfeit", "next_card_strong_draw"} or rng.random() < .2 else "medium",
+                "difficulty": "hard" if category in {"runner_flush_or_straight", "pocket_pair_counterfeit", "two_pair_counterfeit"} or rng.random() < .2 else "medium",
                 "conceptKey": key, **fields,
             })
             seen.add(key)
@@ -925,12 +901,26 @@ def outcome_percent(hands, board, predicate) -> float:
     return hits / total * 100
 
 
+def next_card_reversal_percent(hands, board, leader, trailer) -> float:
+    known = {card for hand in hands for card in hand} | set(board)
+    remaining = tuple(card for card in DECK if card not in known)
+    hits = sum(
+        evaluate((*hands[trailer], *board, card))
+        > evaluate((*hands[leader], *board, card))
+        for card in remaining
+    )
+    return hits / len(remaining) * 100
+
+
 NEW_B_COPY = {
     "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
     "trailing_hand_wins": ("負けている手札の勝率は？", "現在負けている側が最後に単独で勝つ可能性です。"),
-    "same_final_category": ("両方が同じ役になる確率は？", "キッカーの強さに関係なく、役の種類が同じになる可能性です。"),
+    "same_final_category": ("両方の役の種類が同じになる確率は？", "キッカーの強さに関係なく、役の種類が同じになる可能性です。"),
     "clean_out": ("最後の1枚で逆転する確率は？", "負けている側を逆転勝ちさせるカードを、クリーンアウトと呼びます。"),
-    "safe_card": ("次の1枚でも勝ったままの確率は？", "現在勝っている側が、そのカードの後もリードを保つ可能性です。"),
+    "next_card_reversal": (
+        "次のカードで役の強さが逆転する確率は？",
+        "現在負けている側が、次のカード直後に相手より強い役になる可能性です。",
+    ),
     "board_straight_chop": ("ボードのストレートで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
     "board_flush_chop": ("ボードのフラッシュで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
     "leading_hand_holds": ("勝っている手札の勝率は？", "現在勝っている側が最後も単独で勝つ可能性です。"),
@@ -947,7 +937,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             attempts += 1
             if attempts > count * 4000:
                 raise RuntimeError(f"B/{category} の生成候補が不足")
-            stage = "turn" if category == "clean_out" else "flop" if category == "safe_card" else rng.choice(("flop", "turn"))
+            stage = "turn" if category == "clean_out" else "flop" if category == "next_card_reversal" else rng.choice(("flop", "turn"))
             board_size = 3 if stage == "flop" else 4
             if category == "board_straight_chop":
                 stage = "flop"
@@ -971,7 +961,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             current = [evaluate((*hand, *board)) for hand in hands]
             leader = 0 if current[0] > current[1] else 1 if current[1] > current[0] else None
             trailer = None if leader is None else 1 - leader
-            if category in {"trailing_hand_wins", "clean_out", "safe_card", "leading_hand_holds"} and leader is None:
+            if category in {"trailing_hand_wins", "clean_out", "next_card_reversal", "leading_hand_holds"} and leader is None:
                 continue
 
             def predicate(scores, final_board, runout):
@@ -979,9 +969,6 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                     return scores[0] == scores[1]
                 if category in {"trailing_hand_wins", "clean_out"}:
                     return scores[trailer] > scores[leader]
-                if category == "safe_card":
-                    turn_scores = [evaluate((*hand, *board, runout[0])) for hand in hands]
-                    return turn_scores[leader] > turn_scores[trailer]
                 if category == "same_final_category":
                     return scores[0][0] == scores[1][0]
                 if category == "leading_hand_holds":
@@ -991,7 +978,10 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                     return False
                 return board_score[0] == (4 if category == "board_straight_chop" else 5)
 
-            value = outcome_percent(hands, board, predicate)
+            if category == "next_card_reversal":
+                value = next_card_reversal_percent(hands, board, leader, trailer)
+            else:
+                value = outcome_percent(hands, board, predicate)
             if not 0.5 <= value <= 99.5:
                 continue
             key = f"{category}:{stage}:{canonical_cards([list(hands[0]), list(hands[1]), list(board)])}"
@@ -1153,10 +1143,6 @@ MODE_D_BEGINNER_COPY = {
         "が手札のペアでスリーの確率は？",
         "手札2枚がペアで、ボードに同じ数字・文字が1枚あるスリーをセットと呼びます。",
     ),
-    "opponent_top_pair_plus": (
-        "が一番高いペア以上の確率は？",
-        "ボードの一番高いカードとのペア、またはそれより強い役になる組合せです。",
-    ),
     "opponent_two_pair": (
         "がツーペアの確率は？",
         "相手の2枚と現在のボードから、異なる2組のペアができる組合せです。",
@@ -1196,7 +1182,12 @@ MODE_D_BEGINNER_COPY = {
 }
 
 
-def mode_d_copy(category: str, players: int, target_rank: str | None = None) -> tuple[str, str]:
+def mode_d_copy(
+    category: str,
+    players: int,
+    target_rank: str | None = None,
+    board: tuple[str, ...] = (),
+) -> tuple[str, str]:
     table = f"{players}人卓で"
     subject = "相手" if players == 2 else "ほかの誰か"
 
@@ -1211,6 +1202,13 @@ def mode_d_copy(category: str, players: int, target_rank: str | None = None) -> 
         return (
             f"{table}{all_opponents}がボードとペアでない確率は？",
             "相手の手札に、ボードと同じ数字・文字が1枚もない可能性です。",
+        )
+    if category == "opponent_top_pair_plus":
+        top_rank = max(board, key=lambda card: RANK_VALUE[card[0]])[0]
+        rank = display_rank(top_rank)
+        return (
+            f"{table}{subject}が{rank}を持つ確率は？",
+            f"{rank}はボードで一番高いランクです。相手が{rank}を持つ組合せを考えます。",
         )
     if category.endswith("target_rank"):
         rank = display_rank(target_rank)
@@ -1275,7 +1273,7 @@ def build_new_mode_d(rng: random.Random) -> list[dict]:
             key = f"{category}:{players}:{target_rank}:{stage}:{canonical_cards([list(hole), list(board)])}"
             if key in seen:
                 continue
-            prompt, explain = mode_d_copy(category, players, target_rank)
+            prompt, explain = mode_d_copy(category, players, target_rank, board)
             fields = answer_fields(value, "相手人数、見えているカード、ボードだけの役のいずれかを数え違える")
             question = {
                 "id": f"d-{LEGACY_MODE_COUNTS['D'] + len(questions) + 1:04d}",
@@ -1317,6 +1315,17 @@ def validate(bank: list[dict]) -> None:
             wrong = float(question["distractor"].removesuffix("%"))
             if abs(correct - wrong) < minimum_choice_gap(correct):
                 raise RuntimeError(f"選択肢が近すぎます: {question['id']}")
+        if question.get("category") == "next_card_reversal":
+            hands = tuple(tuple(hand) for hand in question["hands"])
+            board = tuple(question["board"])
+            current = [evaluate((*hand, *board)) for hand in hands]
+            if current[0] == current[1]:
+                raise RuntimeError(f"次カード逆転問題の開始時点が同点です: {question['id']}")
+            leader = 0 if current[0] > current[1] else 1
+            trailer = 1 - leader
+            expected = round(next_card_reversal_percent(hands, board, leader, trailer), 2)
+            if question["stage"] != "flop" or question["trueP"] != expected:
+                raise RuntimeError(f"次カード逆転率が不正です: {question['id']}")
         if question["mode"] == "D" and not question["prompt"].startswith(f"{question['playerCount']}人卓で"):
             raise RuntimeError(f"卓人数なし: {question['id']}")
 
@@ -1326,11 +1335,14 @@ def normalize_question_copy(question: dict) -> None:
         question["prompt"], question["explain"] = NEW_A_COPY[question["category"]]
     if question["mode"] == "B" and question["category"] in NEW_B_COPY:
         question["prompt"], question["explain"] = NEW_B_COPY[question["category"]]
+    if question["mode"] == "B" and question["category"] == "hand_comparison":
+        question["prompt"] = "勝率が高いのは？"
     if question["mode"] == "D":
         question["prompt"], question["explain"] = mode_d_copy(
             question["category"],
             question["playerCount"],
             question.get("targetRank"),
+            tuple(question["board"]),
         )
 
 
@@ -1473,7 +1485,7 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v2", "B": "-v3", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v3", "B": "-v5", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         if cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))

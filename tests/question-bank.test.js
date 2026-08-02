@@ -66,19 +66,17 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     full_house: 400,
     four_kind: 250,
     straight_flush: 100,
-    runner_straight: 400,
-    runner_flush: 350,
-    runner_flush_or_straight: 300,
-    board_pair: 300,
-    board_two_pair: 250,
-    overcard: 350,
-    four_flush_board: 300,
-    straight_threat_board: 300,
-    pocket_pair_counterfeit: 300,
-    two_pair_counterfeit: 250,
-    same_hand_category: 200,
-    next_card_strong_draw: 300,
-    nut_flush: 400,
+    runner_straight: 450,
+    runner_flush: 400,
+    runner_flush_or_straight: 350,
+    board_pair: 350,
+    board_two_pair: 300,
+    overcard: 400,
+    four_flush_board: 350,
+    pocket_pair_counterfeit: 350,
+    two_pair_counterfeit: 300,
+    same_hand_category: 250,
+    nut_flush: 500,
   };
   const actual = Object.fromEntries(
     Object.keys(expected).map((category) => [
@@ -87,6 +85,8 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     ]),
   );
   assert.deepEqual(actual, expected);
+  assert.equal(bank.some((question) => question.category === "straight_threat_board"), false);
+  assert.equal(bank.some((question) => question.category === "next_card_strong_draw"), false);
 });
 
 test("全問のカード、選択肢、誤答理由が有効", () => {
@@ -124,7 +124,6 @@ test("A5sの2人勝率は捨て選択肢を使わない", () => {
 test("初心者向け文言を使い、内部表記を画面へ出さない", () => {
   const explanationOnlyTerms = [
     "クリーンアウト",
-    "セーフカード",
     "ポケットペア",
     "オーバーペア",
     "セット",
@@ -174,7 +173,7 @@ test("モードBの数値問題を短い8形式へ均等に振り分ける", () 
     trailing_hand_wins: 225,
     same_final_category: 225,
     clean_out: 225,
-    safe_card: 225,
+    next_card_reversal: 225,
     board_straight_chop: 225,
     board_flush_chop: 225,
     leading_hand_holds: 225,
@@ -192,6 +191,30 @@ test("モードBの数値問題を短い8形式へ均等に振り分ける", () 
     ),
     expected,
   );
+
+  const nextCardReversals = numericModeB.filter(
+    (question) => question.category === "next_card_reversal",
+  );
+  for (const question of nextCardReversals) {
+    assert.equal(question.stage, "flop");
+    assert.equal(question.prompt, "次のカードで役の強さが逆転する確率は？");
+  }
+
+  for (const question of numericModeB.filter(
+    (candidate) => candidate.category === "same_final_category",
+  )) {
+    assert.equal(question.prompt, "両方の役の種類が同じになる確率は？");
+  }
+});
+
+test("手札比較は現在の役ではなく最終的な勝率を尋ねる", () => {
+  const comparisons = bank.filter(
+    (question) => question.category === "hand_comparison",
+  );
+  assert.equal(comparisons.length, 3000);
+  for (const question of comparisons) {
+    assert.equal(question.prompt, "勝率が高いのは？");
+  }
 });
 
 test("モードDは2人・6人、全13ランクと追加カテゴリを含む", () => {
@@ -209,6 +232,26 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
     "exactly_one_opponent_target_rank", "multiple_opponents_target_rank",
   ]) {
     assert.ok(questions.some((question) => question.category === category), category);
+  }
+
+
+  const rankValues = Object.fromEntries(
+    [..."23456789TJQKA"].map((rank, index) => [rank, index]),
+  );
+  for (const question of questions.filter(
+    (candidate) => candidate.category === "opponent_top_pair_plus",
+  )) {
+    const topRank = question.board.reduce(
+      (highest, card) =>
+        rankValues[card[0]] > rankValues[highest] ? card[0] : highest,
+      question.board[0][0],
+    );
+    const displayedRank = topRank === "T" ? "10" : topRank;
+    const subject = question.playerCount === 2 ? "相手" : "ほかの誰か";
+    assert.equal(
+      question.prompt,
+      `${question.playerCount}人卓で${subject}が${displayedRank}を持つ確率は？`,
+    );
   }
 });
 
