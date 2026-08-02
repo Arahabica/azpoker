@@ -33,7 +33,7 @@ const sources = {
 };
 
 const landingText = "暗算ポーカーはじめる";
-const mplusText = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%";
+const mplusText = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.%";
 const gameText = collectGameText();
 
 function optionValue(name) {
@@ -66,7 +66,7 @@ function collectGameText() {
   const source = collectSourceFiles(path.join(root, "src"))
     .filter((filename) => filename !== landingPath)
     .map((filename) => readFileSync(filename, "utf8"))
-    .join("");
+    .join("") + collectQuestionText();
   const punctuation = new Set([..." 、。？！・ー./:_-"]);
   const characters = [...source].filter(
     (character) =>
@@ -75,6 +75,18 @@ function collectGameText() {
       ) || punctuation.has(character),
   );
   return uniqueCharacters(characters.join(""));
+}
+
+function collectQuestionText() {
+  const directory = path.join(root, "public", "questions");
+  return readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) =>
+      readdirSync(path.join(directory, entry.name))
+        .filter((filename) => filename.endsWith(".json"))
+        .map((filename) => readFileSync(path.join(directory, entry.name, filename), "utf8")),
+    )
+    .join("");
 }
 
 function uniqueCharacters(text) {

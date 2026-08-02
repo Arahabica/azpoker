@@ -5,8 +5,8 @@
 | ファイル | 用途 | 収録内容 | サイズ |
 | --- | --- | --- | ---: |
 | `kosugi-maru/KosugiMaru-Landing.woff2` | 初期トップ | `暗算ポーカー`と`はじめる`の固有9文字 | 2,176 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2` | 問題・回答・結果・エラー | `src/`内で使う日本語とUI用句読点 | 33,060 bytes |
-| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字 | `A-Z`、`a-z`、`0-9`、`%` | 4,616 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2` | 問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 39,604 bytes |
+| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字 | `A-Z`、`a-z`、`0-9`、`.`、`%` | 4,712 bytes |
 
 トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。問題・結果画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
 
@@ -41,7 +41,7 @@ MPLUSRounded1c-Regular.ttf
 pnpm fonts:build -- --source-dir /path/to/font-sources
 ```
 
-問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`と`src/**/*.svelte`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
+問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`、`src/**/*.svelte`、`public/questions/**/*.json`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
 
 生成後は、スクリプトが表示する文字数、Unicode range、容量、SHA-256を確認し、次を実行する。
 
@@ -54,6 +54,6 @@ pnpm build
 
 ```text
 10df416b9d33d7739b4e08441a18fa2690ee763e6d0e782e64bbff67a7314afd  KosugiMaru-Landing.woff2
-df4991ecdb5fcb40d3a838e0372daac1c68424dda9e404babf359471a45136de  KosugiMaru-Game.woff2
-0026c0d49102bf3ec98878f74ee16e23c8351d463d757e81be8e443b6852d020  MPLUSRounded1c-UI.woff2
+06cf9775dd66d64921005c782d05b5028eeeda9f1156cdad87a3c2f1d1b6504e  KosugiMaru-Game.woff2
+e797fe3ac0bf30e4431d9feb4e5ce75564f59b0721842e524c5f339a24c260e3  MPLUSRounded1c-UI.woff2
 ```

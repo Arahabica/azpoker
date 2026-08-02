@@ -3,6 +3,7 @@
   import Board from "../components/Board.svelte";
   import ChoiceButton from "../components/ChoiceButton.svelte";
   import HoleCards from "../components/HoleCards.svelte";
+  import HandComparison from "../components/HandComparison.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
   import { CHOICE_REVEAL_DELAY_MS } from "../ui-timing.js";
 
@@ -73,23 +74,35 @@
 
     <div class="table-area">
       <Board cards={question.board} revealKey={currentIndex} />
-      <HoleCards cards={question.hole} />
-    </div>
-
-    <div
-      class="choices"
-      class:is-concealed={choicesConcealed}
-      aria-label="選択肢"
-      aria-hidden={choicesConcealed}
-    >
-      {#each choices as choice (choice)}
-        <ChoiceButton
-          value={choice}
+      {#if question.mode === "B"}
+        <HandComparison
+          hands={question.hands}
           disabled={choicesConcealed}
+          {answerResult}
+          answer={question.answer}
           onSelect={onAnswer}
         />
-      {/each}
+      {:else}
+        <HoleCards cards={question.hole} />
+      {/if}
     </div>
+
+    {#if question.mode !== "B"}
+      <div
+        class="choices"
+        class:is-concealed={choicesConcealed}
+        aria-label="選択肢"
+        aria-hidden={choicesConcealed}
+      >
+        {#each choices as choice (choice)}
+          <ChoiceButton
+            value={choice}
+            disabled={choicesConcealed}
+            onSelect={onAnswer}
+          />
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if answerResult}

@@ -1,3 +1,7 @@
 node_modules/
 dist/
+.pnpm-store/
+.prerender/
+.wrangler/
+__pycache__/
 .DS_Store

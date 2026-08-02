@@ -1,8 +1,15 @@
-const SESSION_STAGE_COUNTS = Object.freeze({
-  preflop: 2,
-  flop: 4,
-  turn: 4,
+const SESSION_MODE_COUNTS = Object.freeze({
+  A: 5,
+  B: 2,
+  C: 1,
+  D: 2,
 });
+const SESSION_STAGE_COUNTS = Object.freeze({
+  preflop: 3,
+  flop: 4,
+  turn: 3,
+});
+const SESSION_DIFFICULTY_COUNTS = Object.freeze({ medium: 7, hard: 3 });
 const SUIT_SYMBOLS = Object.freeze({
   c: "♣",
   d: "♦",
@@ -31,6 +38,19 @@ function shuffle(items, random = Math.random) {
   }
 
   return result;
+}
+
+function sample(items, count, random) {
+  const selected = [];
+  const indexes = new Set();
+  while (selected.length < count) {
+    const index = Math.floor(random() * items.length);
+    if (!indexes.has(index)) {
+      indexes.add(index);
+      selected.push(items[index]);
+    }
+  }
+  return selected;
 }
 
 function sampleStageQuestions(
@@ -87,28 +107,44 @@ function createSession(bank, random = Math.random) {
     throw new TypeError("問題バンクが空です");
   }
 
-  const selected = [];
-  const requiredByStage = {
-    preflop: ["flush_draw", "rank_trips"],
-    flop: ["rank_hit"],
-    turn: ["rank_trips"],
-  };
-  for (const [stage, count] of Object.entries(SESSION_STAGE_COUNTS)) {
-    const stageQuestions = bank.filter((question) => question.stage === stage);
-    if (stageQuestions.length < count) {
-      throw new Error(`${STAGE_LABELS[stage]}の問題が不足しています`);
+  const byMode = Object.fromEntries(
+    Object.keys(SESSION_MODE_COUNTS).map((mode) => [
+      mode,
+      bank.filter((question) => question.mode === mode),
+    ]),
+  );
+  for (const [mode, count] of Object.entries(SESSION_MODE_COUNTS)) {
+    if (byMode[mode].length < count) {
+      throw new Error(`モード${mode}の問題が不足しています`);
     }
-    selected.push(
-      ...sampleStageQuestions(
-        stageQuestions,
-        count,
-        random,
-        requiredByStage[stage],
-      ),
-    );
   }
 
-  return shuffle(selected, random);
+  for (let attempt = 0; attempt < 20_000; attempt += 1) {
+    const selected = Object.entries(SESSION_MODE_COUNTS).flatMap(([mode, count]) =>
+      sample(byMode[mode], count, random),
+    );
+    const countBy = (property, value) =>
+      selected.filter((question) => question[property] === value).length;
+    const stagesMatch = Object.entries(SESSION_STAGE_COUNTS).every(
+      ([stage, count]) => countBy("stage", stage) === count,
+    );
+    const difficultyMatches = Object.entries(SESSION_DIFFICULTY_COUNTS).every(
+      ([difficulty, count]) => countBy("difficulty", difficulty) === count,
+    );
+    const zeroCount = selected.filter((question) => question.trueP === 0).length;
+    const modeACategories = selected
+      .filter((question) => question.mode === "A")
+      .map((question) => question.category);
+    if (
+      stagesMatch &&
+      difficultyMatches &&
+      zeroCount <= 1 &&
+      new Set(modeACategories).size === modeACategories.length
+    ) {
+      return shuffle(selected, random);
+    }
+  }
+  throw new Error("条件を満たす10問を選べませんでした");
 }
 
 function cardDetails(card) {
@@ -152,6 +188,8 @@ function formatActualPercent(value) {
 }
 
 export {
+  SESSION_MODE_COUNTS,
+  SESSION_DIFFICULTY_COUNTS,
   SESSION_STAGE_COUNTS,
   cardDetails,
   createSession,

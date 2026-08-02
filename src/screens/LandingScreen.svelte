@@ -2,7 +2,7 @@
   import ActionButton from "../components/ActionButton.svelte";
   import LogoCards from "../components/LogoCards.svelte";
 
-  let { onStart } = $props();
+  let { onStart, starting = false } = $props();
 </script>
 
 <section id="landing" class="landing-screen" aria-labelledby="app-title">
@@ -11,7 +11,7 @@
     <h1 id="app-title">暗算ポーカー</h1>
   </div>
   <div class="start-action">
-    <ActionButton id="start-game" label="はじめる" onClick={onStart} />
+    <ActionButton id="start-game" label="はじめる" onClick={onStart} disabled={starting} />
   </div>
 </section>
 

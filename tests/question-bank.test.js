@@ -1,149 +1,118 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
-import bank from "../src/question-bank.js";
-import {
-  calculateProbability,
-  isTargetComplete,
-} from "../src/probability-engine.js";
+import { loadQuestionBank, root } from "./question-fixtures.js";
+
+const bank = loadQuestionBank();
+const questionsRoot = path.join(root, "public", "questions");
+const manifest = JSON.parse(
+  fs.readFileSync(path.join(questionsRoot, "manifest.json"), "utf8"),
+);
 
 function choicePercent(value) {
-  assert.match(value, /^\d+%$/);
-  return Number.parseInt(value, 10);
+  assert.match(value, /^\d+(?:\.5)?%$/);
+  return Number.parseFloat(value);
 }
 
-test("問題バンクは100問で、ステージとカテゴリの構成が固定されている", () => {
-  assert.equal(bank.length, 100);
-  assert.equal(new Set(bank.map((question) => question.id)).size, 100);
-
-  const stageCounts = Object.fromEntries(
-    ["preflop", "flop", "turn"].map((stage) => [
-      stage,
-      bank.filter((question) => question.stage === stage).length,
-    ]),
-  );
-  assert.deepEqual(stageCounts, { preflop: 10, flop: 45, turn: 45 });
-
-  for (const stage of ["flop", "turn"]) {
-    const counts = Object.fromEntries(
-      [
-        "flush_draw",
-        "oesd",
-        "gutshot",
-        "combo_gutshot",
-        "combo_oesd",
-        "rank_hit",
-        "rank_trips",
-      ].map((category) => [
-        category,
-        bank.filter(
-          (question) =>
-            question.stage === stage && question.category === category,
-        ).length,
+test("問題バンクは10,000問で、計画どおりのモード構成を持つ", () => {
+  assert.equal(bank.length, 10_000);
+  assert.equal(new Set(bank.map((question) => question.id)).size, 10_000);
+  assert.equal(new Set(bank.map((question) => question.conceptKey)).size, 10_000);
+  assert.deepEqual(
+    Object.fromEntries(
+      ["A", "B", "C", "D"].map((mode) => [
+        mode,
+        bank.filter((question) => question.mode === mode).length,
       ]),
-    );
-    assert.deepEqual(counts, {
-      flush_draw: 7,
-      oesd: 7,
-      gutshot: 7,
-      combo_gutshot: 7,
-      combo_oesd: 7,
-      rank_hit: 5,
-      rank_trips: 5,
+    ),
+    { A: 6000, B: 3000, C: 338, D: 662 },
+  );
+});
+
+test("100問単位のJSONとmanifestを生成する", () => {
+  assert.equal(manifest.total, 10_000);
+  assert.equal(manifest.batchSize, 100);
+  assert.match(manifest.version, /^[a-f0-9]{12}$/);
+  for (const [mode, details] of Object.entries(manifest.modes)) {
+    const files = fs
+      .readdirSync(path.join(questionsRoot, mode.toLowerCase()))
+      .filter((filename) => filename.endsWith(".json"));
+    assert.equal(files.length, details.files);
+    files.sort().forEach((filename, index) => {
+      const chunk = JSON.parse(
+        fs.readFileSync(path.join(questionsRoot, mode.toLowerCase(), filename), "utf8"),
+      );
+      if (index < files.length - 1) assert.equal(chunk.length, 100);
+      else assert.equal(chunk.length, details.count - index * 100);
     });
   }
 });
 
-test("全問の実際の値がJS確率エンジンの再計算結果と一致する", () => {
-  for (const question of bank) {
-    const knownCards = [...question.hole, ...question.board];
-    assert.equal(
-      new Set(knownCards).size,
-      knownCards.length,
-      `${question.id}: カード重複`,
-    );
-    assert.equal(
-      isTargetComplete(
-        question.hole,
-        question.board,
-        question.target,
-        question.targetRank,
-      ),
-      false,
-      `${question.id}: 出題時点ですでに完成`,
-    );
-
-    const result = calculateProbability(question);
-    assert.equal(
-      result.percent.toFixed(2),
-      question.trueP.toFixed(2),
-      `${question.id}: 実際の値`,
-    );
-  }
+test("モードAのカテゴリ数とストレートフラッシュ100問を固定する", () => {
+  const expected = {
+    flush: 1400,
+    straight: 1600,
+    flush_or_straight: 800,
+    rank_hit: 550,
+    rank_trips: 500,
+    two_pair: 400,
+    full_house: 400,
+    four_kind: 250,
+    straight_flush: 100,
+  };
+  const actual = Object.fromEntries(
+    Object.keys(expected).map((category) => [
+      category,
+      bank.filter((question) => question.mode === "A" && question.category === category).length,
+    ]),
+  );
+  assert.deepEqual(actual, expected);
 });
 
-test("正解は最寄りの5%刻みで、誤答より実際の値に近い", () => {
+test("全問のカード、選択肢、誤答理由が有効", () => {
   for (const question of bank) {
-    const answer = choicePercent(question.answer);
-    const distractor = choicePercent(question.distractor);
-
-    assert.equal(answer % 5, 0, `${question.id}: 5%刻み`);
-    assert.equal(answer, Math.floor((question.trueP + 2.5) / 5) * 5);
-    assert.ok(
-      Math.abs(question.trueP - answer) < Math.abs(question.trueP - distractor),
-      `${question.id}: 正解と誤答の距離`,
-    );
-    assert.ok(
-      Math.max(answer, distractor) / Math.min(answer, distractor) >= 1.3,
-      `${question.id}: 選択肢の倍率`,
-    );
-  }
-});
-
-test("特定ランク問題は手札をペアにできるランクだけを問う", () => {
-  for (const question of bank.filter(
-    (candidate) => candidate.category === "rank_hit",
-  )) {
-    assert.equal(
-      question.hole.filter((card) => card[0] === question.targetRank).length,
-      1,
-      `${question.id}: 対象ランクの手札枚数`,
-    );
-    assert.equal(
-      question.board.some((card) => card[0] === question.targetRank),
-      false,
-      `${question.id}: 対象ランクがすでにボードにある`,
-    );
-    assert.equal(
-      question.prompt.startsWith(
-        `${question.targetRank === "T" ? "10" : question.targetRank}が`,
-      ),
-      true,
-      `${question.id}: 対象ランクの表示`,
-    );
-  }
-});
-
-test("問題文と解説は短く、内部の計算作業を見せない", () => {
-  const bannedCopy = [
-    "リバーまでに",
-    "厳密値",
-    "実際は約",
-    "全組合せ",
-    "全列挙",
-  ];
-
-  for (const question of bank) {
-    assert.ok(question.prompt.endsWith("確率は？"), `${question.id}: 問題文`);
-    assert.equal(question.prompt.includes("完成"), false, `${question.id}: 完成`);
-    assert.equal(question.prompt.includes("Tが"), false, `${question.id}: 10表記`);
-    assert.equal(question.prompt.includes("Tの"), false, `${question.id}: 10表記`);
-    for (const phrase of bannedCopy) {
-      assert.equal(
-        `${question.prompt}${question.explain}`.includes(phrase),
-        false,
-        `${question.id}: ${phrase}`,
-      );
+    const cards = [
+      ...(question.hole ?? []),
+      ...question.board,
+      ...(question.hands ?? []).flat(),
+    ];
+    assert.equal(new Set(cards).size, cards.length, `${question.id}: カード重複`);
+    assert.ok(question.distractorModel, `${question.id}: 誤答理由`);
+    assert.ok(["medium", "hard"].includes(question.difficulty));
+    if (question.mode !== "B") {
+      assert.notEqual(question.answer, question.distractor, `${question.id}: 選択肢重複`);
+      choicePercent(question.answer);
+      choicePercent(question.distractor);
     }
   }
+});
+
+test("A5sの2人勝率は捨て選択肢を使わない", () => {
+  const question = bank.find(
+    (candidate) => candidate.mode === "C" && candidate.conceptKey === "A5s:2",
+  );
+  assert.ok(question);
+  assert.equal(question.answer, "60%");
+  assert.equal(question.distractor, "45%");
+});
+
+test("初心者向け文言を使い、内部表記を画面へ出さない", () => {
+  for (const question of bank) {
+    const copy = `${question.prompt}${question.explain}`;
+    assert.equal(copy.includes("3カード"), false, `${question.id}: 3カード`);
+    assert.equal(copy.includes("Tが"), false, `${question.id}: T表記`);
+    assert.equal(copy.includes("Tの"), false, `${question.id}: T表記`);
+    assert.equal(copy.includes("厳密値"), false, `${question.id}: 内部表現`);
+    assert.equal(copy.includes("全列挙"), false, `${question.id}: 内部表現`);
+  }
+  const runner = bank.find((question) => question.explain.includes("ランナーランナー"));
+  assert.match(runner?.explain ?? "", /残り2枚が両方そろって完成する形/);
+});
+
+test("モードDは2人・6人、全13ランクを含む", () => {
+  const questions = bank.filter((question) => question.mode === "D");
+  assert.deepEqual(new Set(questions.map((question) => question.playerCount)), new Set([2, 6]));
+  assert.deepEqual(new Set(questions.map((question) => question.targetRank)), new Set("23456789TJQKA"));
 });

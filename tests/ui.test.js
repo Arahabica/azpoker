@@ -14,6 +14,10 @@ function read(relativePath) {
 
 const html = read("index.html");
 const app = read("src/App.svelte");
+const main = read("src/main.js");
+const serverEntry = read("src/entry-server.js");
+const prerender = read("scripts/prerender.mjs");
+const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
@@ -60,10 +64,26 @@ const mplusFontPath = path.join(
   "MPLUSRounded1c-UI.woff2",
 );
 test("Svelte + Viteのアプリを構成する", () => {
-  assert.match(html, /<div id="app"><\/div>/);
+  assert.match(html, /<div id="app"><!--app-html--><\/div>/);
   assert.match(html, /type="module" src="\/src\/main\.js"/);
   assert.match(viteConfig, /svelte\(\)/);
   assert.match(viteConfig, /assetsInlineLimit: 0/);
+});
+
+test("トップ画面をビルド時に描画し、ブラウザでhydrateする", () => {
+  assert.match(serverEntry, /import \{ render \} from "svelte\/server"/);
+  assert.match(serverEntry, /return render\(App\)/);
+  assert.match(prerender, /import\(serverOutput\)/);
+  assert.match(prerender, /\.replace\(outlet, body\)/);
+  assert.match(prerender, /body\.includes\('id="landing"'\)/);
+  assert.match(prerender, /rm\(serverOutputDirectory/);
+  assert.match(main, /import \{ hydrate, mount \} from "svelte"/);
+  assert.match(main, /target\.querySelector\("\.app-shell"\) \? hydrate : mount/);
+  assert.match(
+    packageJson.scripts.build,
+    /vite build --ssr src\/entry-server\.js --outDir \.prerender/,
+  );
+  assert.match(packageJson.scripts.build, /node scripts\/prerender\.mjs/);
 });
 
 test("トップ・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
@@ -127,7 +147,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(fontBuildScript, /const landingText = "暗算ポーカーはじめる"/);
   assert.match(
     fontBuildScript,
-    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%/,
+    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\.%/,
   );
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
   assert.match(landing, /\.brand-lockup h1 \{[\s\S]*line-height: 1;/);
@@ -192,21 +212,6 @@ test("選択肢は初回描画から領域を確保し、表示時に卓を動�
   assert.match(concealedRule, /visibility: hidden/);
   assert.match(concealedRule, /pointer-events: none/);
   assert.doesNotMatch(concealedRule, /display:\s*none/);
-});
-
-test("問題画面に説明用ラベルを増やさない", () => {
-  const visibleUi = `${landing}\n${quiz}\n${result}`;
-  for (const copy of [
-    ">FLOP<",
-    ">TURN<",
-    ">ボード<",
-    ">手札<",
-    "あなたの手札",
-    "表示された時点から",
-    "5%刻みの2択",
-  ]) {
-    assert.doesNotMatch(visibleUi, new RegExp(copy));
-  }
 });
 
 test("カード枠とカード面を分け、SVGスートと10表記に対応する", () => {

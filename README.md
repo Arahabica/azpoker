@@ -1,9 +1,8 @@
 # 暗算ポーカー
 
-ポーカーのドロー確率を2択で答える、10問1セットのブラウザドリルです。
-現在は `PLAN.md` のフェーズ3.7相当まで実装した、モバイル向けカードUI版です。
+ポーカーのドロー確率、2ハンドの強さ、プリフロップ勝率を2択で答える、10問1セットのブラウザドリルです。
 
-UIは **Svelte 5**、開発・ビルドは **Vite** を使います。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
+UIは **Svelte 5**、開発・ビルドは **Vite** を使います。トップ画面はビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
 
 ## 起動
 
@@ -20,13 +19,25 @@ Viteが表示したローカルURLをブラウザで開きます。
 pnpm check
 ```
 
-`check` はテスト、問題バンクの再生成チェック、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はテスト、10,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
 
 問題バンクを再生成する場合:
 
 ```sh
-python3 scripts/generate_question_bank.py
+pnpm questions:build
 ```
+
+## 公開
+
+Cloudflare Pages: <https://anzan-poker.pages.dev/>
+
+公開方式はDirect Uploadです。次のコマンドは検証と本番ビルドを完走してから、生成された `dist/` だけを `anzan-poker` プロジェクトの本番環境へアップロードします。
+
+```sh
+pnpm deploy:pages
+```
+
+ソースコードとGit履歴はアップロードしません。Direct Uploadで作成した同じPagesプロジェクトはGit連携方式へ変更できないため、自動デプロイへ移行する場合は別プロジェクトを作成します。
 
 ## ドキュメント
 
@@ -37,9 +48,12 @@ python3 scripts/generate_question_bank.py
 ## コード構成
 
 - `src/App.svelte`: セッションと画面遷移
+- `src/entry-server.js`: トップ画面を静的HTMLへ描画するSSRエントリ
+- `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
 - `src/screens/`: トップ、問題、結果の各画面
 - `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
 - `src/components/HoleCards.svelte`: 手札2枚のサイズ、重なり、角度、モーション
+- `src/components/HandComparison.svelte`: 2つの手札を直接選ぶ比較問題
 - `src/components/LogoCards.svelte`: ロゴカードの内容、サイズ、重なり、角度、モーション
 - `src/components/PlayingCard.svelte`: カード情報、共通カード枠、色、読み上げ
 - `src/components/card-faces/CardFace.svelte`: 採用したランクとスートの配置
@@ -49,14 +63,17 @@ python3 scripts/generate_question_bank.py
 - `styles.css`: フォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを持つグローバルCSS
 - `src/game.js`: 問題選択と表示用の純粋関数
 - `src/probability-engine.js`: 確率計算の純粋関数
-- `src/question-bank.js`: スクリプトから生成する100問
+- `src/question-loader.js`: manifestとモード別JSONの遅延取得、直近問題の記録
+- `public/questions/`: 100問単位のJSON 101ファイルとmanifest（合計10,000問）
+- `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力
 
 ## 現在の仕様判断
 
-- フェーズ表でモードB・Cはフェーズ8に置かれているため、現在の10問はモードAのみです。
-- 1セットはプリフロップ2問、フロップ4問、ターン4問です。順番は毎回混ぜます。
-- フロップ／ターンは、各ステージ内で同じカテゴリが重ならないように選びます。
+- 1セットはモードA 5問、B 2問、C 1問、D 2問です。順番は毎回混ぜます。
+- 全体のステージ比率はプリフロップ3問、フロップ4問、ターン3問です。
+- 基本原則で判断する問題を7問、複数要素を組み合わせる問題を3問出します。
+- モードAの5問はカテゴリを重複させず、0%問題は最大1問です。
 - 特定ランクの出現問題は、そのランクを手札に1枚持ち、来ればペア以上になる場合だけ出題します。
-- 特定ランクの出現と3カードを問う問題を、毎セットに含めます。
+- 特定ランクがスリーになる問題、ツーペア、フルハウス、フォーカードも扱います。
 - コンボドローは、フラッシュとストレートの両方を完成させる1枚を二重計上しません。
-- ポケットペアがリバーまでに3カード以上になる確率は19.2%として出題します。
+- 選択肢は問題ごとの典型的な勘違いから作り、別人数の勝率など明らかな捨て選択肢は使いません。

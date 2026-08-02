@@ -7,21 +7,25 @@
   "description": "暗算ポーカー｜勝率と確率のドリル",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --ssr src/entry-server.js --outDir .prerender && node scripts/prerender.mjs",
     "preview": "vite preview",
     "test": "node --test",
-    "check:bank": "python3 scripts/generate_question_bank.py --check",
+    "check:bank": "python3 scripts/generate_large_question_bank.py --check",
+    "questions:build": "python3 scripts/generate_large_question_bank.py",
     "check": "pnpm test && pnpm run check:bank && pnpm run build",
+    "deploy:pages": "pnpm check && wrangler pages deploy dist --project-name=anzan-poker --branch=main",
     "fonts:build": "node scripts/build_font_subsets.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "svelte": "^5.56.8",
-    "vite": "^6.4.3"
+    "vite": "^6.4.3",
+    "wrangler": "4.118.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "workerd"
     ]
   }
 }

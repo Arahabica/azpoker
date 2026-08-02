@@ -4,6 +4,7 @@
     label,
     variant = "primary",
     onClick,
+    disabled = false,
   } = $props();
 </script>
 
@@ -14,6 +15,7 @@
   class:secondary={variant === "secondary"}
   type="button"
   onclick={onClick}
+  {disabled}
 >{label}</button>
 
 <style>
@@ -28,6 +30,11 @@
       transform 120ms ease,
       background 120ms ease,
       border-color 120ms ease;
+  }
+
+  .action-button:disabled {
+    cursor: wait;
+    opacity: 0.72;
   }
 
   .primary {

@@ -1,8 +1,8 @@
 <script>
   import { tick } from "svelte";
 
-  import questionBank from "./question-bank.js";
   import { createSession, shuffle } from "./game.js";
+  import { loadQuestionPool, rememberQuestions } from "./question-loader.js";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
@@ -14,6 +14,7 @@
   let choices = $state([]);
   let answerResult = $state(null);
   let startupError = $state("");
+  let starting = $state(false);
 
   const currentQuestion = $derived(session[currentIndex]);
 
@@ -30,13 +31,30 @@
 
   function prepareQuestion(question) {
     answerResult = null;
-    choices = shuffle([question.answer, question.distractor]);
+    choices = question.mode === "B"
+      ? []
+      : shuffle([question.answer, question.distractor]);
     focusElement("#prompt");
   }
 
-  function startSession() {
+  async function startSession() {
+    if (starting) return;
+    starting = true;
     try {
-      session = createSession(questionBank);
+      let pool = [];
+      let nextSession;
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        pool = [...pool, ...(await loadQuestionPool())];
+        try {
+          nextSession = createSession(pool);
+          break;
+        } catch {
+          // 別の100問を追加し、固定比率を満たす組合せを探す。
+        }
+      }
+      if (!nextSession) throw new Error("問題を選べませんでした");
+      session = nextSession;
+      rememberQuestions(session);
       currentIndex = 0;
       score = 0;
       startupError = "";
@@ -44,6 +62,8 @@
       prepareQuestion(session[0]);
     } catch (error) {
       showStartupError(error);
+    } finally {
+      starting = false;
     }
   }
 
@@ -87,9 +107,12 @@
 
 <main class="app-shell">
   {#if startupError}
-    <p class="error" role="alert">{startupError}</p>
+    <div class="error" role="alert">
+      <p>{startupError}</p>
+      <button type="button" onclick={startSession}>もう一度</button>
+    </div>
   {:else if view === "landing"}
-    <LandingScreen onStart={startSession} />
+    <LandingScreen onStart={startSession} {starting} />
   {:else if view === "game"}
     <QuizScreen
       question={currentQuestion}
@@ -158,6 +181,16 @@
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
     line-height: 1.6;
     transform: translateY(-50%);
+  }
+
+  .error button {
+    margin-top: 0.8rem;
+    padding: 0.7rem 1rem;
+    border: 0;
+    border-radius: 0.7rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: inherit;
   }
 
   @media (min-width: 481px) {

@@ -1,4 +1,4 @@
-import { mount } from "svelte";
+import { hydrate, mount } from "svelte";
 
 import "../styles.css";
 import App from "./App.svelte";
@@ -9,4 +9,6 @@ if (!target) {
   throw new Error("アプリの描画先が見つかりません");
 }
 
-mount(App, { target });
+const renderApp = target.querySelector(".app-shell") ? hydrate : mount;
+
+renderApp(App, { target });

@@ -3,13 +3,17 @@ import test from "node:test";
 
 import {
   SESSION_STAGE_COUNTS,
+  SESSION_MODE_COUNTS,
+  SESSION_DIFFICULTY_COUNTS,
   cardDetails,
   createSession,
   formatActualPercent,
   formatCard,
   formatCards,
 } from "../src/game.js";
-import bank from "../src/question-bank.js";
+import { loadQuestionBank } from "./question-fixtures.js";
+
+const bank = loadQuestionBank();
 
 function seededRandom(seed) {
   let state = seed >>> 0;
@@ -30,27 +34,42 @@ test("10問を固定ステージ比率で重複なく選ぶ", () => {
       count,
     );
   }
+  for (const [mode, count] of Object.entries(SESSION_MODE_COUNTS)) {
+    assert.equal(session.filter((question) => question.mode === mode).length, count);
+  }
+  for (const [difficulty, count] of Object.entries(SESSION_DIFFICULTY_COUNTS)) {
+    assert.equal(session.filter((question) => question.difficulty === difficulty).length, count);
+  }
+  assert.ok(session.filter((question) => question.trueP === 0).length <= 1);
 });
 
-test("フロップとターンは1セット内でカテゴリを重複させない", () => {
+test("モードAのフロップとターンはカテゴリを重複させない", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
     for (const stage of ["flop", "turn"]) {
       const categories = session
-        .filter((question) => question.stage === stage)
+        .filter((question) => question.mode === "A" && question.stage === stage)
         .map((question) => question.category);
       assert.equal(new Set(categories).size, categories.length);
     }
   }
 });
 
-test("各セットにランクを絞った問題を含める", () => {
+test("モードAの5問はカテゴリを重複させない", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
-    const categories = session.map((question) => question.category);
+    const categories = session.filter((question) => question.mode === "A").map((question) => question.category);
+    assert.equal(new Set(categories).size, 5);
+  }
+});
 
-    assert.ok(categories.includes("rank_hit"));
-    assert.ok(categories.includes("rank_trips"));
+test("比較問題を2問、プリフロップ勝率問題を1問、相手ランク問題を2問含む", () => {
+  for (let seed = 0; seed < 20; seed += 1) {
+    const session = createSession(bank, seededRandom(seed));
+    const comparisons = session.filter((question) => question.mode === "B");
+    assert.equal(comparisons.length, 2);
+    assert.equal(session.filter((question) => question.mode === "C").length, 1);
+    assert.equal(session.filter((question) => question.mode === "D").length, 2);
   }
 });
 
