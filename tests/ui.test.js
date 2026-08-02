@@ -31,6 +31,8 @@ const logoCards = read("src/components/LogoCards.svelte");
 const cardSuits = read("src/components/card-suits.js");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
+const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
+const questionTimer = read("src/question-timer.js");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const uiTiming = read("src/ui-timing.js");
@@ -153,11 +155,15 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(landing, /\.brand-lockup h1 \{[\s\S]*line-height: 1;/);
   assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
 
-  assert.match(quiz, /MixedFontText text=\{question\.prompt\}/);
+  assert.match(quiz, /MixedFontText text=\{question\.prompt\} phraseWrap/);
   assert.match(mixedFontText, /\[A-Za-z0-9%\]/);
+  assert.match(mixedFontText, /splitAtNaturalBreaks/);
+  assert.match(mixedFontText, /<wbr \/>/);
+  assert.match(mixedFontText, /<\/span>\{#if phraseWrap/);
+  assert.match(mixedFontText, /\.phrase \{[\s\S]*white-space: nowrap/);
   assert.match(
     mixedFontText,
-    /<span class="mixed-font-text">[\s\S]*\{#each parts/,
+    /<span class="mixed-font-text">[\s\S]*\{#each phrases[\s\S]*fontParts\(phrase\)/,
   );
   assert.match(mixedFontText, /\.mixed-font-text \{[\s\S]*display: inline/);
   assert.match(
@@ -336,6 +342,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "logo-cards",
     "choice",
     "answer-sheet",
+    "quiz-progress-timer",
     "result-screen",
     "action-button",
     "playing-card",
@@ -350,6 +357,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     result,
     actionButton,
     answerSheet,
+    quizProgressTimer,
     board,
     holeCards,
     logoCards,
@@ -364,4 +372,31 @@ test("問題画面は回答パネルをコンポーネントで表示する", ()
   assert.match(quiz, /<AnswerSheet/);
   assert.match(answerSheet, /@keyframes raise-sheet/);
   assert.match(styles, /prefers-reduced-motion/);
+});
+
+test("10問の進捗と残り時間を1つのセグメント表示へ統合する", () => {
+  assert.match(quiz, /import QuizProgressTimer/);
+  assert.match(quiz, /<QuizProgressTimer/);
+  assert.doesNotMatch(quiz, /class="progress-track"/);
+  assert.match(quizProgressTimer, /role="progressbar"/);
+  assert.match(quizProgressTimer, /role="timer"/);
+  assert.match(quizProgressTimer, /class:is-active=\{isActive\}/);
+  assert.match(quizProgressTimer, /durationMs \/ 1_000/);
+  assert.match(quizProgressTimer, /countdown\.elapsedProgress/);
+  assert.doesNotMatch(quizProgressTimer, /class="timer-number/);
+  assert.match(quizProgressTimer, /outcome === "correct"/);
+  assert.match(quizProgressTimer, /outcome === "wrong" \|\| outcome === "timeout"/);
+  assert.match(quizProgressTimer, /class="screen-time-warning"/);
+  assert.match(quizProgressTimer, /is-critical-screen/);
+  assert.match(questionTimer, /mode === "B" \|\| question\.difficulty === "hard"/);
+});
+
+test("時間切れを一度だけ不正解として確定する", () => {
+  assert.match(app, /function handleTimeout\(questionIndex\)/);
+  assert.match(app, /questionIndex !== currentIndex/);
+  assert.match(app, /timedOut: true/);
+  assert.match(app, /outcomes\[currentIndex\]/);
+  assert.match(quiz, /onTimeout=\{handleTimeout\}|\{onTimeout\}/);
+  assert.match(quiz, /timedOut=\{answerResult\.timedOut\}/);
+  assert.match(answerSheet, /"時間切れ"/);
 });

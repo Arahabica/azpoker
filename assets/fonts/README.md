@@ -5,7 +5,7 @@
 | ファイル | 用途 | 収録内容 | サイズ |
 | --- | --- | --- | ---: |
 | `kosugi-maru/KosugiMaru-Landing.woff2` | 初期トップ | `暗算ポーカー`と`はじめる`の固有9文字 | 2,176 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2` | 問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 39,604 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2` | 問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 48,324 bytes |
 | `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字 | `A-Z`、`a-z`、`0-9`、`.`、`%` | 4,712 bytes |
 
 トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。問題・結果画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
@@ -54,6 +54,6 @@ pnpm build
 
 ```text
 10df416b9d33d7739b4e08441a18fa2690ee763e6d0e782e64bbff67a7314afd  KosugiMaru-Landing.woff2
-06cf9775dd66d64921005c782d05b5028eeeda9f1156cdad87a3c2f1d1b6504e  KosugiMaru-Game.woff2
+3ff8153743a92f61396306b18bb227fb156ec2764968c660b84b1f300a9bb789  KosugiMaru-Game.woff2
 e797fe3ac0bf30e4431d9feb4e5ce75564f59b0721842e524c5f339a24c260e3  MPLUSRounded1c-UI.woff2
 ```

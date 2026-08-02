@@ -53,15 +53,14 @@ NEW_A_COUNTS = {
     "nut_flush": 400,
 }
 NEW_B_COUNTS = {
-    "tie_probability": 200,
-    "trailing_hand_wins": 200,
-    "same_final_category": 200,
-    "clean_out": 200,
-    "dirty_out": 200,
-    "safe_card": 200,
-    "board_straight_chop": 200,
-    "board_flush_chop": 200,
-    "leading_hand_holds": 200,
+    "tie_probability": 225,
+    "trailing_hand_wins": 225,
+    "same_final_category": 225,
+    "clean_out": 225,
+    "safe_card": 225,
+    "board_straight_chop": 225,
+    "board_flush_chop": 225,
+    "leading_hand_holds": 225,
 }
 NEW_D_COUNTS = {
     "opponent_pocket_pair": 209,
@@ -93,6 +92,40 @@ def nearest_bucket(value: float) -> float:
 
 def percent_label(value: float) -> str:
     return f"{value:g}%"
+
+
+def minimum_choice_gap(correct: float) -> float:
+    """Keep normal probabilities readable while retaining detail near zero."""
+    if correct <= 2.5:
+        return 1
+    if correct < 20:
+        return 5
+    return 10
+
+
+def spaced_distractor(correct: float, wrong: float) -> float:
+    """Move an overly close distractor outward without changing its direction."""
+    minimum_gap = minimum_choice_gap(correct)
+    if wrong != correct and abs(wrong - correct) >= minimum_gap:
+        return wrong
+
+    candidates = tuple(
+        bucket
+        for bucket in BUCKETS
+        if bucket != correct and abs(bucket - correct) >= minimum_gap
+    )
+    direction = 1 if wrong >= correct else -1
+    same_direction = tuple(
+        bucket
+        for bucket in candidates
+        if (bucket - correct) * direction > 0
+        and not (correct > 0 and bucket == 0)
+    )
+    pool = same_direction or candidates
+    return min(
+        pool,
+        key=lambda bucket: (abs(bucket - correct), abs(bucket - wrong)),
+    )
 
 
 def canonical_cards(groups: list[list[str]]) -> str:
@@ -390,9 +423,12 @@ def distractor(value: float, category: str, stage: str) -> tuple[str, str]:
         wrong = correct - 15
     else:
         wrong = correct - 15
-    wrong = nearest_bucket(max(0, min(100, wrong)))
+    wrong = spaced_distractor(
+        correct,
+        nearest_bucket(max(0, min(100, wrong))),
+    )
     if wrong == correct:
-        wrong = nearest_bucket(max(0, correct - 10))
+        wrong = spaced_distractor(correct, nearest_bucket(max(0, correct - 10)))
     return percent_label(wrong), models[category]
 
 
@@ -574,7 +610,10 @@ def c_distractor(value: float, players: int) -> tuple[str, str]:
     else:
         wrong = correct - 15 if correct >= 35 else correct + 10
         model = "人数が増えたときの勝率低下を過大または過小評価する"
-    wrong = nearest_bucket(max(0, min(100, wrong)))
+    wrong = spaced_distractor(
+        correct,
+        nearest_bucket(max(0, min(100, wrong))),
+    )
     return percent_label(wrong), model
 
 
@@ -644,17 +683,20 @@ def build_mode_d(rng: random.Random) -> list[dict]:
                 remaining = 52 - len(hole) - len(board)
                 naive = (1 - math.comb(remaining - fake_remaining, 2) / math.comb(remaining, 2)) * 100
                 model = "見えている同ランクの枚数を1枚少なく数える"
-            wrong = nearest_bucket(naive)
+            wrong = spaced_distractor(correct, nearest_bucket(naive))
             if wrong == correct:
-                wrong = nearest_bucket(correct + (10 if correct < 50 else -10))
+                wrong = spaced_distractor(
+                    correct,
+                    nearest_bucket(correct + (10 if correct < 50 else -10)),
+                )
             rank = display_rank(target_rank)
             questions.append({
                 "id": f"d-{len(questions) + 1:04d}", "mode": "D", "stage": stage,
                 "hole": list(hole), "board": list(board), "targetRank": target_rank,
                 "playerCount": players, "trueP": value, "answer": percent_label(correct),
                 "distractor": percent_label(wrong), "category": "opponent_rank",
-                "prompt": f"{'相手' if players == 2 else 'ほかの誰か'}が{rank}を持つ確率は？",
-                "explain": f"見えていない{rank}と、相手に配られる枚数から考えます。",
+                "prompt": mode_d_copy("opponent_rank", players, target_rank)[0],
+                "explain": mode_d_copy("opponent_rank", players, target_rank)[1],
                 "difficulty": "hard" if players == 6 or rng.random() < 0.2 else "medium",
                 "distractorModel": model, "conceptKey": key,
             })
@@ -663,7 +705,7 @@ def build_mode_d(rng: random.Random) -> list[dict]:
 
 
 def answer_fields(value: float, model: str) -> dict:
-    """Create a close, low-resolution choice from a concrete misconception."""
+    """Create a readable choice near a concrete misconception."""
     correct = nearest_bucket(value)
     if correct < 5:
         candidates = (0, 1, 2.5, 5, 7.5)
@@ -672,7 +714,10 @@ def answer_fields(value: float, model: str) -> dict:
     else:
         candidates = tuple(bucket for bucket in BUCKETS if 5 <= abs(bucket - correct) <= 15)
     candidates = tuple(bucket for bucket in candidates if bucket != correct)
-    wrong = min(candidates, key=lambda bucket: (abs(bucket - value), abs(bucket - correct)))
+    wrong = spaced_distractor(
+        correct,
+        min(candidates, key=lambda bucket: (abs(bucket - value), abs(bucket - correct))),
+    )
     return {
         "trueP": round(value, 2),
         "answer": percent_label(correct),
@@ -820,14 +865,14 @@ NEW_A_COPY = {
     "runner_flush_or_straight": ("ストレートかフラッシュの確率は？", "どちらも残り2枚が必要で、重なる組合せは一度だけ数えます。"),
     "board_pair": ("ボードにペアができる確率は？", "ボード上で同じランクが2枚以上になる可能性です。"),
     "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2ランクがペアになる可能性です。"),
-    "overcard": ("手札のペアより高いカードが出る確率は？", "ポケットペアより高いランクが出る可能性です。"),
-    "four_flush_board": ("ボードに同じスートが4枚並ぶ確率は？", "1枚の同じスートを持つ相手にもフラッシュの可能性が生まれます。"),
-    "straight_threat_board": ("1枚でストレートになる並びがボードに出る確率は？", "相手の1枚でストレートになり得るボードです。"),
+    "overcard": ("手札のペアより高いカードの確率は？", "ポケットペアより高いランクが出る可能性です。"),
+    "four_flush_board": ("ボードに同じスートが4枚の確率は？", "1枚の同じスートを持つ相手にもフラッシュの可能性が生まれます。"),
+    "straight_threat_board": ("ボードがあと1枚でストレートの確率は？", "相手の1枚でストレートになり得るボードです。"),
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
-    "two_pair_counterfeit": ("低い方のペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
+    "two_pair_counterfeit": ("低いペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
     "same_hand_category": ("今の役のまま終わる確率は？", "役の種類が変わらない可能性です。"),
     "next_card_strong_draw": ("次の1枚で強いドローになる確率は？", "次のカードで8枚以上の待ちができる可能性です。"),
-    "nut_flush": ("最も高いフラッシュになる確率は？", "そのボードで作れる最も高いフラッシュになる可能性です。"),
+    "nut_flush": ("最高のフラッシュの確率は？", "そのボードで作れる最も高いフラッシュになる可能性です。"),
 }
 
 
@@ -882,14 +927,13 @@ def outcome_percent(hands, board, predicate) -> float:
 
 NEW_B_COPY = {
     "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
-    "trailing_hand_wins": ("負けている手札が逆転する確率は？", "現在負けている側が最後に単独で勝つ可能性です。"),
+    "trailing_hand_wins": ("負けている手札の勝率は？", "現在負けている側が最後に単独で勝つ可能性です。"),
     "same_final_category": ("両方が同じ役になる確率は？", "キッカーの強さに関係なく、役の種類が同じになる可能性です。"),
-    "clean_out": ("クリーンアウトの確率は？", "クリーンアウトは、引けば単独で勝てるカードです。"),
-    "dirty_out": ("ダーティアウトの確率は？", "ダーティアウトは、役が上がっても勝ちにつながらないカードです。"),
-    "safe_card": ("次の1枚がセーフカードの確率は？", "セーフカードは、現在の優勢を保てるカードです。"),
+    "clean_out": ("最後の1枚で逆転する確率は？", "負けている側を逆転勝ちさせるカードを、クリーンアウトと呼びます。"),
+    "safe_card": ("次の1枚でも勝ったままの確率は？", "現在勝っている側が、そのカードの後もリードを保つ可能性です。"),
     "board_straight_chop": ("ボードのストレートで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
     "board_flush_chop": ("ボードのフラッシュで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
-    "leading_hand_holds": ("勝っている手札が逃げ切る確率は？", "現在勝っている側が最後も単独で勝つ可能性です。"),
+    "leading_hand_holds": ("勝っている手札の勝率は？", "現在勝っている側が最後も単独で勝つ可能性です。"),
 }
 
 
@@ -903,7 +947,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             attempts += 1
             if attempts > count * 4000:
                 raise RuntimeError(f"B/{category} の生成候補が不足")
-            stage = "turn" if category in {"clean_out", "dirty_out"} else "flop" if category == "safe_card" else rng.choice(("flop", "turn"))
+            stage = "turn" if category == "clean_out" else "flop" if category == "safe_card" else rng.choice(("flop", "turn"))
             board_size = 3 if stage == "flop" else 4
             if category == "board_straight_chop":
                 stage = "flop"
@@ -927,7 +971,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             current = [evaluate((*hand, *board)) for hand in hands]
             leader = 0 if current[0] > current[1] else 1 if current[1] > current[0] else None
             trailer = None if leader is None else 1 - leader
-            if category in {"trailing_hand_wins", "clean_out", "dirty_out", "safe_card", "leading_hand_holds"} and leader is None:
+            if category in {"trailing_hand_wins", "clean_out", "safe_card", "leading_hand_holds"} and leader is None:
                 continue
 
             def predicate(scores, final_board, runout):
@@ -935,8 +979,6 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                     return scores[0] == scores[1]
                 if category in {"trailing_hand_wins", "clean_out"}:
                     return scores[trailer] > scores[leader]
-                if category == "dirty_out":
-                    return scores[trailer][0] > current[trailer][0] and scores[trailer] <= scores[leader]
                 if category == "safe_card":
                     turn_scores = [evaluate((*hand, *board, runout[0])) for hand in hands]
                     return turn_scores[leader] > turn_scores[trailer]
@@ -1098,21 +1140,93 @@ def opponent_property_percent(category, hero, board, target_rank, players, rng):
     return hits / trials * 100
 
 
-NEW_D_COPY = {
-    "opponent_pocket_pair": "ポケットペア",
-    "opponent_overpair": "オーバーペア",
-    "opponent_set": "セット",
-    "opponent_top_pair_plus": "トップペア以上",
-    "opponent_two_pair": "ツーペア",
-    "opponent_straight": "ストレート",
-    "opponent_flush": "フラッシュ",
-    "opponent_oesd": "OESD",
-    "opponent_gutshot": "ガットショット",
-    "opponent_flush_draw": "フラッシュドロー",
-    "opponent_combo_draw": "コンボドロー",
-    "opponent_higher_flush": "より高いフラッシュ",
-    "opponent_same_pair_higher_kicker": "同じペアで上のキッカー",
+MODE_D_BEGINNER_COPY = {
+    "opponent_pocket_pair": (
+        "の手札がペアの確率は？",
+        "相手の手札2枚が同じ数字・文字の組合せです。この手札をポケットペアと呼びます。",
+    ),
+    "opponent_overpair": (
+        "がボードより高いペアの確率は？",
+        "手札のペアがボードの一番高いカードよりも高い形を、オーバーペアと呼びます。",
+    ),
+    "opponent_set": (
+        "が手札のペアでスリーの確率は？",
+        "手札2枚がペアで、ボードに同じ数字・文字が1枚あるスリーをセットと呼びます。",
+    ),
+    "opponent_top_pair_plus": (
+        "が一番高いペア以上の確率は？",
+        "ボードの一番高いカードとのペア、またはそれより強い役になる組合せです。",
+    ),
+    "opponent_two_pair": (
+        "がツーペアの確率は？",
+        "相手の2枚と現在のボードから、異なる2組のペアができる組合せです。",
+    ),
+    "opponent_straight": (
+        "がストレートの確率は？",
+        "相手の2枚と現在のボードから、連続する5枚ができる組合せです。",
+    ),
+    "opponent_flush": (
+        "がフラッシュの確率は？",
+        "相手の2枚と現在のボードから、同じスートが5枚できる組合せです。",
+    ),
+    "opponent_oesd": (
+        "がストレートの両端待ちの確率は？",
+        "並びの左右どちらの数字が出てもストレートになる形です。この両端待ちをOESDと呼びます。",
+    ),
+    "opponent_gutshot": (
+        "がストレートの内側待ちの確率は？",
+        "並びの内側にある1種類の数字を引けばストレートになる形です。一般にガットショットと呼びます。",
+    ),
+    "opponent_flush_draw": (
+        "があと1枚でフラッシュの確率は？",
+        "同じスートが現在4枚あり、あと1枚でフラッシュになる形です。一般にフラッシュドローと呼びます。",
+    ),
+    "opponent_combo_draw": (
+        "がストレートとフラッシュ待ちの確率は？",
+        "ストレートとフラッシュの両方を狙える形です。一般にコンボドローと呼びます。",
+    ),
+    "opponent_higher_flush": (
+        "が自分より高いフラッシュの確率は？",
+        "自分と同じスートで、より高いカードを含むフラッシュの組合せです。",
+    ),
+    "opponent_same_pair_higher_kicker": (
+        "が同じペアで自分より強い確率は？",
+        "同じペア同士では、ペア以外の高いカードで勝敗を比べます。そのカードをキッカーと呼びます。",
+    ),
 }
+
+
+def mode_d_copy(category: str, players: int, target_rank: str | None = None) -> tuple[str, str]:
+    table = f"{players}人卓で"
+    subject = "相手" if players == 2 else "ほかの誰か"
+
+    if category == "opponent_rank":
+        rank = display_rank(target_rank)
+        return (
+            f"{table}{subject}が{rank}を持つ確率は？",
+            f"見えていない{rank}と、相手に配られる枚数から考えます。",
+        )
+    if category == "all_opponents_miss_board":
+        all_opponents = "相手" if players == 2 else "相手全員"
+        return (
+            f"{table}{all_opponents}がボードとペアでない確率は？",
+            "相手の手札に、ボードと同じ数字・文字が1枚もない可能性です。",
+        )
+    if category.endswith("target_rank"):
+        rank = display_rank(target_rank)
+        if players == 2:
+            return (
+                f"{table}相手が{rank}を持つ確率は？",
+                f"見えていない{rank}が、相手に配られる可能性です。",
+            )
+        amount = "1人だけ" if category.startswith("exactly") else "2人以上"
+        return (
+            f"{table}{rank}を持つ相手が{amount}の確率は？",
+            f"見えていない{rank}が、何人の相手に配られるかを考えます。",
+        )
+
+    prompt_tail, explanation = MODE_D_BEGINNER_COPY[category]
+    return f"{table}{subject}{prompt_tail}", explanation
 
 
 def build_new_d_state(category, rng):
@@ -1161,24 +1275,7 @@ def build_new_mode_d(rng: random.Random) -> list[dict]:
             key = f"{category}:{players}:{target_rank}:{stage}:{canonical_cards([list(hole), list(board)])}"
             if key in seen:
                 continue
-            if category == "all_opponents_miss_board":
-                prompt = "全員がボードにヒットしていない確率は？"
-                explain = "相手の手札とボードに同じランクがない可能性です。"
-            elif category.endswith("target_rank"):
-                rank = display_rank(target_rank)
-                amount = "ちょうど1人" if category.startswith("exactly") else "2人以上"
-                prompt = f"{rank}を持つ相手が{amount}いる確率は？"
-                explain = f"見えていない{rank}が、何人の相手に配られるかを考えます。"
-            else:
-                label = NEW_D_COPY[category]
-                prompt = f"{'相手' if players == 2 else 'ほかの誰か'}が{label}の確率は？"
-                definitions = {
-                    "opponent_oesd": "OESDは、両端のどちらでもストレートになる待ちです。",
-                    "opponent_gutshot": "ガットショットは、内側の1ランクを待つ形です。",
-                    "opponent_combo_draw": "コンボドローは、ストレートとフラッシュを同時に狙える形です。",
-                    "opponent_set": "セットは、ポケットペアとボード1枚で作るスリーです。",
-                }
-                explain = definitions.get(category, f"相手の2枚と現在のボードから{label}になる組合せです。")
+            prompt, explain = mode_d_copy(category, players, target_rank)
             fields = answer_fields(value, "相手人数、見えているカード、ボードだけの役のいずれかを数え違える")
             question = {
                 "id": f"d-{LEGACY_MODE_COUNTS['D'] + len(questions) + 1:04d}",
@@ -1215,6 +1312,34 @@ def validate(bank: list[dict]) -> None:
             raise RuntimeError(f"誤答理由なし: {question['id']}")
         if question.get("answerType") == "percent" and question["answer"] == question["distractor"]:
             raise RuntimeError(f"選択肢重複: {question['id']}")
+        if question.get("answerType") == "percent":
+            correct = float(question["answer"].removesuffix("%"))
+            wrong = float(question["distractor"].removesuffix("%"))
+            if abs(correct - wrong) < minimum_choice_gap(correct):
+                raise RuntimeError(f"選択肢が近すぎます: {question['id']}")
+        if question["mode"] == "D" and not question["prompt"].startswith(f"{question['playerCount']}人卓で"):
+            raise RuntimeError(f"卓人数なし: {question['id']}")
+
+
+def normalize_question_copy(question: dict) -> None:
+    if question["mode"] == "A" and question["category"] in NEW_A_COPY:
+        question["prompt"], question["explain"] = NEW_A_COPY[question["category"]]
+    if question["mode"] == "B" and question["category"] in NEW_B_COPY:
+        question["prompt"], question["explain"] = NEW_B_COPY[question["category"]]
+    if question["mode"] == "D":
+        question["prompt"], question["explain"] = mode_d_copy(
+            question["category"],
+            question["playerCount"],
+            question.get("targetRank"),
+        )
+
+
+def normalize_question_choices(question: dict) -> None:
+    if question.get("answerType") != "percent":
+        return
+    correct = float(question["answer"].removesuffix("%"))
+    wrong = float(question["distractor"].removesuffix("%"))
+    question["distractor"] = percent_label(spaced_distractor(correct, wrong))
 
 
 def render_json(value) -> str:
@@ -1348,7 +1473,7 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = "-v2" if mode in {"A", "D"} else ""
+        cache_version = {"A": "-v2", "B": "-v3", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         if cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -1365,6 +1490,8 @@ def main() -> int:
     for questions in bank_by_mode.values():
         for question in questions:
             question.setdefault("answerType", "hand" if question["mode"] == "B" else "percent")
+            normalize_question_copy(question)
+            normalize_question_choices(question)
     for mode, questions in bank_by_mode.items():
         print(f"モード{mode}: {len(questions):,}問", flush=True)
     bank = [question for questions in bank_by_mode.values() for question in questions]

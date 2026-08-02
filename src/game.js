@@ -9,7 +9,7 @@ const SESSION_STAGE_COUNTS = Object.freeze({
   flop: 4,
   turn: 3,
 });
-const SESSION_DIFFICULTY_COUNTS = Object.freeze({ medium: 7, hard: 3 });
+const SESSION_DIFFICULTY_COUNTS = Object.freeze({ medium: 8, hard: 2 });
 const SUIT_SYMBOLS = Object.freeze({
   c: "♣",
   d: "♦",

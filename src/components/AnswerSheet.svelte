@@ -3,7 +3,15 @@
   import ActionButton from "./ActionButton.svelte";
   import MixedFontText from "./MixedFontText.svelte";
 
-  let { correct, question, isLast, onNext } = $props();
+  let { correct, timedOut = false, question, isLast, onNext } = $props();
+
+  function getFeedbackTitle() {
+    if (timedOut) return "時間切れ";
+    if (correct) return "正解";
+    return "不正解";
+  }
+
+  const feedbackTitle = $derived(getFeedbackTitle());
 </script>
 
 <section
@@ -23,7 +31,7 @@
     </svg>
   </div>
   <p id="feedback-title" class="feedback-title">
-    {correct ? "正解" : "不正解"}
+    {feedbackTitle}
   </p>
   <p class="actual-probability">{formatActualPercent(question.trueP)}</p>
   <p class="explanation"><MixedFontText text={question.explain} /></p>

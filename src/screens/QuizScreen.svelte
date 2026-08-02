@@ -5,6 +5,8 @@
   import HoleCards from "../components/HoleCards.svelte";
   import HandComparison from "../components/HandComparison.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
+  import QuizProgressTimer from "../components/QuizProgressTimer.svelte";
+  import { getQuestionTimeLimitMs } from "../question-timer.js";
   import { CHOICE_REVEAL_DELAY_MS } from "../ui-timing.js";
 
   let {
@@ -13,12 +15,14 @@
     total,
     choices,
     answerResult,
+    outcomes,
     onLeave,
     onAnswer,
+    onTimeout,
     onNext,
   } = $props();
 
-  const progress = $derived(((currentIndex + 1) / total) * 100);
+  const durationMs = $derived(getQuestionTimeLimitMs(question));
   const reducedMotion = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
@@ -55,21 +59,19 @@
         <path d="m15 5-7 7 7 7"></path>
       </svg>
     </button>
-    <div
-      class="progress-track"
-      role="progressbar"
-      aria-label="問題の進み具合"
-      aria-valuemin="1"
-      aria-valuemax={total}
-      aria-valuenow={currentIndex + 1}
-    >
-      <span class="progress-fill" style={`width: ${progress}%`}></span>
-    </div>
+    <QuizProgressTimer
+      {currentIndex}
+      {total}
+      {outcomes}
+      {durationMs}
+      running={choicesReady && !answerResult}
+      {onTimeout}
+    />
   </header>
 
   <div class="question-content">
     <h2 id="prompt" class="prompt" tabindex="-1">
-      <MixedFontText text={question.prompt} />
+      <MixedFontText text={question.prompt} phraseWrap />
     </h2>
 
     <div class="table-area">
@@ -109,6 +111,7 @@
   {#if answerResult}
     <AnswerSheet
       correct={answerResult.correct}
+      timedOut={answerResult.timedOut}
       {question}
       isLast={currentIndex === total - 1}
       {onNext}
@@ -160,26 +163,6 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 2.3;
-  }
-
-  .progress-track {
-    position: relative;
-    flex: 1;
-    height: 0.38rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgb(0 35 27 / 34%);
-    box-shadow: inset 0 1px 2px rgb(0 0 0 / 14%);
-  }
-
-  .progress-fill {
-    display: block;
-    width: 10%;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--accent-emphasis);
-    box-shadow: 0 0 0.7rem var(--accent-glow);
-    transition: width 260ms ease;
   }
 
   .question-content {

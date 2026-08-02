@@ -16,6 +16,12 @@ function choicePercent(value) {
   return Number.parseFloat(value);
 }
 
+function minimumChoiceGap(answer) {
+  if (answer <= 2.5) return 1;
+  if (answer < 20) return 5;
+  return 10;
+}
+
 test("問題バンクは20,000問で、計画どおりのモード構成を持つ", () => {
   assert.equal(bank.length, 20_000);
   assert.equal(new Set(bank.map((question) => question.id)).size, 20_000);
@@ -96,8 +102,12 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
     assert.ok(["hand", "percent"].includes(question.answerType));
     if (question.answerType === "percent") {
       assert.notEqual(question.answer, question.distractor, `${question.id}: 選択肢重複`);
-      choicePercent(question.answer);
-      choicePercent(question.distractor);
+      const answer = choicePercent(question.answer);
+      const distractor = choicePercent(question.distractor);
+      assert.ok(
+        Math.abs(answer - distractor) >= minimumChoiceGap(answer),
+        `${question.id}: 選択肢が近すぎる`,
+      );
     }
   }
 });
@@ -112,6 +122,19 @@ test("A5sの2人勝率は捨て選択肢を使わない", () => {
 });
 
 test("初心者向け文言を使い、内部表記を画面へ出さない", () => {
+  const explanationOnlyTerms = [
+    "クリーンアウト",
+    "セーフカード",
+    "ポケットペア",
+    "オーバーペア",
+    "セット",
+    "トップペア",
+    "OESD",
+    "ガットショット",
+    "フラッシュドロー",
+    "コンボドロー",
+    "キッカー",
+  ];
   for (const question of bank) {
     const copy = `${question.prompt}${question.explain}`;
     assert.equal(copy.includes("3カード"), false, `${question.id}: 3カード`);
@@ -119,9 +142,56 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     assert.equal(copy.includes("Tの"), false, `${question.id}: T表記`);
     assert.equal(copy.includes("厳密値"), false, `${question.id}: 内部表現`);
     assert.equal(copy.includes("全列挙"), false, `${question.id}: 内部表現`);
+    for (const term of explanationOnlyTerms) {
+      assert.equal(question.prompt.includes(term), false, `${question.id}: ${term}`);
+    }
+    if (question.mode === "D") {
+      assert.ok(
+        question.prompt.startsWith(`${question.playerCount}人卓で`),
+        `${question.id}: 卓人数`,
+      );
+    }
   }
   const runner = bank.find((question) => question.explain.includes("ランナーランナー"));
   assert.match(runner?.explain ?? "", /残り2枚が両方/);
+
+  const cleanOut = bank.find((question) => question.category === "clean_out");
+  assert.match(cleanOut?.prompt ?? "", /最後の1枚で逆転する/);
+  assert.match(cleanOut?.explain ?? "", /クリーンアウト/);
+
+  const opponentSet = bank.find((question) => question.category === "opponent_set");
+  assert.match(opponentSet?.prompt ?? "", /手札のペアでスリー/);
+  assert.match(opponentSet?.explain ?? "", /セット/);
+
+  const opponentOesd = bank.find((question) => question.category === "opponent_oesd");
+  assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
+  assert.match(opponentOesd?.explain ?? "", /OESD/);
+});
+
+test("モードBの数値問題を短い8形式へ均等に振り分ける", () => {
+  const expected = {
+    tie_probability: 225,
+    trailing_hand_wins: 225,
+    same_final_category: 225,
+    clean_out: 225,
+    safe_card: 225,
+    board_straight_chop: 225,
+    board_flush_chop: 225,
+    leading_hand_holds: 225,
+  };
+  const numericModeB = bank.filter(
+    (question) => question.mode === "B" && question.answerType === "percent",
+  );
+  assert.equal(numericModeB.length, 1_800);
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.keys(expected).map((category) => [
+        category,
+        numericModeB.filter((question) => question.category === category).length,
+      ]),
+    ),
+    expected,
+  );
 });
 
 test("モードDは2人・6人、全13ランクと追加カテゴリを含む", () => {

@@ -13,6 +13,7 @@
   let score = $state(0);
   let choices = $state([]);
   let answerResult = $state(null);
+  let outcomes = $state([]);
   let startupError = $state("");
   let starting = $state(false);
 
@@ -58,6 +59,7 @@
       rememberQuestions(session);
       currentIndex = 0;
       score = 0;
+      outcomes = Array(nextSession.length).fill(null);
       startupError = "";
       view = "game";
       prepareQuestion(session[0]);
@@ -68,17 +70,44 @@
     }
   }
 
-  function handleAnswer(selected) {
+  function settleQuestion({ correct, selected, timedOut }) {
     if (answerResult) {
-      return;
+      return false;
     }
 
-    const correct = selected === currentQuestion.answer;
     if (correct) {
       score += 1;
     }
-    answerResult = { correct, selected };
+    let outcome = "wrong";
+    if (timedOut) {
+      outcome = "timeout";
+    } else if (correct) {
+      outcome = "correct";
+    }
+    outcomes[currentIndex] = outcome;
+    answerResult = { correct, selected, timedOut };
     focusElement("#next-question");
+    return true;
+  }
+
+  function handleAnswer(selected) {
+    settleQuestion({
+      correct: selected === currentQuestion.answer,
+      selected,
+      timedOut: false,
+    });
+  }
+
+  function handleTimeout(questionIndex) {
+    if (view !== "game" || questionIndex !== currentIndex) {
+      return;
+    }
+
+    settleQuestion({
+      correct: false,
+      selected: null,
+      timedOut: true,
+    });
   }
 
   function showResult() {
@@ -99,6 +128,7 @@
   function showLanding(shouldFocus = true) {
     startupError = "";
     answerResult = null;
+    outcomes = [];
     view = "landing";
     if (shouldFocus) {
       focusElement("#start-game");
@@ -121,8 +151,10 @@
       total={session.length}
       {choices}
       {answerResult}
+      {outcomes}
       onLeave={showLanding}
       onAnswer={handleAnswer}
+      onTimeout={handleTimeout}
       onNext={goNext}
     />
   {:else}
