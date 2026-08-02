@@ -74,10 +74,11 @@
 
     <div class="table-area">
       <Board cards={question.board} revealKey={currentIndex} />
-      {#if question.mode === "B"}
+      {#if question.hands}
         <HandComparison
           hands={question.hands}
           disabled={choicesConcealed}
+          selectable={question.answerType === "hand"}
           {answerResult}
           answer={question.answer}
           onSelect={onAnswer}
@@ -87,7 +88,7 @@
       {/if}
     </div>
 
-    {#if question.mode !== "B"}
+    {#if question.answerType === "percent"}
       <div
         class="choices"
         class:is-concealed={choicesConcealed}

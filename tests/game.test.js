@@ -63,11 +63,13 @@ test("モードAの5問はカテゴリを重複させない", () => {
   }
 });
 
-test("比較問題を2問、プリフロップ勝率問題を1問、相手ランク問題を2問含む", () => {
+test("Bを手札型・数値型1問ずつ、Cを1問、Dを別系統から2問含む", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
     const comparisons = session.filter((question) => question.mode === "B");
     assert.equal(comparisons.length, 2);
+    assert.equal(comparisons.filter((question) => question.answerType === "hand").length, 1);
+    assert.equal(comparisons.filter((question) => question.answerType === "percent").length, 1);
     assert.equal(session.filter((question) => question.mode === "C").length, 1);
     assert.equal(session.filter((question) => question.mode === "D").length, 2);
   }

@@ -16,10 +16,10 @@ function choicePercent(value) {
   return Number.parseFloat(value);
 }
 
-test("問題バンクは10,000問で、計画どおりのモード構成を持つ", () => {
-  assert.equal(bank.length, 10_000);
-  assert.equal(new Set(bank.map((question) => question.id)).size, 10_000);
-  assert.equal(new Set(bank.map((question) => question.conceptKey)).size, 10_000);
+test("問題バンクは20,000問で、計画どおりのモード構成を持つ", () => {
+  assert.equal(bank.length, 20_000);
+  assert.equal(new Set(bank.map((question) => question.id)).size, 20_000);
+  assert.equal(new Set(bank.map((question) => question.conceptKey)).size, 20_000);
   assert.deepEqual(
     Object.fromEntries(
       ["A", "B", "C", "D"].map((mode) => [
@@ -27,25 +27,24 @@ test("問題バンクは10,000問で、計画どおりのモード構成を持�
         bank.filter((question) => question.mode === mode).length,
       ]),
     ),
-    { A: 6000, B: 3000, C: 338, D: 662 },
+    { A: 10_000, B: 4800, C: 1200, D: 4000 },
   );
 });
 
 test("100問単位のJSONとmanifestを生成する", () => {
-  assert.equal(manifest.total, 10_000);
+  assert.equal(manifest.total, 20_000);
   assert.equal(manifest.batchSize, 100);
   assert.match(manifest.version, /^[a-f0-9]{12}$/);
-  for (const [mode, details] of Object.entries(manifest.modes)) {
+  for (const [group, details] of Object.entries(manifest.groups)) {
     const files = fs
-      .readdirSync(path.join(questionsRoot, mode.toLowerCase()))
+      .readdirSync(path.join(questionsRoot, details.path))
       .filter((filename) => filename.endsWith(".json"));
     assert.equal(files.length, details.files);
     files.sort().forEach((filename, index) => {
       const chunk = JSON.parse(
-        fs.readFileSync(path.join(questionsRoot, mode.toLowerCase(), filename), "utf8"),
+        fs.readFileSync(path.join(questionsRoot, details.path, filename), "utf8"),
       );
-      if (index < files.length - 1) assert.equal(chunk.length, 100);
-      else assert.equal(chunk.length, details.count - index * 100);
+      assert.equal(chunk.length, 100, `${group}/${filename}`);
     });
   }
 });
@@ -61,6 +60,19 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     full_house: 400,
     four_kind: 250,
     straight_flush: 100,
+    runner_straight: 400,
+    runner_flush: 350,
+    runner_flush_or_straight: 300,
+    board_pair: 300,
+    board_two_pair: 250,
+    overcard: 350,
+    four_flush_board: 300,
+    straight_threat_board: 300,
+    pocket_pair_counterfeit: 300,
+    two_pair_counterfeit: 250,
+    same_hand_category: 200,
+    next_card_strong_draw: 300,
+    nut_flush: 400,
   };
   const actual = Object.fromEntries(
     Object.keys(expected).map((category) => [
@@ -81,7 +93,8 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
     assert.equal(new Set(cards).size, cards.length, `${question.id}: カード重複`);
     assert.ok(question.distractorModel, `${question.id}: 誤答理由`);
     assert.ok(["medium", "hard"].includes(question.difficulty));
-    if (question.mode !== "B") {
+    assert.ok(["hand", "percent"].includes(question.answerType));
+    if (question.answerType === "percent") {
       assert.notEqual(question.answer, question.distractor, `${question.id}: 選択肢重複`);
       choicePercent(question.answer);
       choicePercent(question.distractor);
@@ -108,11 +121,32 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     assert.equal(copy.includes("全列挙"), false, `${question.id}: 内部表現`);
   }
   const runner = bank.find((question) => question.explain.includes("ランナーランナー"));
-  assert.match(runner?.explain ?? "", /残り2枚が両方そろって完成する形/);
+  assert.match(runner?.explain ?? "", /残り2枚が両方/);
 });
 
-test("モードDは2人・6人、全13ランクを含む", () => {
+test("モードDは2人・6人、全13ランクと追加カテゴリを含む", () => {
   const questions = bank.filter((question) => question.mode === "D");
   assert.deepEqual(new Set(questions.map((question) => question.playerCount)), new Set([2, 6]));
-  assert.deepEqual(new Set(questions.map((question) => question.targetRank)), new Set("23456789TJQKA"));
+  assert.deepEqual(
+    new Set(questions.filter((question) => question.category === "opponent_rank").map((question) => question.targetRank)),
+    new Set("23456789TJQKA"),
+  );
+  for (const category of [
+    "opponent_pocket_pair", "opponent_overpair", "opponent_set", "opponent_top_pair_plus",
+    "opponent_two_pair", "opponent_straight", "opponent_flush", "opponent_oesd",
+    "opponent_gutshot", "opponent_flush_draw", "opponent_combo_draw", "opponent_higher_flush",
+    "opponent_same_pair_higher_kicker", "all_opponents_miss_board",
+    "exactly_one_opponent_target_rank", "multiple_opponents_target_rank",
+  ]) {
+    assert.ok(questions.some((question) => question.category === category), category);
+  }
+});
+
+test("B+Cパックは従来B 50問・数値B 30問・C 20問", () => {
+  for (const filename of fs.readdirSync(path.join(questionsRoot, "bc")).filter((name) => name.endsWith(".json"))) {
+    const chunk = JSON.parse(fs.readFileSync(path.join(questionsRoot, "bc", filename), "utf8"));
+    assert.equal(chunk.filter((question) => question.mode === "B" && question.answerType === "hand").length, 50);
+    assert.equal(chunk.filter((question) => question.mode === "B" && question.answerType === "percent").length, 30);
+    assert.equal(chunk.filter((question) => question.mode === "C").length, 20);
+  }
 });

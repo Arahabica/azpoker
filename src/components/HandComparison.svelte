@@ -1,22 +1,35 @@
 <script>
   import HoleCards from "./HoleCards.svelte";
 
-  let { hands = [], disabled = false, answerResult = null, answer, onSelect } = $props();
+  let {
+    hands = [],
+    disabled = false,
+    selectable = true,
+    answerResult = null,
+    answer,
+    onSelect,
+  } = $props();
 </script>
 
 <div class="hand-options" aria-label="選択肢">
   {#each hands as hand, index}
-    <button
-      type="button"
-      class="hand-option"
-      class:is-correct={Boolean(answerResult) && index === answer}
-      class:is-wrong={Boolean(answerResult) && answerResult.selected === index && index !== answer}
-      aria-label={`${index + 1}つ目の手札`}
-      {disabled}
-      onclick={() => onSelect(index)}
-    >
-      <HoleCards cards={hand} />
-    </button>
+    {#if selectable}
+      <button
+        type="button"
+        class="hand-option"
+        class:is-correct={Boolean(answerResult) && index === answer}
+        class:is-wrong={Boolean(answerResult) && answerResult.selected === index && index !== answer}
+        aria-label={`${index + 1}つ目の手札`}
+        {disabled}
+        onclick={() => onSelect(index)}
+      >
+        <HoleCards cards={hand} />
+      </button>
+    {:else}
+      <div class="hand-option static-hand" aria-label={`${index + 1}つ目の手札`}>
+        <HoleCards cards={hand} />
+      </div>
+    {/if}
   {/each}
 </div>
 
@@ -38,6 +51,10 @@
   }
 
   .hand-option:disabled {
+    cursor: default;
+  }
+
+  .static-hand {
     cursor: default;
   }
 

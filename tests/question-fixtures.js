@@ -6,13 +6,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function loadQuestionBank() {
   const questionsRoot = path.join(root, "public", "questions");
-  return ["a", "b", "c", "d"].flatMap((mode) =>
+  return ["a", "bc", "d"].flatMap((group) =>
     fs
-      .readdirSync(path.join(questionsRoot, mode))
+      .readdirSync(path.join(questionsRoot, group))
       .filter((filename) => filename.endsWith(".json"))
       .sort()
       .flatMap((filename) =>
-        JSON.parse(fs.readFileSync(path.join(questionsRoot, mode, filename), "utf8")),
+        JSON.parse(fs.readFileSync(path.join(questionsRoot, group, filename), "utf8")),
       ),
   );
 }

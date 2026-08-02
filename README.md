@@ -19,7 +19,7 @@ Viteが表示したローカルURLをブラウザで開きます。
 pnpm check
 ```
 
-`check` はテスト、10,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はテスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
 
 問題バンクを再生成する場合:
 
@@ -63,8 +63,8 @@ pnpm deploy:pages
 - `styles.css`: フォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを持つグローバルCSS
 - `src/game.js`: 問題選択と表示用の純粋関数
 - `src/probability-engine.js`: 確率計算の純粋関数
-- `src/question-loader.js`: manifestとモード別JSONの遅延取得、直近問題の記録
-- `public/questions/`: 100問単位のJSON 101ファイルとmanifest（合計10,000問）
+- `src/question-loader.js`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
+- `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
 - `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力
 
 ## 現在の仕様判断

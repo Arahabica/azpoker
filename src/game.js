@@ -119,28 +119,50 @@ function createSession(bank, random = Math.random) {
     }
   }
 
-  for (let attempt = 0; attempt < 20_000; attempt += 1) {
-    const selected = Object.entries(SESSION_MODE_COUNTS).flatMap(([mode, count]) =>
-      sample(byMode[mode], count, random),
-    );
-    const countBy = (property, value) =>
-      selected.filter((question) => question[property] === value).length;
-    const stagesMatch = Object.entries(SESSION_STAGE_COUNTS).every(
-      ([stage, count]) => countBy("stage", stage) === count,
-    );
-    const difficultyMatches = Object.entries(SESSION_DIFFICULTY_COUNTS).every(
-      ([difficulty, count]) => countBy("difficulty", difficulty) === count,
-    );
-    const zeroCount = selected.filter((question) => question.trueP === 0).length;
-    const modeACategories = selected
-      .filter((question) => question.mode === "A")
-      .map((question) => question.category);
-    if (
-      stagesMatch &&
-      difficultyMatches &&
-      zeroCount <= 1 &&
-      new Set(modeACategories).size === modeACategories.length
-    ) {
+  const classicB = byMode.B.filter((question) => question.answerType === "hand");
+  const numericB = byMode.B.filter((question) => question.answerType === "percent");
+  const dFamily = (question) => {
+    if (["opponent_oesd", "opponent_gutshot", "opponent_flush_draw", "opponent_combo_draw"].includes(question.category)) return "draw";
+    if (["all_opponents_miss_board", "exactly_one_opponent_target_rank", "multiple_opponents_target_rank"].includes(question.category)) return "table";
+    return "holding";
+  };
+  if (classicB.length === 0 || numericB.length === 0) {
+    throw new Error("モードBの出題形式が不足しています");
+  }
+
+  const slots = [numericB, byMode.C, byMode.D, byMode.D, classicB, ...Array(5).fill(byMode.A)];
+  for (let attempt = 0; attempt < 2000; attempt += 1) {
+    const remainingStages = { ...SESSION_STAGE_COUNTS };
+    const remainingDifficulties = { ...SESSION_DIFFICULTY_COUNTS };
+    const selected = [];
+    const aCategories = new Set();
+    let firstD = null;
+    let zeroCount = 0;
+    let failed = false;
+
+    for (const pool of slots) {
+      const candidates = pool.filter((question) => {
+        if (remainingStages[question.stage] <= 0 || remainingDifficulties[question.difficulty] <= 0) return false;
+        if (question.trueP === 0 && zeroCount >= 1) return false;
+        if (question.mode === "A" && aCategories.has(question.category)) return false;
+        if (question.mode === "D" && firstD && (
+          question.category === firstD.category || dFamily(question) === dFamily(firstD)
+        )) return false;
+        return true;
+      });
+      if (candidates.length === 0) {
+        failed = true;
+        break;
+      }
+      const question = candidates[Math.floor(random() * candidates.length)];
+      selected.push(question);
+      remainingStages[question.stage] -= 1;
+      remainingDifficulties[question.difficulty] -= 1;
+      if (question.trueP === 0) zeroCount += 1;
+      if (question.mode === "A") aCategories.add(question.category);
+      if (question.mode === "D" && !firstD) firstD = question;
+    }
+    if (!failed && Object.values(remainingStages).every((count) => count === 0) && Object.values(remainingDifficulties).every((count) => count === 0)) {
       return shuffle(selected, random);
     }
   }

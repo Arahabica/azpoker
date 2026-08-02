@@ -31,7 +31,7 @@
 
   function prepareQuestion(question) {
     answerResult = null;
-    choices = question.mode === "B"
+    choices = question.answerType === "hand"
       ? []
       : shuffle([question.answer, question.distractor]);
     focusElement("#prompt");
@@ -43,13 +43,14 @@
     try {
       let pool = [];
       let nextSession;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        pool = [...pool, ...(await loadQuestionPool())];
+      const refreshOrder = [null, "BC", "A", "D"];
+      for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
+        pool = await loadQuestionPool(Math.random, fetch, refreshOrder[attempt]);
         try {
           nextSession = createSession(pool);
           break;
         } catch {
-          // 別の100問を追加し、固定比率を満たす組合せを探す。
+          // 条件を作りやすい問題群から順に100問を入れ替える。
         }
       }
       if (!nextSession) throw new Error("問題を選べませんでした");

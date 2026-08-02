@@ -1,1 +1,1 @@
-{"version":"f7fc4e625743","total":10000,"batchSize":100,"modes":{"A":{"count":6000,"files":60},"B":{"count":3000,"files":30},"C":{"count":338,"files":4},"D":{"count":662,"files":7}}}
+{"version":"4dad0e6c3bac","total":20000,"batchSize":100,"modes":{"A":{"count":10000},"B":{"count":4800},"C":{"count":1200},"D":{"count":4000}},"groups":{"A":{"count":10000,"files":100,"path":"a"},"BC":{"count":6000,"files":60,"path":"bc"},"D":{"count":4000,"files":40,"path":"d"}}}
