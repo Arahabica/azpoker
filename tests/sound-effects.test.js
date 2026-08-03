@@ -73,6 +73,21 @@ function createFakeFetch() {
   return { fetchImpl, urls };
 }
 
+function createReceiverCheckedFetch() {
+  const urls = [];
+  const fetchImpl = async function (url) {
+    if (this !== globalThis) {
+      throw new TypeError("Illegal invocation");
+    }
+    urls.push(url);
+    return {
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(url).buffer,
+    };
+  };
+  return { fetchImpl, urls };
+}
+
 test("開始前に5つの効果音を取得してAudioBufferへデコードする", async () => {
   FakeAudioContext.instances = [];
   const { fetchImpl, urls } = createFakeFetch();
@@ -94,6 +109,17 @@ test("開始前に5つの効果音を取得してAudioBufferへデコードす�
 
   await sounds.preload();
   assert.equal(urls.length, 5, "デコード済みの音源を再取得しない");
+});
+
+test("Window.fetchの呼び出し元を維持して音源を取得する", async () => {
+  const { fetchImpl, urls } = createReceiverCheckedFetch();
+  const sounds = createSoundEffects({
+    AudioContextConstructor: FakeAudioContext,
+    fetchImpl,
+  });
+
+  assert.equal(await sounds.preload(), true);
+  assert.deepEqual(urls, Object.values(SOUND_URLS));
 });
 
 test("再生時にAudioContextを再開してデコード済み音源を即再生する", async () => {

@@ -33,7 +33,9 @@ class SoundEffects {
     }
 
     this.context = new AudioContextConstructor();
-    this.fetchImpl = fetchImpl;
+    // Window.fetchは呼び出し元のthisを検査するブラウザがある。
+    // クラスのメソッドとして呼んでもSoundEffectsがthisにならないよう固定する。
+    this.fetchImpl = fetchImpl.bind(globalThis);
   }
 
   isRunning(): boolean {
