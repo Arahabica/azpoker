@@ -1,5 +1,13 @@
-<script>
-  let { value, disabled = false, onSelect } = $props();
+<script lang="ts">
+  import type { PercentChoice } from "../types.ts";
+
+  interface Props {
+    value: PercentChoice;
+    disabled?: boolean;
+    onSelect: (value: PercentChoice) => void;
+  }
+
+  let { value, disabled = false, onSelect }: Props = $props();
 
   const text = $derived(String(value));
   const number = $derived(text.endsWith("%") ? text.slice(0, -1) : text);

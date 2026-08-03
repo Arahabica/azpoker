@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { splitAtNaturalBreaks } from "../src/text-wrap.js";
+import { splitAtNaturalBreaks } from "../src/text-wrap.ts";
 import { loadQuestionBank } from "./question-fixtures.js";
 
 const bank = loadQuestionBank();

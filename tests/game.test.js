@@ -10,7 +10,7 @@ import {
   formatActualPercent,
   formatCard,
   formatCards,
-} from "../src/game.js";
+} from "../src/game.ts";
 import { loadQuestionBank } from "./question-fixtures.js";
 
 const bank = loadQuestionBank();

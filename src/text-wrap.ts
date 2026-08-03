@@ -33,7 +33,7 @@ const NATURAL_BREAK_AFTER = Object.freeze([
   "ストレート",
 ]);
 
-function splitAtNaturalBreaks(value) {
+function splitAtNaturalBreaks(value: string | number): string[] {
   const text = String(value);
   const boundaries = new Set([0, text.length]);
 

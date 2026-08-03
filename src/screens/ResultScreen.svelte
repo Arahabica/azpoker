@@ -1,7 +1,17 @@
-<script>
+<script lang="ts">
   import ActionButton from "../components/ActionButton.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
-  import { getResultSummary } from "../result-summary.js";
+  import { getResultSummary } from "../result-summary.ts";
+
+  interface Props {
+    score: number;
+    total: number;
+    elapsedMs: number;
+    timeLimitMs: number;
+    timeoutCount: number;
+    onRetry: () => void;
+    onHome: () => void;
+  }
 
   let {
     score,
@@ -11,7 +21,7 @@
     timeoutCount,
     onRetry,
     onHome,
-  } = $props();
+  }: Props = $props();
 
   const summary = $derived(
     getResultSummary({ score, total, elapsedMs, timeLimitMs, timeoutCount }),

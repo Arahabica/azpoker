@@ -1,5 +1,15 @@
-<script>
+<script lang="ts">
   import ActionButton from "../components/ActionButton.svelte";
+
+  interface Props {
+    soundEnabled: boolean;
+    loading?: boolean;
+    ready?: boolean;
+    error?: string;
+    onSoundChange: (enabled: boolean) => void;
+    onStart: () => void;
+    onRetry: () => void;
+  }
 
   let {
     soundEnabled,
@@ -9,7 +19,7 @@
     onSoundChange,
     onStart,
     onRetry,
-  } = $props();
+  }: Props = $props();
 </script>
 
 <section

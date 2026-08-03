@@ -1,49 +1,69 @@
-<script>
+<script lang="ts">
   import { onDestroy, tick } from "svelte";
 
-  import { createSession, shuffle } from "./game.js";
-  import { loadQuestionPool, rememberQuestions } from "./question-loader.js";
-  import { getQuestionTimeLimitMs } from "./question-timer.js";
-  import { createSoundEffects } from "./sound-effects.js";
+  import { createSession, shuffle } from "./game.ts";
+  import { loadQuestionPool, rememberQuestions } from "./question-loader.ts";
+  import { getQuestionTimeLimitMs } from "./question-timer.ts";
+  import { createSoundEffects } from "./sound-effects.ts";
+  import type { SoundEffects } from "./sound-effects.ts";
+  import type {
+    AnswerResult,
+    PercentChoice,
+    Question,
+    QuestionAnswer,
+    QuestionOutcome,
+    SoundName,
+  } from "./types.ts";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import PrepareScreen from "./screens/PrepareScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
 
-  let view = $state("landing");
-  let session = $state([]);
+  type View = "landing" | "prepare" | "game" | "result";
+
+  interface SettleQuestionOptions {
+    correct: boolean;
+    selected: QuestionAnswer | null;
+    timedOut: boolean;
+    elapsedMs: number;
+  }
+
+  let view = $state<View>("landing");
+  let session = $state<Question[]>([]);
   let currentIndex = $state(0);
   let score = $state(0);
-  let choices = $state([]);
-  let answerResult = $state(null);
-  let outcomes = $state([]);
+  let choices = $state<PercentChoice[]>([]);
+  let answerResult = $state<AnswerResult | null>(null);
+  let outcomes = $state<(QuestionOutcome | null)[]>([]);
   let startupError = $state("");
   let starting = $state(false);
   let preparationReady = $state(false);
   let soundEnabled = $state(true);
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
-  let soundEffects;
+  let soundEffects: SoundEffects | undefined;
 
   const currentQuestion = $derived(session[currentIndex]);
   const timeoutCount = $derived(
     outcomes.filter((outcome) => outcome === "timeout").length,
   );
 
-  async function focusElement(selector) {
+  async function focusElement(selector: string): Promise<void> {
     await tick();
     window.requestAnimationFrame(() => {
-      document.querySelector(selector)?.focus({ preventScroll: true });
+      document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
     });
   }
 
-  function showStartupError(error) {
+  function showStartupError(error: unknown): void {
     startupError = error instanceof Error ? error.message : String(error);
   }
 
   function ensureSoundEffects() {
     const AudioContextConstructor = globalThis.AudioContext
-      ?? globalThis.webkitAudioContext;
+      ?? (globalThis as typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      }).webkitAudioContext;
     if (!soundEffects && typeof AudioContextConstructor === "function") {
       try {
         soundEffects = createSoundEffects({
@@ -57,7 +77,7 @@
     return soundEffects;
   }
 
-  async function preloadSoundEffects() {
+  async function preloadSoundEffects(): Promise<void> {
     const effects = ensureSoundEffects();
     if (!effects) return;
     const resumePromise = soundEnabled
@@ -66,7 +86,7 @@
     await Promise.all([effects.preload(), resumePromise]);
   }
 
-  function setSoundEnabled(enabled) {
+  function setSoundEnabled(enabled: boolean): void {
     soundEnabled = Boolean(enabled);
     if (soundEnabled) {
       preloadSoundEffects();
@@ -75,13 +95,13 @@
     }
   }
 
-  function playSound(name) {
+  function playSound(name: SoundName): void {
     if (soundEnabled) {
       ensureSoundEffects()?.play(name);
     }
   }
 
-  async function preloadGameFonts() {
+  async function preloadGameFonts(): Promise<void> {
     if (typeof document === "undefined" || !document.fonts) return;
     await Promise.allSettled([
       document.fonts.load('400 1rem "Kosugi Maru Game"'),
@@ -90,7 +110,7 @@
     ]);
   }
 
-  function prepareQuestion(question) {
+  function prepareQuestion(question: Question): void {
     answerResult = null;
     choices = question.answerType === "hand"
       ? []
@@ -98,12 +118,21 @@
     focusElement("#prompt");
   }
 
-  async function selectSession() {
-    let pool = [];
-    let nextSession;
-    const refreshOrder = [null, "BC", "A", "D"];
+  async function selectSession(): Promise<Question[]> {
+    let pool: Question[] = [];
+    let nextSession: Question[] | undefined;
+    const refreshOrder: readonly ("BC" | "A" | "D" | null)[] = [
+      null,
+      "BC",
+      "A",
+      "D",
+    ];
     for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
-      pool = await loadQuestionPool(Math.random, fetch, refreshOrder[attempt]);
+      pool = await loadQuestionPool(
+        Math.random,
+        globalThis.fetch,
+        refreshOrder[attempt] ?? null,
+      );
       try {
         nextSession = createSession(pool);
         break;
@@ -115,7 +144,7 @@
     return nextSession;
   }
 
-  async function prepareSession() {
+  async function prepareSession(): Promise<void> {
     if (starting) return;
     starting = true;
     preparationReady = false;
@@ -145,7 +174,7 @@
     }
   }
 
-  function showPreparation() {
+  function showPreparation(): void {
     startupError = "";
     preparationReady = false;
     answerResult = null;
@@ -157,14 +186,19 @@
     prepareSession();
   }
 
-  function startSession() {
+  function startSession(): void {
     if (starting || !preparationReady || session.length === 0) return;
     playSound("start");
     view = "game";
-    prepareQuestion(session[0]);
+    prepareQuestion(session[0]!);
   }
 
-  function settleQuestion({ correct, selected, timedOut, elapsedMs }) {
+  function settleQuestion({
+    correct,
+    selected,
+    timedOut,
+    elapsedMs,
+  }: SettleQuestionOptions): boolean {
     if (answerResult) {
       return false;
     }
@@ -172,12 +206,14 @@
     if (correct) {
       score += 1;
     }
-    const timeLimitMs = getQuestionTimeLimitMs(currentQuestion);
+    const question = currentQuestion;
+    if (!question) return false;
+    const timeLimitMs = getQuestionTimeLimitMs(question);
     sessionElapsedMs += Math.min(
       timeLimitMs,
       Math.max(0, Number.isFinite(elapsedMs) ? elapsedMs : 0),
     );
-    let outcome = "wrong";
+    let outcome: QuestionOutcome = "wrong";
     if (timedOut) {
       outcome = "timeout";
     } else if (correct) {
@@ -190,16 +226,18 @@
     return true;
   }
 
-  function handleAnswer(selected, elapsedMs) {
+  function handleAnswer(selected: QuestionAnswer, elapsedMs: number): void {
+    const question = currentQuestion;
+    if (!question) return;
     settleQuestion({
-      correct: selected === currentQuestion.answer,
+      correct: selected === question.answer,
       selected,
       timedOut: false,
       elapsedMs,
     });
   }
 
-  function handleTimeout(questionIndex, elapsedMs) {
+  function handleTimeout(questionIndex: number, elapsedMs: number): void {
     if (view !== "game" || questionIndex !== currentIndex) {
       return;
     }
@@ -212,23 +250,23 @@
     });
   }
 
-  function showResult() {
+  function showResult(): void {
     playSound(score === session.length ? "perfect" : "complete");
     view = "result";
     focusElement("#retry");
   }
 
-  function goNext() {
+  function goNext(): void {
     if (currentIndex === session.length - 1) {
       showResult();
       return;
     }
 
     currentIndex += 1;
-    prepareQuestion(session[currentIndex]);
+    prepareQuestion(session[currentIndex]!);
   }
 
-  function showLanding(shouldFocus = true) {
+  function showLanding(shouldFocus = true): void {
     startupError = "";
     answerResult = null;
     outcomes = [];
@@ -258,7 +296,7 @@
       onStart={startSession}
       onRetry={prepareSession}
     />
-  {:else if view === "game"}
+  {:else if view === "game" && currentQuestion}
     <QuizScreen
       question={currentQuestion}
       {currentIndex}
@@ -271,7 +309,7 @@
       onTimeout={handleTimeout}
       onNext={goNext}
     />
-  {:else}
+  {:else if view === "result"}
     <ResultScreen
       {score}
       total={session.length}

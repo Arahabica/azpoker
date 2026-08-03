@@ -57,7 +57,7 @@ function collectSourceFiles(directory) {
       if (entry.isDirectory()) {
         return collectSourceFiles(entryPath);
       }
-      return /\.(?:js|svelte)$/.test(entry.name) ? [entryPath] : [];
+      return /\.(?:ts|svelte)$/.test(entry.name) ? [entryPath] : [];
     });
 }
 

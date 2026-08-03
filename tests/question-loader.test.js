@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   loadQuestionPool,
   resetQuestionLoaderForTest,
-} from "../src/question-loader.js";
+} from "../src/question-loader.ts";
 
 test("manifestを読み、A・B+C・Dの100問JSONだけを取得する", async () => {
   resetQuestionLoaderForTest();

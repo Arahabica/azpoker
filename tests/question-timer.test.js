@@ -5,7 +5,7 @@ import {
   getCountdownSnapshot,
   getQuestionTimeLimitMs,
   startQuestionCountdown,
-} from "../src/question-timer.js";
+} from "../src/question-timer.ts";
 
 function createFakeScheduler() {
   let now = 0;

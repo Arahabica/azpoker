@@ -1,8 +1,18 @@
-<script>
+<script lang="ts">
   import {
     getCountdownSnapshot,
     startQuestionCountdown,
-  } from "../question-timer.js";
+  } from "../question-timer.ts";
+  import type { QuestionOutcome } from "../types.ts";
+
+  interface Props {
+    currentIndex: number;
+    total: number;
+    outcomes?: readonly (QuestionOutcome | null)[];
+    durationMs: number;
+    running?: boolean;
+    onTimeout: (questionIndex: number) => void;
+  }
 
   let {
     currentIndex,
@@ -11,7 +21,7 @@
     durationMs,
     running = false,
     onTimeout,
-  } = $props();
+  }: Props = $props();
 
   let remainingMs = $state(0);
   const countdown = $derived(getCountdownSnapshot(durationMs, remainingMs));

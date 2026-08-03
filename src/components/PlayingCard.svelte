@@ -1,9 +1,15 @@
-<script>
-  import { cardDetails } from "../game.js";
-  import { CARD_SUITS } from "./card-suits.js";
+<script lang="ts">
+  import { cardDetails } from "../game.ts";
+  import { CARD_SUITS } from "./card-suits.ts";
   import CardFace from "./card-faces/CardFace.svelte";
+  import type { Card } from "../types.ts";
 
-  let { card, decorative = false } = $props();
+  interface Props {
+    card: Card;
+    decorative?: boolean;
+  }
+
+  let { card, decorative = false }: Props = $props();
 
   const details = $derived(cardDetails(card));
   const suit = $derived(CARD_SUITS[details.suit]);

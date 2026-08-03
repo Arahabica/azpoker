@@ -1,4 +1,31 @@
-const STAGE_TIME_LIMITS_MS = Object.freeze({
+import type { Question, Stage } from "./types.ts";
+
+type TimerWarning = "normal" | "warning" | "critical" | "expired";
+
+interface CountdownSnapshot {
+  remainingMs: number;
+  elapsedProgress: number;
+  seconds: number;
+  warning: TimerWarning;
+  expired: boolean;
+}
+
+interface Scheduler {
+  now: () => number;
+  requestFrame: (callback: FrameRequestCallback) => number;
+  cancelFrame: (id: number) => void;
+  setExpiration: (callback: () => void, delayMs: number) => number;
+  clearExpiration: (id: number) => void;
+}
+
+interface CountdownOptions {
+  durationMs: number;
+  onUpdate: (remainingMs: number) => void;
+  onExpire: () => void;
+  scheduler?: Scheduler;
+}
+
+const STAGE_TIME_LIMITS_MS: Readonly<Record<Stage, number>> = Object.freeze({
   preflop: 5_000,
   flop: 8_000,
   turn: 12_000,
@@ -8,14 +35,16 @@ const HARD_TIME_LIMIT_MS = 16_000;
 const WARNING_THRESHOLD_MS = 3_000;
 const CRITICAL_THRESHOLD_MS = 1_500;
 
-function getTimerWarning(remainingMs) {
+function getTimerWarning(remainingMs: number): TimerWarning {
   if (remainingMs <= 0) return "expired";
   if (remainingMs <= CRITICAL_THRESHOLD_MS) return "critical";
   if (remainingMs <= WARNING_THRESHOLD_MS) return "warning";
   return "normal";
 }
 
-function getQuestionTimeLimitMs(question) {
+function getQuestionTimeLimitMs(
+  question: Pick<Question, "mode" | "difficulty" | "stage">,
+): number {
   if (!question || typeof question !== "object") {
     throw new TypeError("問題がありません");
   }
@@ -36,7 +65,10 @@ function getQuestionTimeLimitMs(question) {
   return durationMs;
 }
 
-function getCountdownSnapshot(durationMs, remainingMs) {
+function getCountdownSnapshot(
+  durationMs: number,
+  remainingMs: number,
+): Readonly<CountdownSnapshot> {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
     throw new TypeError(`不正な制限時間です: ${String(durationMs)}`);
   }
@@ -58,7 +90,7 @@ function getCountdownSnapshot(durationMs, remainingMs) {
   });
 }
 
-function browserScheduler() {
+function browserScheduler(): Scheduler {
   return {
     now: () => globalThis.performance.now(),
     requestFrame: (callback) => globalThis.requestAnimationFrame(callback),
@@ -73,7 +105,7 @@ function startQuestionCountdown({
   onUpdate,
   onExpire,
   scheduler = browserScheduler(),
-}) {
+}: CountdownOptions): () => void {
   getCountdownSnapshot(durationMs, durationMs);
   if (typeof onUpdate !== "function" || typeof onExpire !== "function") {
     throw new TypeError("タイマーのコールバックがありません");

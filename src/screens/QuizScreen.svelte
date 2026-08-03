@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import AnswerSheet from "../components/AnswerSheet.svelte";
   import Board from "../components/Board.svelte";
   import ChoiceButton from "../components/ChoiceButton.svelte";
@@ -7,8 +7,28 @@
   import LeaveConfirmationSheet from "../components/LeaveConfirmationSheet.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
   import QuizProgressTimer from "../components/QuizProgressTimer.svelte";
-  import { getQuestionTimeLimitMs } from "../question-timer.js";
-  import { CHOICE_REVEAL_DELAY_MS } from "../ui-timing.js";
+  import { getQuestionTimeLimitMs } from "../question-timer.ts";
+  import { CHOICE_REVEAL_DELAY_MS } from "../ui-timing.ts";
+  import type {
+    AnswerResult,
+    PercentChoice,
+    Question,
+    QuestionAnswer,
+    QuestionOutcome,
+  } from "../types.ts";
+
+  interface Props {
+    question: Question;
+    currentIndex: number;
+    total: number;
+    choices: readonly PercentChoice[];
+    answerResult: AnswerResult | null;
+    outcomes: readonly (QuestionOutcome | null)[];
+    onLeave: () => void;
+    onAnswer: (selected: QuestionAnswer, elapsedMs: number) => void;
+    onTimeout: (questionIndex: number, elapsedMs: number) => void;
+    onNext: () => void;
+  }
 
   let {
     question,
@@ -21,13 +41,13 @@
     onAnswer,
     onTimeout,
     onNext,
-  } = $props();
+  }: Props = $props();
 
   const durationMs = $derived(getQuestionTimeLimitMs(question));
   const reducedMotion = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
-  let revealedChoiceIndex = $state(null);
+  let revealedChoiceIndex = $state<number | null>(null);
   let questionStartedAt = $state(0);
   let leaveConfirmationOpen = $state(false);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
@@ -64,27 +84,29 @@
     leaveConfirmationOpen = false;
   });
 
-  function getElapsedMs() {
+  function getElapsedMs(): number {
     if (!questionStartedAt || typeof performance === "undefined") return 0;
     return Math.min(durationMs, Math.max(0, performance.now() - questionStartedAt));
   }
 
-  function handleAnswer(selected) {
+  function handleAnswer(selected: QuestionAnswer): void {
     onAnswer(selected, getElapsedMs());
   }
 
-  function handleQuestionTimeout(questionIndex) {
+  function handleQuestionTimeout(questionIndex: number): void {
     onTimeout(questionIndex, durationMs);
   }
 
-  function requestLeave() {
+  function requestLeave(): void {
     leaveConfirmationOpen = true;
   }
 
-  function continueQuiz() {
+  function continueQuiz(): void {
     leaveConfirmationOpen = false;
     window.requestAnimationFrame(() => {
-      document.querySelector("#leave-quiz")?.focus({ preventScroll: true });
+      document
+        .querySelector<HTMLButtonElement>("#leave-quiz")
+        ?.focus({ preventScroll: true });
     });
   }
 </script>

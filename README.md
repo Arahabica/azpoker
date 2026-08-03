@@ -2,7 +2,7 @@
 
 ポーカーのドロー確率、2ハンドの強さ、プリフロップ勝率を2択で答える、10問1セットのブラウザドリルです。
 
-UIは **Svelte 5**、開発・ビルドは **Vite** を使います。トップ画面はビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
+UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。トップ画面はビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
 
 ## 起動
 
@@ -19,7 +19,9 @@ Viteが表示したローカルURLをブラウザで開きます。
 pnpm check
 ```
 
-`check` はテスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はTypeScript 7の型検査、Svelteコンポーネント検査、テスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+
+TypeScript 7.0はまだSvelteが利用するコンパイラAPIを提供していないため、`.ts`のCLI検査にはTypeScript 7、`.svelte`の埋め込み検査には互換用TypeScript 6を併用します。どちらも開発依存だけで、配信するJavaScriptには含まれません。
 
 問題バンクを再生成する場合:
 
@@ -48,7 +50,8 @@ pnpm deploy:pages
 ## コード構成
 
 - `src/App.svelte`: セッション、準備、画面遷移、効果音の呼び分け
-- `src/entry-server.js`: トップ画面を静的HTMLへ描画するSSRエントリ
+- `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
+- `src/entry-server.ts`: トップ画面を静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
 - `src/screens/`: トップ、開始準備、問題、結果の各画面
 - `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
@@ -62,11 +65,11 @@ pnpm deploy:pages
 - `src/components/AnswerSheet.svelte`: 回答後のパネル
 - `src/components/LeaveConfirmationSheet.svelte`: 回答後に開く退出確認パネル
 - `styles.css`: フォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを持つグローバルCSS
-- `src/game.js`: 問題選択と表示用の純粋関数
-- `src/probability-engine.js`: 確率計算の純粋関数
-- `src/question-loader.js`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
-- `src/result-summary.js`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
-- `src/sound-effects.js`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止
+- `src/game.ts`: 問題選択と表示用の純粋関数
+- `src/probability-engine.ts`: 確率計算の純粋関数
+- `src/question-loader.ts`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
+- `src/result-summary.ts`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
+- `src/sound-effects.ts`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止
 - `public/sounds/`: 開始、正解、不正解、通常結果、満点の効果音
 - `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
 - `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力

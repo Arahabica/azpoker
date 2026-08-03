@@ -1,7 +1,12 @@
-<script>
+<script lang="ts">
   import PlayingCard from "./PlayingCard.svelte";
+  import type { Card } from "../types.ts";
 
-  const LOGO_CARDS = [
+  const LOGO_CARDS: readonly {
+    card: Card;
+    start: string;
+    end: string;
+  }[] = [
     { card: "As", start: "-10deg", end: "-9deg" },
     { card: "Th", start: "9deg", end: "8deg" },
   ];

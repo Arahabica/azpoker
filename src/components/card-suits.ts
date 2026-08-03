@@ -1,4 +1,9 @@
-function suit(viewBox, path) {
+interface CardSuit {
+  viewBox: string;
+  path: string;
+}
+
+function suit(viewBox: string, path: string): Readonly<CardSuit> {
   return Object.freeze({ viewBox, path });
 }
 

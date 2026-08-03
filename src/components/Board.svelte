@@ -1,7 +1,13 @@
-<script>
+<script lang="ts">
   import PlayingCard from "./PlayingCard.svelte";
+  import type { Card } from "../types.ts";
 
-  let { cards = [], revealKey } = $props();
+  interface Props {
+    cards?: readonly Card[];
+    revealKey: string | number;
+  }
+
+  let { cards = [], revealKey }: Props = $props();
 </script>
 
 <div

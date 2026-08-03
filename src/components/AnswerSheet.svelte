@@ -1,7 +1,18 @@
-<script>
-  import { formatActualPercent } from "../game.js";
+<script lang="ts">
+  import { formatActualPercent } from "../game.ts";
   import ActionButton from "./ActionButton.svelte";
   import MixedFontText from "./MixedFontText.svelte";
+  import type { Question } from "../types.ts";
+
+  interface Props {
+    correct: boolean;
+    timedOut?: boolean;
+    question: Question;
+    isLast: boolean;
+    blocked?: boolean;
+    onNext: () => void;
+    onRequestLeave: () => void;
+  }
 
   let {
     correct,
@@ -11,9 +22,9 @@
     blocked = false,
     onNext,
     onRequestLeave,
-  } = $props();
+  }: Props = $props();
 
-  function getFeedbackTitle() {
+  function getFeedbackTitle(): string {
     if (timedOut) return "時間切れ";
     if (correct) return "正解";
     return "不正解";

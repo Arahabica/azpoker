@@ -1,17 +1,22 @@
-<script>
-  import { splitAtNaturalBreaks } from "../text-wrap.js";
+<script lang="ts">
+  import { splitAtNaturalBreaks } from "../text-wrap.ts";
 
-  let { text = "", phraseWrap = false } = $props();
+  interface Props {
+    text?: string;
+    phraseWrap?: boolean;
+  }
+
+  let { text = "", phraseWrap = false }: Props = $props();
 
   const phrases = $derived(
     phraseWrap ? splitAtNaturalBreaks(text) : [String(text)],
   );
 
-  function fontParts(phrase) {
+  function fontParts(phrase: string): string[] {
     return phrase.split(/([A-Za-z0-9%]+)/).filter(Boolean);
   }
 
-  function usesMPlus(part) {
+  function usesMPlus(part: string): boolean {
     return /^[A-Za-z0-9%]+$/.test(part);
   }
 </script>

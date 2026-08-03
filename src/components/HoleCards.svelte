@@ -1,13 +1,26 @@
-<script>
+<script lang="ts">
   import PlayingCard from "./PlayingCard.svelte";
+  import type { Card } from "../types.ts";
 
-  const DEFAULT_CARD_ANGLES = { start: "0deg", end: "0deg" };
-  const HOLE_CARD_ANGLES = [
+  interface CardAngles {
+    start: string;
+    end: string;
+  }
+
+  interface Props {
+    cards?: readonly Card[];
+  }
+
+  const DEFAULT_CARD_ANGLES: Readonly<CardAngles> = {
+    start: "0deg",
+    end: "0deg",
+  };
+  const HOLE_CARD_ANGLES: readonly Readonly<CardAngles>[] = [
     { start: "-3deg", end: "-6deg" },
     { start: "3deg", end: "6deg" },
   ];
 
-  let { cards = [] } = $props();
+  let { cards = [] }: Props = $props();
 </script>
 
 <div class="hand-area">

@@ -1,8 +1,12 @@
-<script>
+<script lang="ts">
   import ActionButton from "../components/ActionButton.svelte";
   import LogoCards from "../components/LogoCards.svelte";
 
-  let { onStart } = $props();
+  interface Props {
+    onStart: () => void;
+  }
+
+  let { onStart }: Props = $props();
 </script>
 
 <section id="landing" class="landing-screen" aria-labelledby="app-title">

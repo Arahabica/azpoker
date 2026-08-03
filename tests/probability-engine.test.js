@@ -6,7 +6,7 @@ import {
   hasFlushUsingHole,
   hasStraightUsingHole,
   hasThreeOfAKindUsingHole,
-} from "../src/probability-engine.js";
+} from "../src/probability-engine.ts";
 
 function assertRoundsTo(actual, expected, digits = 1) {
   assert.equal(actual.toFixed(digits), expected.toFixed(digits));

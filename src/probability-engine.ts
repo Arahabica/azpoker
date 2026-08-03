@@ -1,16 +1,42 @@
+import type { Card, Hole, SourceRank, Suit } from "./types.ts";
+
+type ProbabilityTarget =
+  | "flush"
+  | "straight"
+  | "flush_or_straight"
+  | "rank_on_board"
+  | "three_of_a_kind";
+
+interface ProbabilityInput {
+  hole: Hole;
+  board: readonly Card[];
+  target: ProbabilityTarget;
+  targetRank?: SourceRank;
+}
+
+interface ProbabilityResult {
+  hits: number;
+  total: number;
+  probability: number;
+  percent: number;
+}
+
 const RANKS = "23456789TJQKA";
 const SUITS = "cdhs";
-const TARGETS = new Set([
+const TARGETS = new Set<ProbabilityTarget>([
   "flush",
   "straight",
   "flush_or_straight",
   "rank_on_board",
   "three_of_a_kind",
 ]);
-const RANK_TARGETS = new Set(["rank_on_board", "three_of_a_kind"]);
-const RANK_VALUES = Object.freeze(
+const RANK_TARGETS = new Set<ProbabilityTarget>([
+  "rank_on_board",
+  "three_of_a_kind",
+]);
+const RANK_VALUES: Readonly<Record<SourceRank, number>> = Object.freeze(
   Object.fromEntries([...RANKS].map((rank, index) => [rank, index + 2])),
-);
+) as Readonly<Record<SourceRank, number>>;
 const STRAIGHT_MASKS = Object.freeze([
   rankMask([14, 2, 3, 4, 5]),
   rankMask([2, 3, 4, 5, 6]),
@@ -23,25 +49,32 @@ const STRAIGHT_MASKS = Object.freeze([
   rankMask([9, 10, 11, 12, 13]),
   rankMask([10, 11, 12, 13, 14]),
 ]);
-const FULL_DECK = Object.freeze(
-  [...SUITS].flatMap((suit) => [...RANKS].map((rank) => `${rank}${suit}`)),
+const FULL_DECK: readonly Card[] = Object.freeze(
+  [...SUITS].flatMap((suit) =>
+    [...RANKS].map((rank) => `${rank}${suit}` as Card)
+  ),
 );
 
-function rankMask(ranks) {
+function rankMask(ranks: readonly number[]): number {
   return ranks.reduce((mask, rank) => mask | (1 << rank), 0);
 }
 
-function assertCard(card) {
+function assertCard(card: unknown): asserts card is Card {
   if (typeof card !== "string" || card.length !== 2) {
     throw new TypeError(`不正なカード表記です: ${String(card)}`);
   }
 
-  if (!RANKS.includes(card[0]) || !SUITS.includes(card[1])) {
+  if (!RANKS.includes(card[0]!) || !SUITS.includes(card[1]!)) {
     throw new TypeError(`不正なカード表記です: ${card}`);
   }
 }
 
-function assertSituation(hole, board, target, targetRank) {
+function assertSituation(
+  hole: readonly unknown[],
+  board: readonly unknown[],
+  target: ProbabilityTarget,
+  targetRank?: SourceRank,
+): void {
   if (!Array.isArray(hole) || hole.length !== 2) {
     throw new TypeError("hole は2枚で指定してください");
   }
@@ -54,7 +87,7 @@ function assertSituation(hole, board, target, targetRank) {
     throw new TypeError(`未対応の完成条件です: ${String(target)}`);
   }
 
-  if (RANK_TARGETS.has(target) && !RANKS.includes(targetRank)) {
+  if (RANK_TARGETS.has(target) && !RANKS.includes(targetRank ?? "")) {
     throw new TypeError(`対象ランクが不正です: ${String(targetRank)}`);
   }
 
@@ -66,26 +99,32 @@ function assertSituation(hole, board, target, targetRank) {
   }
 }
 
-function hasFlushUsingHole(hole, completedBoard) {
-  const suitCounts = { c: 0, d: 0, h: 0, s: 0 };
+function hasFlushUsingHole(
+  hole: readonly Card[],
+  completedBoard: readonly Card[],
+): boolean {
+  const suitCounts: Record<Suit, number> = { c: 0, d: 0, h: 0, s: 0 };
 
   for (const card of [...hole, ...completedBoard]) {
-    suitCounts[card[1]] += 1;
+    suitCounts[card[1] as Suit] += 1;
   }
 
-  return hole.some((card) => suitCounts[card[1]] >= 5);
+  return hole.some((card) => suitCounts[card[1] as Suit] >= 5);
 }
 
-function hasStraightUsingHole(hole, completedBoard) {
+function hasStraightUsingHole(
+  hole: readonly Card[],
+  completedBoard: readonly Card[],
+): boolean {
   let availableMask = 0;
   let holeMask = 0;
 
   for (const card of [...hole, ...completedBoard]) {
-    availableMask |= 1 << RANK_VALUES[card[0]];
+    availableMask |= 1 << RANK_VALUES[card[0] as SourceRank];
   }
 
   for (const card of hole) {
-    holeMask |= 1 << RANK_VALUES[card[0]];
+    holeMask |= 1 << RANK_VALUES[card[0] as SourceRank];
   }
 
   return STRAIGHT_MASKS.some(
@@ -95,11 +134,18 @@ function hasStraightUsingHole(hole, completedBoard) {
   );
 }
 
-function boardContainsRank(completedBoard, targetRank) {
+function boardContainsRank(
+  completedBoard: readonly Card[],
+  targetRank: SourceRank,
+): boolean {
   return completedBoard.some((card) => card[0] === targetRank);
 }
 
-function hasThreeOfAKindUsingHole(hole, completedBoard, targetRank) {
+function hasThreeOfAKindUsingHole(
+  hole: readonly Card[],
+  completedBoard: readonly Card[],
+  targetRank: SourceRank,
+): boolean {
   if (!hole.some((card) => card[0] === targetRank)) {
     return false;
   }
@@ -110,7 +156,12 @@ function hasThreeOfAKindUsingHole(hole, completedBoard, targetRank) {
   );
 }
 
-function isTargetComplete(hole, completedBoard, target, targetRank) {
+function isTargetComplete(
+  hole: readonly Card[],
+  completedBoard: readonly Card[],
+  target: ProbabilityTarget,
+  targetRank?: SourceRank,
+): boolean {
   if (target === "flush") {
     return hasFlushUsingHole(hole, completedBoard);
   }
@@ -120,11 +171,11 @@ function isTargetComplete(hole, completedBoard, target, targetRank) {
   }
 
   if (target === "rank_on_board") {
-    return boardContainsRank(completedBoard, targetRank);
+    return boardContainsRank(completedBoard, targetRank!);
   }
 
   if (target === "three_of_a_kind") {
-    return hasThreeOfAKindUsingHole(hole, completedBoard, targetRank);
+    return hasThreeOfAKindUsingHole(hole, completedBoard, targetRank!);
   }
 
   return (
@@ -133,15 +184,19 @@ function isTargetComplete(hole, completedBoard, target, targetRank) {
   );
 }
 
-function forEachCombination(items, choose, visit) {
+function forEachCombination<T>(
+  items: readonly T[],
+  choose: number,
+  visit: (selection: readonly T[]) => void,
+): void {
   if (choose === 0) {
     visit([]);
     return;
   }
 
-  const selected = new Array(choose);
+  const selected = new Array<T>(choose);
 
-  function selectFrom(start, depth) {
+  function selectFrom(start: number, depth: number): void {
     if (depth === choose) {
       visit(selected);
       return;
@@ -149,7 +204,7 @@ function forEachCombination(items, choose, visit) {
 
     const lastStart = items.length - (choose - depth);
     for (let index = start; index <= lastStart; index += 1) {
-      selected[depth] = items[index];
+      selected[depth] = items[index]!;
       selectFrom(index + 1, depth + 1);
     }
   }
@@ -161,7 +216,12 @@ function forEachCombination(items, choose, visit) {
  * 既知の手札・ボードから、リバーまでに指定した役が完成する確率を全列挙する。
  * 引数を変更せず、同じ入力には常に同じ結果を返す純粋関数。
  */
-function calculateProbability({ hole, board, target, targetRank }) {
+function calculateProbability({
+  hole,
+  board,
+  target,
+  targetRank,
+}: ProbabilityInput): Readonly<ProbabilityResult> {
   assertSituation(hole, board, target, targetRank);
 
   const known = new Set([...hole, ...board]);

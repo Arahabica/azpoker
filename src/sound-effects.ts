@@ -1,4 +1,15 @@
-const SOUND_URLS = Object.freeze({
+import type { SoundName } from "./types.ts";
+
+type AudioContextConstructor = new (
+  contextOptions?: AudioContextOptions,
+) => AudioContext;
+
+interface SoundEffectsOptions {
+  AudioContextConstructor?: AudioContextConstructor;
+  fetchImpl?: typeof fetch;
+}
+
+const SOUND_URLS: Readonly<Record<SoundName, string>> = Object.freeze({
   start: "/sounds/kettei_33.mp3",
   correct: "/sounds/audiostock_106548.mp3",
   wrong: "/sounds/kettei_2.mp3",
@@ -7,7 +18,13 @@ const SOUND_URLS = Object.freeze({
 });
 
 class SoundEffects {
-  constructor({ AudioContextConstructor, fetchImpl }) {
+  readonly context: AudioContext;
+  readonly fetchImpl: typeof fetch;
+  readonly buffers = new Map<SoundName, AudioBuffer>();
+  readonly pendingLoads = new Map<SoundName, Promise<AudioBuffer>>();
+  readonly activeSources = new Set<AudioBufferSourceNode>();
+
+  constructor({ AudioContextConstructor, fetchImpl }: SoundEffectsOptions) {
     if (typeof AudioContextConstructor !== "function") {
       throw new TypeError("Web Audio API is unavailable");
     }
@@ -17,24 +34,27 @@ class SoundEffects {
 
     this.context = new AudioContextConstructor();
     this.fetchImpl = fetchImpl;
-    this.buffers = new Map();
-    this.pendingLoads = new Map();
-    this.activeSources = new Set();
   }
 
-  async resume() {
-    if (this.context.state === "running") return true;
+  isRunning(): boolean {
+    return this.context.state === "running";
+  }
+
+  async resume(): Promise<boolean> {
+    if (this.isRunning()) return true;
     try {
       await this.context.resume();
-      return this.context.state === "running";
+      return this.isRunning();
     } catch {
       return false;
     }
   }
 
-  async load(name) {
-    if (this.buffers.has(name)) return this.buffers.get(name);
-    if (this.pendingLoads.has(name)) return this.pendingLoads.get(name);
+  async load(name: SoundName): Promise<AudioBuffer | null> {
+    const buffered = this.buffers.get(name);
+    if (buffered) return buffered;
+    const pendingLoad = this.pendingLoads.get(name);
+    if (pendingLoad) return pendingLoad;
 
     const url = SOUND_URLS[name];
     if (!url) return null;
@@ -58,14 +78,14 @@ class SoundEffects {
     }
   }
 
-  async preload() {
+  async preload(): Promise<boolean> {
     const buffers = await Promise.all(
-      Object.keys(SOUND_URLS).map((name) => this.load(name)),
+      (Object.keys(SOUND_URLS) as SoundName[]).map((name) => this.load(name)),
     );
     return buffers.every(Boolean);
   }
 
-  start(buffer) {
+  start(buffer: AudioBuffer): boolean {
     try {
       const source = this.context.createBufferSource();
       source.buffer = buffer;
@@ -79,18 +99,21 @@ class SoundEffects {
     }
   }
 
-  play(name) {
+  play(name: SoundName): Promise<boolean> {
     const buffer = this.buffers.get(name);
     if (buffer && this.context.state === "running") {
       return Promise.resolve(this.start(buffer));
     }
 
     return Promise.all([this.resume(), buffer ?? this.load(name)])
-      .then(([ready, loaded]) => ready && Boolean(loaded) && this.start(loaded))
+      .then(([ready, loaded]) => {
+        if (!ready || !loaded) return false;
+        return this.start(loaded);
+      })
       .catch(() => false);
   }
 
-  stopAll() {
+  stopAll(): void {
     for (const source of this.activeSources) {
       try {
         source.stop(0);
@@ -101,7 +124,7 @@ class SoundEffects {
     this.activeSources.clear();
   }
 
-  destroy() {
+  destroy(): void {
     this.stopAll();
     try {
       this.context.close?.().catch?.(() => {});
@@ -113,9 +136,11 @@ class SoundEffects {
 
 function createSoundEffects({
   AudioContextConstructor = globalThis.AudioContext
-    ?? globalThis.webkitAudioContext,
+    ?? (globalThis as typeof globalThis & {
+      webkitAudioContext?: AudioContextConstructor;
+    }).webkitAudioContext,
   fetchImpl = globalThis.fetch,
-} = {}) {
+}: SoundEffectsOptions = {}): SoundEffects {
   return new SoundEffects({ AudioContextConstructor, fetchImpl });
 }
 

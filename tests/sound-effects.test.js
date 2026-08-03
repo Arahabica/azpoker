@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SOUND_URLS, createSoundEffects } from "../src/sound-effects.js";
+import { SOUND_URLS, createSoundEffects } from "../src/sound-effects.ts";
 
 class FakeSource {
   constructor() {

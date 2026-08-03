@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { CARD_SUITS } from "../src/components/card-suits.js";
+import { CARD_SUITS } from "../src/components/card-suits.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -14,8 +14,8 @@ function read(relativePath) {
 
 const html = read("index.html");
 const app = read("src/App.svelte");
-const main = read("src/main.js");
-const serverEntry = read("src/entry-server.js");
+const main = read("src/main.ts");
+const serverEntry = read("src/entry-server.ts");
 const prerender = read("scripts/prerender.mjs");
 const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
@@ -30,17 +30,19 @@ const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
 const holeCards = read("src/components/HoleCards.svelte");
 const logoCards = read("src/components/LogoCards.svelte");
-const cardSuits = read("src/components/card-suits.js");
+const cardSuits = read("src/components/card-suits.ts");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
-const questionTimer = read("src/question-timer.js");
-const resultSummary = read("src/result-summary.js");
-const soundEffects = read("src/sound-effects.js");
+const questionTimer = read("src/question-timer.ts");
+const resultSummary = read("src/result-summary.ts");
+const soundEffects = read("src/sound-effects.ts");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
-const uiTiming = read("src/ui-timing.js");
-const viteConfig = read("vite.config.js");
+const uiTiming = read("src/ui-timing.ts");
+const viteConfig = read("vite.config.ts");
+const tsconfig = read("tsconfig.json");
+const types = read("src/types.ts");
 const cardFontPath = path.join(
   root,
   "assets",
@@ -71,9 +73,47 @@ const mplusFontPath = path.join(
 );
 test("Svelte + Viteのアプリを構成する", () => {
   assert.match(html, /<div id="app"><!--app-html--><\/div>/);
-  assert.match(html, /type="module" src="\/src\/main\.js"/);
+  assert.match(html, /type="module" src="\/src\/main\.ts"/);
   assert.match(viteConfig, /svelte\(\)/);
   assert.match(viteConfig, /assetsInlineLimit: 0/);
+});
+
+test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用する", () => {
+  assert.match(
+    packageJson.devDependencies["@typescript/native"],
+    /^npm:typescript@\^7\./,
+  );
+  assert.match(
+    packageJson.devDependencies.typescript,
+    /^npm:@typescript\/typescript6@/,
+  );
+  assert.match(packageJson.scripts["typecheck:ts"], /^tsc --noEmit/);
+  assert.match(packageJson.scripts["typecheck:svelte"], /^svelte-check/);
+  assert.match(packageJson.scripts.check, /pnpm run typecheck/);
+  assert.match(tsconfig, /"strict": true/);
+  assert.match(tsconfig, /"noUncheckedIndexedAccess": true/);
+  assert.match(types, /export type Question =/);
+
+  for (const component of [
+    app,
+    landing,
+    prepare,
+    quiz,
+    result,
+    actionButton,
+    answerSheet,
+    leaveConfirmationSheet,
+    quizProgressTimer,
+    board,
+    holeCards,
+    logoCards,
+    card,
+    cardFace,
+    choiceButton,
+    mixedFontText,
+  ]) {
+    assert.match(component, /<script lang="ts">/);
+  }
 });
 
 test("トップ画面をビルド時に描画し、ブラウザでhydrateする", () => {
@@ -87,7 +127,7 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
   assert.match(main, /target\.querySelector\("\.app-shell"\) \? hydrate : mount/);
   assert.match(
     packageJson.scripts.build,
-    /vite build --ssr src\/entry-server\.js --outDir \.prerender/,
+    /vite build --ssr src\/entry-server\.ts --outDir \.prerender/,
   );
   assert.match(packageJson.scripts.build, /node scripts\/prerender\.mjs/);
 });
@@ -158,6 +198,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\.%/,
   );
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
+  assert.match(fontBuildScript, /\(\?:ts\|svelte\)/);
   assert.match(landing, /\.brand-lockup h1 \{[\s\S]*line-height: 1;/);
   assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
 
@@ -250,7 +291,10 @@ test("カード枠とカード面を分け、SVGスートと10表記に対応す
 });
 
 test("PlayingCardはカードの描画と読み上げだけを担当する", () => {
-  assert.match(card, /let \{ card, decorative = false \} = \$props\(\)/);
+  assert.match(
+    card,
+    /let \{ card, decorative = false \}(?:: Props)? = \$props\(\)/,
+  );
   assert.match(card, /role=\{decorative \? undefined : "img"\}/);
   assert.match(card, /aria-label=\{decorative \? undefined : details\.ariaLabel\}/);
   assert.match(card, /width: 100%/);
@@ -450,7 +494,10 @@ test("常設の戻る操作を置かず、回答パネルから終了確認を�
 test("結果画面は正答数・回答時間・時間切れ数を表示し、全問正解を紙吹雪で祝う", () => {
   assert.match(app, /let sessionElapsedMs = \$state\(0\)/);
   assert.match(app, /let sessionTimeLimitMs = \$state\(0\)/);
-  assert.match(app, /getQuestionTimeLimitMs\(currentQuestion\)/);
+  assert.match(
+    app,
+    /const question = currentQuestion;[\s\S]*getQuestionTimeLimitMs\(question\)/,
+  );
   assert.match(app, /elapsedMs=\{sessionElapsedMs\}/);
   assert.match(app, /outcome === "timeout"/);
   assert.match(app, /\{timeoutCount\}/);
@@ -487,7 +534,10 @@ test("10問の進捗と残り時間を1つのセグメント表示へ統合す�
 });
 
 test("時間切れを一度だけ不正解として確定する", () => {
-  assert.match(app, /function handleTimeout\(questionIndex, elapsedMs\)/);
+  assert.match(
+    app,
+    /function handleTimeout\(questionIndex(?:: number)?, elapsedMs(?:: number)?\)/,
+  );
   assert.match(app, /questionIndex !== currentIndex/);
   assert.match(app, /timedOut: true/);
   assert.match(app, /outcomes\[currentIndex\]/);

@@ -1,6 +1,31 @@
 const FAST_RESULT_RATIO = 0.65;
 
-function validateResult({ score, total, elapsedMs, timeLimitMs, timeoutCount }) {
+interface ResultInput {
+  score: number;
+  total: number;
+  elapsedMs: number;
+  timeLimitMs: number;
+  timeoutCount: number;
+}
+
+interface ResultSummary {
+  headline: string;
+  scoreLabel: string;
+  totalLabel: string;
+  elapsedLabel: string;
+  limitLabel: string;
+  timeoutLabel: string | null;
+  perfect: boolean;
+  fast: boolean;
+}
+
+function validateResult({
+  score,
+  total,
+  elapsedMs,
+  timeLimitMs,
+  timeoutCount,
+}: ResultInput): void {
   if (!Number.isInteger(total) || total <= 0) {
     throw new TypeError(`不正な問題数です: ${String(total)}`);
   }
@@ -22,7 +47,7 @@ function validateResult({ score, total, elapsedMs, timeLimitMs, timeoutCount }) 
   }
 }
 
-function formatElapsedTime(elapsedMs) {
+function formatElapsedTime(elapsedMs: number): string {
   if (!Number.isFinite(elapsedMs) || elapsedMs < 0) {
     throw new TypeError(`不正な回答時間です: ${String(elapsedMs)}`);
   }
@@ -31,7 +56,7 @@ function formatElapsedTime(elapsedMs) {
   return `${seconds.toFixed(1)}秒`;
 }
 
-function formatTimeLimit(timeLimitMs) {
+function formatTimeLimit(timeLimitMs: number): string {
   if (!Number.isFinite(timeLimitMs) || timeLimitMs <= 0) {
     throw new TypeError(`不正な制限時間です: ${String(timeLimitMs)}`);
   }
@@ -39,7 +64,14 @@ function formatTimeLimit(timeLimitMs) {
   return `${Math.round(timeLimitMs / 1_000)}秒`;
 }
 
-function getHeadline({ score, total, fast, timeoutCount }) {
+function getHeadline({
+  score,
+  total,
+  fast,
+  timeoutCount,
+}: Pick<ResultInput, "score" | "total" | "timeoutCount"> & {
+  fast: boolean;
+}): string {
   const canPraiseSpeed = fast && timeoutCount === 0;
 
   if (score === total) {
@@ -66,7 +98,7 @@ function getHeadline({ score, total, fast, timeoutCount }) {
   return "大丈夫、ここから強くなる！";
 }
 
-function getResultSummary(result) {
+function getResultSummary(result: ResultInput): Readonly<ResultSummary> {
   validateResult(result);
   const { score, total, elapsedMs, timeLimitMs, timeoutCount } = result;
   const perfect = score === total;

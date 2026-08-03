@@ -1,11 +1,19 @@
-<script>
+<script lang="ts">
+  interface Props {
+    id: string;
+    label: string;
+    variant?: "primary" | "secondary" | "danger";
+    onClick: () => void;
+    disabled?: boolean;
+  }
+
   let {
     id,
     label,
     variant = "primary",
     onClick,
     disabled = false,
-  } = $props();
+  }: Props = $props();
 </script>
 
 <button

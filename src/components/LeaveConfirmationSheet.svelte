@@ -1,11 +1,16 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
 
   import ActionButton from "./ActionButton.svelte";
 
-  let { onConfirmLeave, onContinue } = $props();
+  interface Props {
+    onConfirmLeave: () => void;
+    onContinue: () => void;
+  }
 
-  function handleKeydown(event) {
+  let { onConfirmLeave, onContinue }: Props = $props();
+
+  function handleKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
       event.preventDefault();
       onContinue();
@@ -14,7 +19,9 @@
     if (event.key !== "Tab") return;
 
     const buttons = [
-      ...document.querySelectorAll(".leave-sheet .action-button"),
+      ...document.querySelectorAll<HTMLButtonElement>(
+        ".leave-sheet .action-button",
+      ),
     ];
     const first = buttons[0];
     const last = buttons.at(-1);
@@ -28,7 +35,9 @@
   }
 
   onMount(() => {
-    document.querySelector("#continue-quiz")?.focus({ preventScroll: true });
+    document
+      .querySelector<HTMLButtonElement>("#continue-quiz")
+      ?.focus({ preventScroll: true });
   });
 </script>
 

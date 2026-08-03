@@ -1,14 +1,33 @@
-<script>
+<script lang="ts">
   import HoleCards from "./HoleCards.svelte";
+  import type {
+    AnswerResult,
+    HandIndex,
+    Hands,
+    QuestionAnswer,
+  } from "../types.ts";
+
+  interface Props {
+    hands: Hands;
+    disabled?: boolean;
+    selectable?: boolean;
+    answerResult?: AnswerResult | null;
+    answer: QuestionAnswer;
+    onSelect: (index: HandIndex) => void;
+  }
 
   let {
-    hands = [],
+    hands,
     disabled = false,
     selectable = true,
     answerResult = null,
     answer,
     onSelect,
-  } = $props();
+  }: Props = $props();
+
+  function selectHand(index: number): void {
+    if (index === 0 || index === 1) onSelect(index);
+  }
 </script>
 
 <div class="hand-options" aria-label="選択肢">
@@ -18,10 +37,10 @@
         type="button"
         class="hand-option"
         class:is-correct={Boolean(answerResult) && index === answer}
-        class:is-wrong={Boolean(answerResult) && answerResult.selected === index && index !== answer}
+        class:is-wrong={answerResult?.selected === index && index !== answer}
         aria-label={`${index + 1}つ目の手札`}
         {disabled}
-        onclick={() => onSelect(index)}
+        onclick={() => selectHand(index)}
       >
         <HoleCards cards={hand} />
       </button>

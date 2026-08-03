@@ -5,7 +5,7 @@ import {
   formatElapsedTime,
   formatTimeLimit,
   getResultSummary,
-} from "../src/result-summary.js";
+} from "../src/result-summary.ts";
 
 test("回答に使った時間を0.1秒単位で表示する", () => {
   assert.equal(formatElapsedTime(44_450), "44.5秒");

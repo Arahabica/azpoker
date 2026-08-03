@@ -1,5 +1,13 @@
-<script>
-  let { rank, suitPath, suitViewBox } = $props();
+<script lang="ts">
+  import type { DisplayRank } from "../../types.ts";
+
+  interface Props {
+    rank: DisplayRank;
+    suitPath: string;
+    suitViewBox: string;
+  }
+
+  let { rank, suitPath, suitViewBox }: Props = $props();
 </script>
 
 <span class="face" aria-hidden="true">
