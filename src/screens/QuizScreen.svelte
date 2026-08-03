@@ -4,6 +4,7 @@
   import ChoiceButton from "../components/ChoiceButton.svelte";
   import HoleCards from "../components/HoleCards.svelte";
   import HandComparison from "../components/HandComparison.svelte";
+  import LeaveConfirmationSheet from "../components/LeaveConfirmationSheet.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
   import QuizProgressTimer from "../components/QuizProgressTimer.svelte";
   import { getQuestionTimeLimitMs } from "../question-timer.js";
@@ -27,6 +28,8 @@
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
   let revealedChoiceIndex = $state(null);
+  let questionStartedAt = $state(0);
+  let leaveConfirmationOpen = $state(false);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
   const choicesConcealed = $derived(!choicesReady || Boolean(answerResult));
 
@@ -46,6 +49,44 @@
 
     return () => window.clearTimeout(timer);
   });
+
+  $effect(() => {
+    if (!choicesReady || answerResult || typeof performance === "undefined") {
+      return;
+    }
+
+    currentIndex;
+    questionStartedAt = performance.now();
+  });
+
+  $effect(() => {
+    currentIndex;
+    leaveConfirmationOpen = false;
+  });
+
+  function getElapsedMs() {
+    if (!questionStartedAt || typeof performance === "undefined") return 0;
+    return Math.min(durationMs, Math.max(0, performance.now() - questionStartedAt));
+  }
+
+  function handleAnswer(selected) {
+    onAnswer(selected, getElapsedMs());
+  }
+
+  function handleQuestionTimeout(questionIndex) {
+    onTimeout(questionIndex, durationMs);
+  }
+
+  function requestLeave() {
+    leaveConfirmationOpen = true;
+  }
+
+  function continueQuiz() {
+    leaveConfirmationOpen = false;
+    window.requestAnimationFrame(() => {
+      document.querySelector("#leave-quiz")?.focus({ preventScroll: true });
+    });
+  }
 </script>
 
 <section
@@ -54,18 +95,13 @@
   aria-labelledby="prompt"
 >
   <header class="quiz-header">
-    <button class="icon-button" type="button" aria-label="トップへ戻る" onclick={onLeave}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m15 5-7 7 7 7"></path>
-      </svg>
-    </button>
     <QuizProgressTimer
       {currentIndex}
       {total}
       {outcomes}
       {durationMs}
       running={choicesReady && !answerResult}
-      {onTimeout}
+      onTimeout={handleQuestionTimeout}
     />
   </header>
 
@@ -83,7 +119,7 @@
           selectable={question.answerType === "hand"}
           {answerResult}
           answer={question.answer}
-          onSelect={onAnswer}
+          onSelect={handleAnswer}
         />
       {:else}
         <HoleCards cards={question.hole} />
@@ -101,7 +137,7 @@
           <ChoiceButton
             value={choice}
             disabled={choicesConcealed}
-            onSelect={onAnswer}
+            onSelect={handleAnswer}
           />
         {/each}
       </div>
@@ -114,8 +150,16 @@
       timedOut={answerResult.timedOut}
       {question}
       isLast={currentIndex === total - 1}
+      blocked={leaveConfirmationOpen}
       {onNext}
+      onRequestLeave={requestLeave}
     />
+    {#if leaveConfirmationOpen}
+      <LeaveConfirmationSheet
+        onConfirmLeave={onLeave}
+        onContinue={continueQuiz}
+      />
+    {/if}
   {/if}
 </section>
 
@@ -138,31 +182,7 @@
     display: flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: 0.75rem;
     min-height: 2.75rem;
-  }
-
-  .icon-button {
-    display: grid;
-    flex: 0 0 2.75rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    padding: 0;
-    place-items: center;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: rgb(255 255 255 / 78%);
-    cursor: pointer;
-  }
-
-  .icon-button svg {
-    width: 1.55rem;
-    fill: none;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2.3;
   }
 
   .question-content {
@@ -212,13 +232,6 @@
   .choices.is-concealed {
     visibility: hidden;
     pointer-events: none;
-  }
-
-  @media (hover: hover) {
-    .icon-button:hover {
-      background: rgb(0 39 30 / 24%);
-      color: #fff;
-    }
   }
 
   @media (max-height: 620px) {

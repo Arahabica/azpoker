@@ -60,10 +60,12 @@ pnpm deploy:pages
 - `src/components/ActionButton.svelte`: 主要・副操作ボタンの共通表示
 - `src/components/ChoiceButton.svelte`: 選択肢の中央配置と文字のベースライン
 - `src/components/AnswerSheet.svelte`: 回答後のパネル
+- `src/components/LeaveConfirmationSheet.svelte`: 回答後に開く退出確認パネル
 - `styles.css`: フォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを持つグローバルCSS
 - `src/game.js`: 問題選択と表示用の純粋関数
 - `src/probability-engine.js`: 確率計算の純粋関数
 - `src/question-loader.js`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
+- `src/result-summary.js`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
 - `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
 - `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力
 
@@ -71,7 +73,7 @@ pnpm deploy:pages
 
 - 1セットはモードA 5問、B 2問、C 1問、D 2問です。順番は毎回混ぜます。
 - 全体のステージ比率はプリフロップ3問、フロップ4問、ターン3問です。
-- 基本原則で判断する問題を7問、複数要素を組み合わせる問題を3問出します。
+- 基本原則で判断する問題を8問、複数要素を組み合わせる問題を2問出します。
 - モードAの5問はカテゴリを重複させず、0%問題は最大1問です。
 - 特定ランクの出現問題は、そのランクを手札に1枚持ち、来ればペア以上になる場合だけ出題します。
 - 特定ランクがスリーになる問題、ツーペア、フルハウス、フォーカードも扱います。

@@ -3,7 +3,15 @@
   import ActionButton from "./ActionButton.svelte";
   import MixedFontText from "./MixedFontText.svelte";
 
-  let { correct, timedOut = false, question, isLast, onNext } = $props();
+  let {
+    correct,
+    timedOut = false,
+    question,
+    isLast,
+    blocked = false,
+    onNext,
+    onRequestLeave,
+  } = $props();
 
   function getFeedbackTitle() {
     if (timedOut) return "時間切れ";
@@ -18,8 +26,22 @@
   class="answer-sheet"
   aria-live="polite"
   aria-labelledby="feedback-title"
+  aria-hidden={blocked ? "true" : undefined}
+  inert={blocked}
 >
   <span class="sheet-handle" aria-hidden="true"></span>
+  <button
+    id="leave-quiz"
+    class="leave-button"
+    type="button"
+    aria-label="問題を終了する"
+    onclick={onRequestLeave}
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M10 5H6.8A1.8 1.8 0 0 0 5 6.8v10.4A1.8 1.8 0 0 0 6.8 19H10"></path>
+      <path d="m14 8 4 4-4 4M18 12H9"></path>
+    </svg>
+  </button>
   <div class="answer-mark" data-result={correct ? "correct" : "wrong"} aria-hidden="true">
     <svg class="answer-icon answer-icon-check" viewBox="0 0 48 48">
       <circle cx="24" cy="24" r="20"></circle>
@@ -70,6 +92,31 @@
     margin: 0 auto 0.9rem;
     border-radius: 999px;
     background: rgb(255 255 255 / 19%);
+  }
+
+  .leave-button {
+    position: absolute;
+    top: 0.72rem;
+    right: var(--gutter);
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: rgb(255 255 255 / 42%);
+    cursor: pointer;
+  }
+
+  .leave-button svg {
+    width: 1.25rem;
+    fill: none;
+    stroke: currentcolor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
   }
 
   .answer-mark {
@@ -131,6 +178,13 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @media (hover: hover) {
+    .leave-button:hover {
+      background: rgb(255 255 255 / 6%);
+      color: rgb(255 255 255 / 68%);
     }
   }
 

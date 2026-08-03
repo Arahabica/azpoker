@@ -13,6 +13,7 @@
   class="action-button"
   class:primary={variant === "primary"}
   class:secondary={variant === "secondary"}
+  class:danger={variant === "danger"}
   type="button"
   onclick={onClick}
   {disabled}
@@ -59,6 +60,12 @@
     color: var(--text);
   }
 
+  .danger {
+    border: 1px solid rgb(255 107 111 / 52%);
+    background: rgb(54 23 25 / 58%);
+    color: #ffb9bb;
+  }
+
   @media (hover: hover) {
     .primary:hover {
       background: var(--accent-hover);
@@ -68,6 +75,11 @@
       border-color: rgb(255 255 255 / 48%);
       background: rgb(2 33 25 / 82%);
       transform: translateY(-1px);
+    }
+
+    .danger:hover {
+      border-color: rgb(255 107 111 / 78%);
+      background: rgb(75 29 32 / 72%);
     }
   }
 </style>

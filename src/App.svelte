@@ -3,6 +3,7 @@
 
   import { createSession, shuffle } from "./game.js";
   import { loadQuestionPool, rememberQuestions } from "./question-loader.js";
+  import { getQuestionTimeLimitMs } from "./question-timer.js";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
@@ -16,8 +17,13 @@
   let outcomes = $state([]);
   let startupError = $state("");
   let starting = $state(false);
+  let sessionElapsedMs = $state(0);
+  let sessionTimeLimitMs = $state(0);
 
   const currentQuestion = $derived(session[currentIndex]);
+  const timeoutCount = $derived(
+    outcomes.filter((outcome) => outcome === "timeout").length,
+  );
 
   async function focusElement(selector) {
     await tick();
@@ -60,6 +66,11 @@
       currentIndex = 0;
       score = 0;
       outcomes = Array(nextSession.length).fill(null);
+      sessionElapsedMs = 0;
+      sessionTimeLimitMs = nextSession.reduce(
+        (total, question) => total + getQuestionTimeLimitMs(question),
+        0,
+      );
       startupError = "";
       view = "game";
       prepareQuestion(session[0]);
@@ -70,7 +81,7 @@
     }
   }
 
-  function settleQuestion({ correct, selected, timedOut }) {
+  function settleQuestion({ correct, selected, timedOut, elapsedMs }) {
     if (answerResult) {
       return false;
     }
@@ -78,6 +89,11 @@
     if (correct) {
       score += 1;
     }
+    const timeLimitMs = getQuestionTimeLimitMs(currentQuestion);
+    sessionElapsedMs += Math.min(
+      timeLimitMs,
+      Math.max(0, Number.isFinite(elapsedMs) ? elapsedMs : 0),
+    );
     let outcome = "wrong";
     if (timedOut) {
       outcome = "timeout";
@@ -90,15 +106,16 @@
     return true;
   }
 
-  function handleAnswer(selected) {
+  function handleAnswer(selected, elapsedMs) {
     settleQuestion({
       correct: selected === currentQuestion.answer,
       selected,
       timedOut: false,
+      elapsedMs,
     });
   }
 
-  function handleTimeout(questionIndex) {
+  function handleTimeout(questionIndex, elapsedMs) {
     if (view !== "game" || questionIndex !== currentIndex) {
       return;
     }
@@ -107,6 +124,7 @@
       correct: false,
       selected: null,
       timedOut: true,
+      elapsedMs,
     });
   }
 
@@ -129,6 +147,8 @@
     startupError = "";
     answerResult = null;
     outcomes = [];
+    sessionElapsedMs = 0;
+    sessionTimeLimitMs = 0;
     view = "landing";
     if (shouldFocus) {
       focusElement("#start-game");
@@ -161,6 +181,9 @@
     <ResultScreen
       {score}
       total={session.length}
+      elapsedMs={sessionElapsedMs}
+      timeLimitMs={sessionTimeLimitMs}
+      {timeoutCount}
       onRetry={startSession}
       onHome={showLanding}
     />

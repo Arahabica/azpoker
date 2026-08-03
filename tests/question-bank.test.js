@@ -17,7 +17,7 @@ function choicePercent(value) {
 }
 
 function minimumChoiceGap(answer) {
-  if (answer <= 2.5) return 1;
+  if (answer <= 3) return 1;
   if (answer < 20) return 5;
   return 10;
 }
@@ -102,6 +102,8 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
     assert.ok(["hand", "percent"].includes(question.answerType));
     if (question.answerType === "percent") {
       assert.notEqual(question.answer, question.distractor, `${question.id}: 選択肢重複`);
+      assert.notEqual(question.answer, "2.5%", `${question.id}: 旧2.5%正解`);
+      assert.notEqual(question.distractor, "2.5%", `${question.id}: 旧2.5%誤答`);
       const answer = choicePercent(question.answer);
       const distractor = choicePercent(question.distractor);
       assert.ok(
@@ -141,6 +143,8 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     assert.equal(copy.includes("Tの"), false, `${question.id}: T表記`);
     assert.equal(copy.includes("厳密値"), false, `${question.id}: 内部表現`);
     assert.equal(copy.includes("全列挙"), false, `${question.id}: 内部表現`);
+    assert.equal(copy.includes("スート"), false, `${question.id}: 初心者向け表現`);
+    assert.equal(copy.includes("ランク"), false, `${question.id}: 初心者向け表現`);
     for (const term of explanationOnlyTerms) {
       assert.equal(question.prompt.includes(term), false, `${question.id}: ${term}`);
     }
@@ -165,6 +169,34 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
   const opponentOesd = bank.find((question) => question.category === "opponent_oesd");
   assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
   assert.match(opponentOesd?.explain ?? "", /OESD/);
+});
+
+test("ボード4枚問題は対象のマークを具体的に示す", () => {
+  const suitNames = {
+    c: "クラブ",
+    d: "ダイヤ",
+    h: "ハート",
+    s: "スペード",
+  };
+  const questions = bank.filter(
+    (question) => question.category === "four_flush_board",
+  );
+
+  assert.equal(questions.length, 350);
+  assert.deepEqual(
+    new Set(questions.map((question) => question.targetSuit)),
+    new Set(Object.keys(suitNames)),
+  );
+  for (const question of questions) {
+    const suitName = suitNames[question.targetSuit];
+    assert.ok(suitName, `${question.id}: 対象マーク`);
+    assert.equal(
+      question.prompt,
+      `ボードに${suitName}が4枚になる確率は？`,
+      question.id,
+    );
+    assert.match(question.explain, new RegExp(suitName), question.id);
+  }
 });
 
 test("モードBの数値問題を短い8形式へ均等に振り分ける", () => {
@@ -204,6 +236,23 @@ test("モードBの数値問題を短い8形式へ均等に振り分ける", () 
     (candidate) => candidate.category === "same_final_category",
   )) {
     assert.equal(question.prompt, "両方の役の種類が同じになる確率は？");
+  }
+
+  for (const question of numericModeB.filter(
+    (candidate) => candidate.category === "board_straight_chop",
+  )) {
+    assert.equal(
+      question.prompt,
+      "ボードの5枚だけでストレートになり、引き分ける確率は？",
+    );
+  }
+
+  for (const question of numericModeB.filter(
+    (candidate) => ["trailing_hand_wins", "leading_hand_holds"].includes(candidate.category),
+  )) {
+    assert.ok([0, 1].includes(question.targetHand), `${question.id}: 対象手札`);
+    const side = question.targetHand === 0 ? "左" : "右";
+    assert.equal(question.prompt, `${side}の手札の勝率は？`);
   }
 });
 

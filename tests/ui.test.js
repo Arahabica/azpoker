@@ -23,6 +23,7 @@ const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const actionButton = read("src/components/ActionButton.svelte");
 const answerSheet = read("src/components/AnswerSheet.svelte");
+const leaveConfirmationSheet = read("src/components/LeaveConfirmationSheet.svelte");
 const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
@@ -33,6 +34,7 @@ const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
 const questionTimer = read("src/question-timer.js");
+const resultSummary = read("src/result-summary.js");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const uiTiming = read("src/ui-timing.js");
@@ -144,7 +146,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   const gameFontSize = fs.statSync(gameFontPath).size;
   const mplusFontSize = fs.statSync(mplusFontPath).size;
   assert.ok(landingFontSize > 0 && landingFontSize < 3_000);
-  assert.ok(gameFontSize > landingFontSize && gameFontSize < 50_000);
+  assert.ok(gameFontSize > landingFontSize && gameFontSize < 60_000);
   assert.ok(mplusFontSize > 0 && mplusFontSize < 10_000);
   assert.match(fontBuildScript, /const landingText = "暗算ポーカーはじめる"/);
   assert.match(
@@ -172,7 +174,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(choiceButton, /\.choice-value \{[\s\S]*font-weight: 400/);
   assert.match(answerSheet, /\.actual-probability \{[\s\S]*font-weight: 400/);
-  assert.match(result, /\.score \{[\s\S]*font-weight: 400/);
+  assert.match(result, /\.stat-value \{[\s\S]*font-weight: 400/);
 });
 
 test("問題画面はボードを上、傾けた手札を下に置く", () => {
@@ -342,6 +344,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "logo-cards",
     "choice",
     "answer-sheet",
+    "leave-dialog-layer",
     "quiz-progress-timer",
     "result-screen",
     "action-button",
@@ -357,6 +360,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     result,
     actionButton,
     answerSheet,
+    leaveConfirmationSheet,
     quizProgressTimer,
     board,
     holeCards,
@@ -372,6 +376,44 @@ test("問題画面は回答パネルをコンポーネントで表示する", ()
   assert.match(quiz, /<AnswerSheet/);
   assert.match(answerSheet, /@keyframes raise-sheet/);
   assert.match(styles, /prefers-reduced-motion/);
+});
+
+test("常設の戻る操作を置かず、回答パネルから終了確認を開く", () => {
+  assert.doesNotMatch(quiz, /aria-label="トップへ戻る"/);
+  assert.doesNotMatch(quiz, /class="icon-button"/);
+  assert.match(answerSheet, /id="leave-quiz"/);
+  assert.match(answerSheet, /aria-label="問題を終了する"/);
+  assert.match(quiz, /import LeaveConfirmationSheet/);
+  assert.match(quiz, /leaveConfirmationOpen/);
+  assert.match(quiz, /blocked=\{leaveConfirmationOpen\}/);
+  assert.match(answerSheet, /inert=\{blocked\}/);
+  assert.match(leaveConfirmationSheet, /role="dialog"/);
+  assert.ok(
+    leaveConfirmationSheet.indexOf('id="confirm-leave"')
+      < leaveConfirmationSheet.indexOf('id="continue-quiz"'),
+  );
+  assert.match(leaveConfirmationSheet, /label="トップページに戻る"/);
+  assert.match(leaveConfirmationSheet, /label="問題を続ける"/);
+  assert.match(leaveConfirmationSheet, /id="continue-quiz"/);
+});
+
+test("結果画面は正答数・回答時間・時間切れ数を表示し、全問正解を紙吹雪で祝う", () => {
+  assert.match(app, /let sessionElapsedMs = \$state\(0\)/);
+  assert.match(app, /let sessionTimeLimitMs = \$state\(0\)/);
+  assert.match(app, /getQuestionTimeLimitMs\(currentQuestion\)/);
+  assert.match(app, /elapsedMs=\{sessionElapsedMs\}/);
+  assert.match(app, /outcome === "timeout"/);
+  assert.match(app, /\{timeoutCount\}/);
+  assert.match(result, /getResultSummary/);
+  assert.match(result, /summary\.scoreLabel/);
+  assert.match(result, /summary\.elapsedLabel/);
+  assert.match(result, /summary\.limitLabel/);
+  assert.match(result, /summary\.timeoutLabel/);
+  assert.match(result, /summary\.perfect/);
+  assert.match(result, /class="confetti"/);
+  assert.match(result, /@keyframes confetti-fall/);
+  assert.match(resultSummary, /天才！君こそポーカーキングだ！/);
+  assert.match(resultSummary, /惜しい！もう少し！/);
 });
 
 test("10問の進捗と残り時間を1つのセグメント表示へ統合する", () => {
@@ -392,11 +434,11 @@ test("10問の進捗と残り時間を1つのセグメント表示へ統合す�
 });
 
 test("時間切れを一度だけ不正解として確定する", () => {
-  assert.match(app, /function handleTimeout\(questionIndex\)/);
+  assert.match(app, /function handleTimeout\(questionIndex, elapsedMs\)/);
   assert.match(app, /questionIndex !== currentIndex/);
   assert.match(app, /timedOut: true/);
   assert.match(app, /outcomes\[currentIndex\]/);
-  assert.match(quiz, /onTimeout=\{handleTimeout\}|\{onTimeout\}/);
+  assert.match(quiz, /onTimeout=\{handleQuestionTimeout\}/);
   assert.match(quiz, /timedOut=\{answerResult\.timedOut\}/);
   assert.match(answerSheet, /"時間切れ"/);
 });

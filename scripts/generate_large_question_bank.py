@@ -19,10 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public" / "questions"
 RANKS = "23456789TJQKA"
 SUITS = "cdhs"
+SUIT_NAMES = {"c": "クラブ", "d": "ダイヤ", "h": "ハート", "s": "スペード"}
 DECK = tuple(f"{rank}{suit}" for rank in RANKS for suit in SUITS)
 RANK_VALUE = {rank: index + 2 for index, rank in enumerate(RANKS)}
 DISPLAY_RANK = {"T": "10"}
-BUCKETS = (0, 1, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
+BUCKETS = (0, 1, 3, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
 LEGACY_MODE_COUNTS = {"A": 6000, "B": 3000, "C": 338, "D": 662}
 MODE_COUNTS = {"A": 10_000, "B": 4800, "C": 1200, "D": 4000}
 HAND_NAMES = ("ハイカード", "ワンペア", "ツーペア", "スリー", "ストレート", "フラッシュ", "フルハウス", "フォーカード", "ストレートフラッシュ")
@@ -94,7 +95,7 @@ def percent_label(value: float) -> str:
 
 def minimum_choice_gap(correct: float) -> float:
     """Keep normal probabilities readable while retaining detail near zero."""
-    if correct <= 2.5:
+    if correct <= 3:
         return 1
     if correct < 20:
         return 5
@@ -369,15 +370,15 @@ def build_a_state(category: str, rng: random.Random, force_zero: bool):
 def prompt_and_explanation(category: str, target_rank: str | None, stage: str, value: float):
     rank = display_rank(target_rank) if target_rank else ""
     copy = {
-        "flush": ("フラッシュの確率は？", "同じスートが5枚そろう可能性です。"),
-        "straight": ("ストレートの確率は？", "連続する5ランクがそろう可能性です。"),
+        "flush": ("フラッシュの確率は？", "同じマークが5枚そろう可能性です。"),
+        "straight": ("ストレートの確率は？", "数字や文字が5つ連続してそろう可能性です。"),
         "flush_or_straight": ("フラッシュかストレートの確率は？", "2種類の待ちで重なるカードは一度だけ数えます。"),
         "rank_hit": (f"{rank}が出る確率は？", f"見えていない{rank}の枚数から考えます。"),
-        "rank_trips": (f"{rank}がスリーになる確率は？", "同じランクが3枚になる可能性です。"),
+        "rank_trips": (f"{rank}がスリーになる確率は？", "同じ数字や文字が3枚になる可能性です。"),
         "two_pair": ("ツーペアの確率は？", "異なる2つのペアができる可能性です。"),
         "full_house": ("フルハウスの確率は？", "スリーとペアが同時にできる可能性です。"),
-        "four_kind": ("フォーカードの確率は？", "同じランクが4枚そろう可能性です。"),
-        "straight_flush": ("ストレートフラッシュの確率は？", "同じスートで連続する5ランクがそろう可能性です。"),
+        "four_kind": ("フォーカードの確率は？", "同じ数字や文字が4枚そろう可能性です。"),
+        "straight_flush": ("ストレートフラッシュの確率は？", "同じマークで、数字や文字が5つ連続してそろう可能性です。"),
     }[category]
     if value == 0:
         return copy[0], "残りのカード枚数では、必要なカードをすべてそろえられません。"
@@ -387,10 +388,10 @@ def prompt_and_explanation(category: str, target_rank: str | None, stage: str, v
         if (stage == "flop" and value >= 25) or (stage == "turn" and value >= 14):
             return copy[0], "両端を待つ形（OESD）や、内側の待ちが2種類ある形（ダブルガット）です。"
         if value >= 8:
-            return copy[0], "内側の1ランクだけを待つ形（ガットショット）です。"
+            return copy[0], "内側の1種類だけを待つ形（ガットショット）です。"
         return copy[0], "残り2枚が両方そろって完成する形（ランナーランナー）です。"
     if category == "flush" and stage == "flop" and value < 10:
-        return copy[0], "残り2枚が両方同じスートになる形（バックドア）です。"
+        return copy[0], "残り2枚が両方同じマークになる形（バックドア）です。"
     if category == "straight" and stage == "flop" and value < 10:
         return copy[0], "残り2枚が両方そろって完成する形（ランナーランナー）です。"
     return copy
@@ -399,7 +400,7 @@ def prompt_and_explanation(category: str, target_rank: str | None, stage: str, v
 def distractor(value: float, category: str, stage: str) -> tuple[str, str]:
     correct = nearest_bucket(value)
     if value == 0:
-        return percent_label(2.5), "残り枚数を確認せず、わずかなアウツがあると考える"
+        return percent_label(3), "残り枚数を確認せず、わずかなアウツがあると考える"
     models = {
         "flush": "残り1枚と2枚の確率を混同する",
         "straight": "待ちの種類または必要なカード枚数を取り違える",
@@ -411,8 +412,8 @@ def distractor(value: float, category: str, stage: str) -> tuple[str, str]:
         "four_kind": "残り1枚のアウツを過大評価する",
         "straight_flush": "フラッシュまたはストレート単独のアウツを含める",
     }
-    if correct <= 2.5:
-        wrong = 5 if correct != 5 else 2.5
+    if correct <= 3:
+        wrong = 5
     elif correct <= 10:
         wrong = correct + 5
     elif correct <= 25:
@@ -529,7 +530,7 @@ def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tu
     )
     difficulty = "hard" if len(factors) >= 2 or best <= 60 else "medium"
     explanation = (
-        "手札のペア、高いカード、同じスートかを比べます。"
+        "手札のペア、高いカード、同じマークかを比べます。"
         if not board
         else f"現在は{HAND_NAMES[current_scores[0]]}と{HAND_NAMES[current_scores[1]]}。残りのドローとキッカーも比べます。"
     )
@@ -706,7 +707,7 @@ def answer_fields(value: float, model: str) -> dict:
     """Create a readable choice near a concrete misconception."""
     correct = nearest_bucket(value)
     if correct < 5:
-        candidates = (0, 1, 2.5, 5, 7.5)
+        candidates = (0, 1, 3, 5, 7.5)
     elif correct < 20:
         candidates = tuple(bucket for bucket in BUCKETS if abs(bucket - correct) <= 7.5)
     else:
@@ -752,6 +753,7 @@ def new_a_event(
     hole: tuple[str, str],
     start_board: tuple[str, ...],
     final_board: tuple[str, ...],
+    target_suit: str | None = None,
 ) -> bool:
     cards = (*hole, *final_board)
     board_counts = Counter(card[0] for card in final_board)
@@ -768,7 +770,7 @@ def new_a_event(
         pair_value = RANK_VALUE[hole[0][0]]
         return any(RANK_VALUE[card[0]] > pair_value for card in final_board[len(start_board):])
     if category == "four_flush_board":
-        return max(Counter(card[1] for card in final_board).values()) >= 4
+        return sum(card[1] == target_suit for card in final_board) == 4
     if category == "pocket_pair_counterfeit":
         pair_value = RANK_VALUE[hole[0][0]]
         return pair_value not in evaluate(cards)[1:]
@@ -784,10 +786,18 @@ def new_a_event(
     raise ValueError(category)
 
 
-def exact_new_a_percent(category: str, hole: tuple[str, str], board: tuple[str, ...]) -> float:
+def exact_new_a_percent(
+    category: str,
+    hole: tuple[str, str],
+    board: tuple[str, ...],
+    target_suit: str | None = None,
+) -> float:
     remaining = tuple(card for card in DECK if card not in {*hole, *board})
     runouts = tuple(itertools.combinations(remaining, 5 - len(board)))
-    hits = sum(new_a_event(category, hole, board, (*board, *runout)) for runout in runouts)
+    hits = sum(
+        new_a_event(category, hole, board, (*board, *runout), target_suit)
+        for runout in runouts
+    )
     return hits / len(runouts) * 100
 
 
@@ -841,15 +851,24 @@ NEW_A_COPY = {
     "runner_straight": ("ストレートの確率は？", "残り2枚が両方必要な形（ランナーランナー）です。"),
     "runner_flush": ("フラッシュの確率は？", "残り2枚が両方必要な形（ランナーランナー）です。"),
     "runner_flush_or_straight": ("ストレートかフラッシュの確率は？", "どちらも残り2枚が必要で、重なる組合せは一度だけ数えます。"),
-    "board_pair": ("ボードにペアができる確率は？", "ボード上で同じランクが2枚以上になる可能性です。"),
-    "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2ランクがペアになる可能性です。"),
-    "overcard": ("手札のペアより高いカードの確率は？", "ポケットペアより高いランクが出る可能性です。"),
-    "four_flush_board": ("ボードに同じスートが4枚の確率は？", "1枚の同じスートを持つ相手にもフラッシュの可能性が生まれます。"),
+    "board_pair": ("ボードにペアができる確率は？", "ボード上で同じ数字や文字が2枚以上になる可能性です。"),
+    "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2種類の数字や文字がペアになる可能性です。"),
+    "overcard": ("手札のペアより高いカードの確率は？", "ポケットペアより強いカードが出る可能性です。"),
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
     "two_pair_counterfeit": ("低いペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
     "same_hand_category": ("今の役のまま終わる確率は？", "役の種類が変わらない可能性です。"),
     "nut_flush": ("最高のフラッシュの確率は？", "そのボードで作れる最も高いフラッシュになる可能性です。"),
 }
+
+
+def new_a_copy(category: str, target_suit: str | None = None) -> tuple[str, str]:
+    if category == "four_flush_board":
+        suit_name = SUIT_NAMES[target_suit]
+        return (
+            f"ボードに{suit_name}が4枚になる確率は？",
+            f"ボードの{suit_name}が4枚になると、{suit_name}を1枚持つ相手にもフラッシュの可能性があります。",
+        )
+    return NEW_A_COPY[category]
 
 
 def build_new_mode_a(rng: random.Random) -> list[dict]:
@@ -865,24 +884,34 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
             stage, hole, board = build_new_a_state(category, rng)
             if len(set((*hole, *board))) != len(hole) + len(board):
                 continue
+            target_suit = None
+            if category == "four_flush_board":
+                suit_counts = Counter(card[1] for card in board)
+                most_visible = max(suit_counts.values())
+                target_suit = rng.choice([
+                    suit for suit in SUITS if suit_counts[suit] == most_visible
+                ])
             if category != "same_hand_category":
-                if new_a_event(category, hole, board, board):
+                if new_a_event(category, hole, board, board, target_suit):
                     continue
-            value = exact_new_a_percent(category, hole, board)
+            value = exact_new_a_percent(category, hole, board, target_suit)
             if not 0 < value < 100:
                 continue
-            key = f"{category}:{stage}:{canonical_cards([list(hole), list(board)])}"
+            key = f"{category}:{target_suit}:{stage}:{canonical_cards([list(hole), list(board)])}"
             if key in seen:
                 continue
-            prompt, explain = NEW_A_COPY[category]
+            prompt, explain = new_a_copy(category, target_suit)
             fields = answer_fields(value, "残り枚数、重複する組合せ、ボードの変化のどれかを見落とす")
-            questions.append({
+            question = {
                 "id": f"a-{LEGACY_MODE_COUNTS['A'] + len(questions) + 1:05d}",
                 "mode": "A", "stage": stage, "hole": list(hole), "board": list(board),
                 "target": category, "category": category, "prompt": prompt, "explain": explain,
                 "difficulty": "hard" if category in {"runner_flush_or_straight", "pocket_pair_counterfeit", "two_pair_counterfeit"} or rng.random() < .2 else "medium",
                 "conceptKey": key, **fields,
-            })
+            }
+            if target_suit:
+                question["targetSuit"] = target_suit
+            questions.append(question)
             seen.add(key)
             made += 1
     return questions
@@ -914,17 +943,37 @@ def next_card_reversal_percent(hands, board, leader, trailer) -> float:
 
 NEW_B_COPY = {
     "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
-    "trailing_hand_wins": ("負けている手札の勝率は？", "現在負けている側が最後に単独で勝つ可能性です。"),
     "same_final_category": ("両方の役の種類が同じになる確率は？", "キッカーの強さに関係なく、役の種類が同じになる可能性です。"),
     "clean_out": ("最後の1枚で逆転する確率は？", "負けている側を逆転勝ちさせるカードを、クリーンアウトと呼びます。"),
     "next_card_reversal": (
         "次のカードで役の強さが逆転する確率は？",
         "現在負けている側が、次のカード直後に相手より強い役になる可能性です。",
     ),
-    "board_straight_chop": ("ボードのストレートで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
-    "board_flush_chop": ("ボードのフラッシュで引き分ける確率は？", "ボードの5枚が両方のベストハンドになる可能性です。"),
-    "leading_hand_holds": ("勝っている手札の勝率は？", "現在勝っている側が最後も単独で勝つ可能性です。"),
+    "board_straight_chop": (
+        "ボードの5枚だけでストレートになり、引き分ける確率は？",
+        "最後にボードの5枚だけでストレートができ、左右の手札が同じ役になる可能性です。",
+    ),
+    "board_flush_chop": (
+        "ボードの5枚だけでフラッシュになり、引き分ける確率は？",
+        "最後にボードの5枚だけでフラッシュができ、左右の手札が同じ役になる可能性です。",
+    ),
 }
+
+
+def mode_b_copy(category: str, leader: int | None = None) -> tuple[str, str, int | None]:
+    if category in {"trailing_hand_wins", "leading_hand_holds"}:
+        if leader not in {0, 1}:
+            raise ValueError(f"左右を特定できません: {category}")
+        target_hand = leader if category == "leading_hand_holds" else 1 - leader
+        side = "左" if target_hand == 0 else "右"
+        current_state = "強く、そのまま最後まで勝つ" if category == "leading_hand_holds" else "弱く、最後に逆転して勝つ"
+        return (
+            f"{side}の手札の勝率は？",
+            f"今は{side}の手札が{current_state}可能性です。",
+            target_hand,
+        )
+    prompt, explain = NEW_B_COPY[category]
+    return prompt, explain, None
 
 
 def build_new_mode_b(rng: random.Random) -> list[dict]:
@@ -987,15 +1036,18 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             key = f"{category}:{stage}:{canonical_cards([list(hands[0]), list(hands[1]), list(board)])}"
             if key in seen:
                 continue
-            prompt, explain = NEW_B_COPY[category]
+            prompt, explain, target_hand = mode_b_copy(category, leader)
             fields = answer_fields(value, "引き分け、逆転、再逆転の組合せの一部を数え落とす")
-            questions.append({
+            question = {
                 "id": f"b-{LEGACY_MODE_COUNTS['B'] + len(questions) + 1:05d}",
                 "mode": "B", "stage": stage, "hands": [list(hand) for hand in hands],
                 "board": list(board), "category": category, "prompt": prompt, "explain": explain,
                 "difficulty": "hard" if category not in {"leading_hand_holds", "trailing_hand_wins"} or rng.random() < .2 else "medium",
                 "conceptKey": key, **fields,
-            })
+            }
+            if target_hand is not None:
+                question["targetHand"] = target_hand
+            questions.append(question)
             seen.add(key)
             made += 1
     return questions
@@ -1153,7 +1205,7 @@ MODE_D_BEGINNER_COPY = {
     ),
     "opponent_flush": (
         "がフラッシュの確率は？",
-        "相手の2枚と現在のボードから、同じスートが5枚できる組合せです。",
+        "相手の2枚と現在のボードから、同じマークが5枚できる組合せです。",
     ),
     "opponent_oesd": (
         "がストレートの両端待ちの確率は？",
@@ -1165,7 +1217,7 @@ MODE_D_BEGINNER_COPY = {
     ),
     "opponent_flush_draw": (
         "があと1枚でフラッシュの確率は？",
-        "同じスートが現在4枚あり、あと1枚でフラッシュになる形です。一般にフラッシュドローと呼びます。",
+        "同じマークが現在4枚あり、あと1枚でフラッシュになる形です。一般にフラッシュドローと呼びます。",
     ),
     "opponent_combo_draw": (
         "がストレートとフラッシュ待ちの確率は？",
@@ -1173,7 +1225,7 @@ MODE_D_BEGINNER_COPY = {
     ),
     "opponent_higher_flush": (
         "が自分より高いフラッシュの確率は？",
-        "自分と同じスートで、より高いカードを含むフラッシュの組合せです。",
+        "自分と同じマークで、より高いカードを含むフラッシュの組合せです。",
     ),
     "opponent_same_pair_higher_kicker": (
         "が同じペアで自分より強い確率は？",
@@ -1208,7 +1260,7 @@ def mode_d_copy(
         rank = display_rank(top_rank)
         return (
             f"{table}{subject}が{rank}を持つ確率は？",
-            f"{rank}はボードで一番高いランクです。相手が{rank}を持つ組合せを考えます。",
+            f"{rank}はボードで一番強いカードです。相手が{rank}を持つ組合せを考えます。",
         )
     if category.endswith("target_rank"):
         rank = display_rank(target_rank)
@@ -1310,11 +1362,32 @@ def validate(bank: list[dict]) -> None:
             raise RuntimeError(f"誤答理由なし: {question['id']}")
         if question.get("answerType") == "percent" and question["answer"] == question["distractor"]:
             raise RuntimeError(f"選択肢重複: {question['id']}")
+        if "スート" in f"{question['prompt']}{question['explain']}":
+            raise RuntimeError(f"初心者向けでない表示文言: {question['id']}")
+        if "ランク" in f"{question['prompt']}{question['explain']}":
+            raise RuntimeError(f"初心者向けでない表示文言: {question['id']}")
         if question.get("answerType") == "percent":
             correct = float(question["answer"].removesuffix("%"))
             wrong = float(question["distractor"].removesuffix("%"))
+            if correct not in BUCKETS or wrong not in BUCKETS:
+                raise RuntimeError(f"選択肢の刻みが不正です: {question['id']}")
+            if correct != nearest_bucket(question["trueP"]):
+                raise RuntimeError(f"正解選択肢が実際の値に最も近くありません: {question['id']}")
             if abs(correct - wrong) < minimum_choice_gap(correct):
                 raise RuntimeError(f"選択肢が近すぎます: {question['id']}")
+        if question.get("category") in {"trailing_hand_wins", "leading_hand_holds"}:
+            hands = tuple(tuple(hand) for hand in question["hands"])
+            board = tuple(question["board"])
+            current = [evaluate((*hand, *board)) for hand in hands]
+            if current[0] == current[1]:
+                raise RuntimeError(f"左右を特定できない勝率問題です: {question['id']}")
+            leader = 0 if current[0] > current[1] else 1
+            expected_target = leader if question["category"] == "leading_hand_holds" else 1 - leader
+            if question.get("targetHand") != expected_target:
+                raise RuntimeError(f"勝率の対象手札が不正です: {question['id']}")
+            side = "左" if expected_target == 0 else "右"
+            if question["prompt"] != f"{side}の手札の勝率は？":
+                raise RuntimeError(f"勝率の対象が問題文と不一致です: {question['id']}")
         if question.get("category") == "next_card_reversal":
             hands = tuple(tuple(hand) for hand in question["hands"])
             board = tuple(question["board"])
@@ -1326,15 +1399,51 @@ def validate(bank: list[dict]) -> None:
             expected = round(next_card_reversal_percent(hands, board, leader, trailer), 2)
             if question["stage"] != "flop" or question["trueP"] != expected:
                 raise RuntimeError(f"次カード逆転率が不正です: {question['id']}")
+        if question.get("category") == "four_flush_board":
+            target_suit = question.get("targetSuit")
+            if target_suit not in SUITS:
+                raise RuntimeError(f"対象マークが不正です: {question['id']}")
+            expected = round(
+                exact_new_a_percent(
+                    question["category"],
+                    tuple(question["hole"]),
+                    tuple(question["board"]),
+                    target_suit,
+                ),
+                2,
+            )
+            if question["trueP"] != expected:
+                raise RuntimeError(f"ボード4枚の確率が不正です: {question['id']}")
         if question["mode"] == "D" and not question["prompt"].startswith(f"{question['playerCount']}人卓で"):
             raise RuntimeError(f"卓人数なし: {question['id']}")
 
 
 def normalize_question_copy(question: dict) -> None:
-    if question["mode"] == "A" and question["category"] in NEW_A_COPY:
-        question["prompt"], question["explain"] = NEW_A_COPY[question["category"]]
-    if question["mode"] == "B" and question["category"] in NEW_B_COPY:
-        question["prompt"], question["explain"] = NEW_B_COPY[question["category"]]
+    if question["mode"] == "A" and question["category"] in A_COUNTS:
+        question["prompt"], question["explain"] = prompt_and_explanation(
+            question["category"],
+            question.get("targetRank"),
+            question["stage"],
+            question["trueP"],
+        )
+    elif question["mode"] == "A" and question["category"] in NEW_A_COUNTS:
+        question["prompt"], question["explain"] = new_a_copy(
+            question["category"],
+            question.get("targetSuit"),
+        )
+    if question["mode"] == "B" and question["category"] in NEW_B_COUNTS:
+        hands = tuple(tuple(hand) for hand in question["hands"])
+        board = tuple(question["board"])
+        current = [evaluate((*hand, *board)) for hand in hands]
+        leader = 0 if current[0] > current[1] else 1 if current[1] > current[0] else None
+        question["prompt"], question["explain"], target_hand = mode_b_copy(
+            question["category"],
+            leader,
+        )
+        if target_hand is None:
+            question.pop("targetHand", None)
+        else:
+            question["targetHand"] = target_hand
     if question["mode"] == "B" and question["category"] == "hand_comparison":
         question["prompt"] = "勝率が高いのは？"
     if question["mode"] == "D":
@@ -1344,13 +1453,16 @@ def normalize_question_copy(question: dict) -> None:
             question.get("targetRank"),
             tuple(question["board"]),
         )
+    question["prompt"] = question["prompt"].replace("スート", "マーク")
+    question["explain"] = question["explain"].replace("スート", "マーク")
 
 
 def normalize_question_choices(question: dict) -> None:
     if question.get("answerType") != "percent":
         return
-    correct = float(question["answer"].removesuffix("%"))
-    wrong = float(question["distractor"].removesuffix("%"))
+    correct = nearest_bucket(question["trueP"])
+    wrong = nearest_bucket(float(question["distractor"].removesuffix("%")))
+    question["answer"] = percent_label(correct)
     question["distractor"] = percent_label(spaced_distractor(correct, wrong))
 
 
@@ -1485,7 +1597,7 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v3", "B": "-v5", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v4", "B": "-v5", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         if cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))
