@@ -42,16 +42,28 @@
   }
 
   function ensureSoundEffects() {
-    if (!soundEffects && typeof Audio === "function") {
-      soundEffects = createSoundEffects(Audio);
+    const AudioContextConstructor = globalThis.AudioContext
+      ?? globalThis.webkitAudioContext;
+    if (!soundEffects && typeof AudioContextConstructor === "function") {
+      try {
+        soundEffects = createSoundEffects({
+          AudioContextConstructor,
+          fetchImpl: globalThis.fetch,
+        });
+      } catch {
+        return undefined;
+      }
     }
     return soundEffects;
   }
 
-  function preloadSoundEffects() {
-    if (soundEnabled) {
-      ensureSoundEffects()?.preload();
-    }
+  async function preloadSoundEffects() {
+    const effects = ensureSoundEffects();
+    if (!effects) return;
+    const resumePromise = soundEnabled
+      ? effects.resume()
+      : Promise.resolve(false);
+    await Promise.all([effects.preload(), resumePromise]);
   }
 
   function setSoundEnabled(enabled) {
@@ -112,6 +124,7 @@
       const [nextSession] = await Promise.all([
         selectSession(),
         preloadGameFonts(),
+        preloadSoundEffects(),
       ]);
       session = nextSession;
       rememberQuestions(session);
@@ -140,7 +153,6 @@
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
     view = "prepare";
-    preloadSoundEffects();
     focusElement("#prepare-title");
     prepareSession();
   }
@@ -230,7 +242,7 @@
     }
   }
 
-  onDestroy(() => soundEffects?.stopAll());
+  onDestroy(() => soundEffects?.destroy());
 </script>
 
 <main class="app-shell">

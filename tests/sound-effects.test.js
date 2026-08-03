@@ -3,35 +3,83 @@ import test from "node:test";
 
 import { SOUND_URLS, createSoundEffects } from "../src/sound-effects.js";
 
-class FakeAudio {
-  static instances = [];
-
-  constructor(url) {
-    this.url = url;
-    this.currentTime = 0;
-    this.loadCount = 0;
-    this.playCount = 0;
-    this.pauseCount = 0;
-    FakeAudio.instances.push(this);
+class FakeSource {
+  constructor() {
+    this.buffer = null;
+    this.connectedTo = null;
+    this.startedAt = null;
+    this.stoppedAt = null;
+    this.onended = null;
   }
 
-  load() {
-    this.loadCount += 1;
+  connect(destination) {
+    this.connectedTo = destination;
   }
 
-  play() {
-    this.playCount += 1;
-    return Promise.resolve();
+  start(when) {
+    this.startedAt = when;
   }
 
-  pause() {
-    this.pauseCount += 1;
+  stop(when) {
+    this.stoppedAt = when;
   }
 }
 
-test("開始前に5つの効果音を先読みする", () => {
-  FakeAudio.instances = [];
-  const sounds = createSoundEffects(FakeAudio);
+class FakeAudioContext {
+  static instances = [];
+
+  constructor() {
+    this.state = "suspended";
+    this.destination = { name: "destination" };
+    this.decoded = [];
+    this.sources = [];
+    this.resumeCount = 0;
+    this.closeCount = 0;
+    FakeAudioContext.instances.push(this);
+  }
+
+  async resume() {
+    this.resumeCount += 1;
+    this.state = "running";
+  }
+
+  async decodeAudioData(encoded) {
+    const buffer = { encoded };
+    this.decoded.push(buffer);
+    return buffer;
+  }
+
+  createBufferSource() {
+    const source = new FakeSource();
+    this.sources.push(source);
+    return source;
+  }
+
+  async close() {
+    this.closeCount += 1;
+    this.state = "closed";
+  }
+}
+
+function createFakeFetch() {
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(url);
+    return {
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(url).buffer,
+    };
+  };
+  return { fetchImpl, urls };
+}
+
+test("開始前に5つの効果音を取得してAudioBufferへデコードする", async () => {
+  FakeAudioContext.instances = [];
+  const { fetchImpl, urls } = createFakeFetch();
+  const sounds = createSoundEffects({
+    AudioContextConstructor: FakeAudioContext,
+    fetchImpl,
+  });
 
   assert.deepEqual(Object.keys(SOUND_URLS), [
     "start",
@@ -40,26 +88,56 @@ test("開始前に5つの効果音を先読みする", () => {
     "complete",
     "perfect",
   ]);
-  assert.equal(FakeAudio.instances.length, 5);
-  assert.ok(FakeAudio.instances.every((audio) => audio.preload === "auto"));
+  assert.equal(await sounds.preload(), true);
+  assert.deepEqual(urls, Object.values(SOUND_URLS));
+  assert.equal(FakeAudioContext.instances[0].decoded.length, 5);
 
-  sounds.preload();
-  assert.ok(FakeAudio.instances.every((audio) => audio.loadCount === 1));
+  await sounds.preload();
+  assert.equal(urls.length, 5, "デコード済みの音源を再取得しない");
 });
 
-test("同じ効果音を先頭から再生し、終了時に全音声を止める", () => {
-  FakeAudio.instances = [];
-  const sounds = createSoundEffects(FakeAudio);
-  const correct = FakeAudio.instances.find(
-    (audio) => audio.url === SOUND_URLS.correct,
-  );
-  correct.currentTime = 1.5;
+test("再生時にAudioContextを再開してデコード済み音源を即再生する", async () => {
+  FakeAudioContext.instances = [];
+  const { fetchImpl } = createFakeFetch();
+  const sounds = createSoundEffects({
+    AudioContextConstructor: FakeAudioContext,
+    fetchImpl,
+  });
+  await sounds.preload();
+  await sounds.resume();
 
-  sounds.play("correct");
-  assert.equal(correct.currentTime, 0);
-  assert.equal(correct.playCount, 1);
+  const context = FakeAudioContext.instances[0];
+  const playback = sounds.play("correct");
+  assert.equal(context.sources.length, 1, "再生時に非同期の読み込みを挟まない");
+  assert.equal(await playback, true);
+  const source = context.sources[0];
+  assert.equal(context.resumeCount, 1);
+  assert.equal(
+    new TextDecoder().decode(source.buffer.encoded),
+    SOUND_URLS.correct,
+  );
+  assert.equal(source.connectedTo, context.destination);
+  assert.equal(source.startedAt, 0);
 
   sounds.stopAll();
-  assert.ok(FakeAudio.instances.every((audio) => audio.pauseCount === 1));
-  assert.ok(FakeAudio.instances.every((audio) => audio.currentTime === 0));
+  assert.equal(source.stoppedAt, 0);
+  sounds.destroy();
+  assert.equal(context.closeCount, 1);
+});
+
+test("音源を取得できなくてもクイズ用の処理へ例外を漏らさない", async () => {
+  const sounds = createSoundEffects({
+    AudioContextConstructor: FakeAudioContext,
+    fetchImpl: async () => ({ ok: false }),
+  });
+
+  assert.equal(await sounds.preload(), false);
+  assert.equal(await sounds.play("wrong"), false);
+});
+
+test("Web Audio APIを初期化できない場合は明示的に失敗する", () => {
+  assert.throws(
+    () => createSoundEffects({ AudioContextConstructor: null, fetchImpl: fetch }),
+    /Web Audio API is unavailable/,
+  );
 });

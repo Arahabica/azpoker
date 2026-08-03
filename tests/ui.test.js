@@ -397,15 +397,17 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
   assert.match(prepare, /M19\.364 18\.364a9 9/);
   assert.match(prepare, /<line x1="22" x2="16" y1="9" y2="15"/);
   assert.match(app, /function showPreparation\(\)/);
-  assert.match(app, /view = "prepare";[\s\S]*preloadSoundEffects\(\);[\s\S]*prepareSession\(\);/);
-  assert.match(app, /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)/);
+  assert.match(app, /view = "prepare";[\s\S]*prepareSession\(\);/);
+  assert.match(app, /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/);
   assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
   assert.match(app, /onStart=\{startSession\}/);
   assert.match(app, /playSound\("start"\)/);
   assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
   assert.match(app, /playSound\(score === session\.length \? "perfect" : "complete"\)/);
-  assert.match(soundEffects, /preload = "auto"/);
-  assert.match(soundEffects, /currentTime = 0/);
+  assert.match(soundEffects, /decodeAudioData/);
+  assert.match(soundEffects, /createBufferSource/);
+  assert.match(soundEffects, /source\.start\(0\)/);
+  assert.doesNotMatch(soundEffects, /new Audio\(/);
 
   for (const filename of [
     "kettei_33.mp3",
