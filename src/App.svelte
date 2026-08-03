@@ -1,10 +1,12 @@
 <script>
-  import { tick } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import { createSession, shuffle } from "./game.js";
   import { loadQuestionPool, rememberQuestions } from "./question-loader.js";
   import { getQuestionTimeLimitMs } from "./question-timer.js";
+  import { createSoundEffects } from "./sound-effects.js";
   import LandingScreen from "./screens/LandingScreen.svelte";
+  import PrepareScreen from "./screens/PrepareScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
 
@@ -17,8 +19,11 @@
   let outcomes = $state([]);
   let startupError = $state("");
   let starting = $state(false);
+  let preparationReady = $state(false);
+  let soundEnabled = $state(true);
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
+  let soundEffects;
 
   const currentQuestion = $derived(session[currentIndex]);
   const timeoutCount = $derived(
@@ -36,6 +41,43 @@
     startupError = error instanceof Error ? error.message : String(error);
   }
 
+  function ensureSoundEffects() {
+    if (!soundEffects && typeof Audio === "function") {
+      soundEffects = createSoundEffects(Audio);
+    }
+    return soundEffects;
+  }
+
+  function preloadSoundEffects() {
+    if (soundEnabled) {
+      ensureSoundEffects()?.preload();
+    }
+  }
+
+  function setSoundEnabled(enabled) {
+    soundEnabled = Boolean(enabled);
+    if (soundEnabled) {
+      preloadSoundEffects();
+    } else {
+      soundEffects?.stopAll();
+    }
+  }
+
+  function playSound(name) {
+    if (soundEnabled) {
+      ensureSoundEffects()?.play(name);
+    }
+  }
+
+  async function preloadGameFonts() {
+    if (typeof document === "undefined" || !document.fonts) return;
+    await Promise.allSettled([
+      document.fonts.load('400 1rem "Kosugi Maru Game"'),
+      document.fonts.load('400 1rem "M PLUS Rounded 1c UI"'),
+      document.fonts.load('400 1rem "Arbutus Slab"'),
+    ]);
+  }
+
   function prepareQuestion(question) {
     answerResult = null;
     choices = question.answerType === "hand"
@@ -44,23 +86,33 @@
     focusElement("#prompt");
   }
 
-  async function startSession() {
+  async function selectSession() {
+    let pool = [];
+    let nextSession;
+    const refreshOrder = [null, "BC", "A", "D"];
+    for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
+      pool = await loadQuestionPool(Math.random, fetch, refreshOrder[attempt]);
+      try {
+        nextSession = createSession(pool);
+        break;
+      } catch {
+        // 条件を作りやすい問題群から順に100問を入れ替える。
+      }
+    }
+    if (!nextSession) throw new Error("問題を選べませんでした");
+    return nextSession;
+  }
+
+  async function prepareSession() {
     if (starting) return;
     starting = true;
+    preparationReady = false;
+    startupError = "";
     try {
-      let pool = [];
-      let nextSession;
-      const refreshOrder = [null, "BC", "A", "D"];
-      for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
-        pool = await loadQuestionPool(Math.random, fetch, refreshOrder[attempt]);
-        try {
-          nextSession = createSession(pool);
-          break;
-        } catch {
-          // 条件を作りやすい問題群から順に100問を入れ替える。
-        }
-      }
-      if (!nextSession) throw new Error("問題を選べませんでした");
+      const [nextSession] = await Promise.all([
+        selectSession(),
+        preloadGameFonts(),
+      ]);
       session = nextSession;
       rememberQuestions(session);
       currentIndex = 0;
@@ -71,14 +123,33 @@
         (total, question) => total + getQuestionTimeLimitMs(question),
         0,
       );
-      startupError = "";
-      view = "game";
-      prepareQuestion(session[0]);
+      preparationReady = true;
+      focusElement("#start-quiz");
     } catch (error) {
       showStartupError(error);
     } finally {
       starting = false;
     }
+  }
+
+  function showPreparation() {
+    startupError = "";
+    preparationReady = false;
+    answerResult = null;
+    outcomes = [];
+    sessionElapsedMs = 0;
+    sessionTimeLimitMs = 0;
+    view = "prepare";
+    preloadSoundEffects();
+    focusElement("#prepare-title");
+    prepareSession();
+  }
+
+  function startSession() {
+    if (starting || !preparationReady || session.length === 0) return;
+    playSound("start");
+    view = "game";
+    prepareQuestion(session[0]);
   }
 
   function settleQuestion({ correct, selected, timedOut, elapsedMs }) {
@@ -102,6 +173,7 @@
     }
     outcomes[currentIndex] = outcome;
     answerResult = { correct, selected, timedOut };
+    playSound(correct ? "correct" : "wrong");
     focusElement("#next-question");
     return true;
   }
@@ -129,6 +201,7 @@
   }
 
   function showResult() {
+    playSound(score === session.length ? "perfect" : "complete");
     view = "result";
     focusElement("#retry");
   }
@@ -149,21 +222,30 @@
     outcomes = [];
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
+    preparationReady = false;
+    soundEffects?.stopAll();
     view = "landing";
     if (shouldFocus) {
       focusElement("#start-game");
     }
   }
+
+  onDestroy(() => soundEffects?.stopAll());
 </script>
 
 <main class="app-shell">
-  {#if startupError}
-    <div class="error" role="alert">
-      <p>{startupError}</p>
-      <button type="button" onclick={startSession}>もう一度</button>
-    </div>
-  {:else if view === "landing"}
-    <LandingScreen onStart={startSession} {starting} />
+  {#if view === "landing"}
+    <LandingScreen onStart={showPreparation} />
+  {:else if view === "prepare"}
+    <PrepareScreen
+      {soundEnabled}
+      loading={starting}
+      ready={preparationReady}
+      error={startupError}
+      onSoundChange={setSoundEnabled}
+      onStart={startSession}
+      onRetry={prepareSession}
+    />
   {:else if view === "game"}
     <QuizScreen
       question={currentQuestion}
@@ -184,7 +266,7 @@
       elapsedMs={sessionElapsedMs}
       timeLimitMs={sessionTimeLimitMs}
       {timeoutCount}
-      onRetry={startSession}
+      onRetry={showPreparation}
       onHome={showLanding}
     />
   {/if}
@@ -221,32 +303,6 @@
       radial-gradient(ellipse at 50% 56%, transparent 45%, rgb(0 31 24 / 18%) 100%);
     content: "";
     pointer-events: none;
-  }
-
-  .error {
-    position: absolute;
-    top: 50%;
-    right: var(--gutter);
-    left: var(--gutter);
-    z-index: 20;
-    padding: 1rem;
-    border: 1px solid var(--wrong);
-    border-radius: 0.9rem;
-    background: #231619;
-    color: #ffd7d9;
-    font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
-    line-height: 1.6;
-    transform: translateY(-50%);
-  }
-
-  .error button {
-    margin-top: 0.8rem;
-    padding: 0.7rem 1rem;
-    border: 0;
-    border-radius: 0.7rem;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font: inherit;
   }
 
   @media (min-width: 481px) {

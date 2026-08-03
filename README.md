@@ -47,10 +47,10 @@ pnpm deploy:pages
 
 ## コード構成
 
-- `src/App.svelte`: セッションと画面遷移
+- `src/App.svelte`: セッション、準備、画面遷移、効果音の呼び分け
 - `src/entry-server.js`: トップ画面を静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
-- `src/screens/`: トップ、問題、結果の各画面
+- `src/screens/`: トップ、開始準備、問題、結果の各画面
 - `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
 - `src/components/HoleCards.svelte`: 手札2枚のサイズ、重なり、角度、モーション
 - `src/components/HandComparison.svelte`: 2つの手札を直接選ぶ比較問題
@@ -66,6 +66,8 @@ pnpm deploy:pages
 - `src/probability-engine.js`: 確率計算の純粋関数
 - `src/question-loader.js`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
 - `src/result-summary.js`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
+- `src/sound-effects.js`: 効果音の先読み、先頭からの再生、停止
+- `public/sounds/`: 開始、正解、不正解、通常結果、満点の効果音
 - `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
 - `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力
 

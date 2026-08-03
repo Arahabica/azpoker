@@ -19,6 +19,7 @@ const serverEntry = read("src/entry-server.js");
 const prerender = read("scripts/prerender.mjs");
 const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
+const prepare = read("src/screens/PrepareScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const actionButton = read("src/components/ActionButton.svelte");
@@ -35,6 +36,7 @@ const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
 const questionTimer = read("src/question-timer.js");
 const resultSummary = read("src/result-summary.js");
+const soundEffects = read("src/sound-effects.js");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const uiTiming = read("src/ui-timing.js");
@@ -90,10 +92,12 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
   assert.match(packageJson.scripts.build, /node scripts\/prerender\.mjs/);
 });
 
-test("トップ・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
+test("トップ・準備・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
   assert.match(app, /view === "landing"/);
+  assert.match(app, /view === "prepare"/);
   assert.match(app, /view === "game"/);
   assert.match(app, /<LandingScreen/);
+  assert.match(app, /<PrepareScreen/);
   assert.match(app, /<QuizScreen/);
   assert.match(app, /<ResultScreen/);
   assert.match(landing, /id="start-game"/);
@@ -131,12 +135,12 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     landing,
     /\.landing-screen \{[\s\S]*font-family: "Kosugi Maru Landing", sans-serif;/,
   );
+  assert.match(prepare, /\.prepare-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
   assert.match(
     quiz,
     /\.game-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
   );
   assert.match(result, /\.result-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
-  assert.match(app, /\.error \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
   assert.doesNotMatch(styles, /fonts\.googleapis/);
   const landingRule = landing.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
@@ -338,6 +342,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
   for (const selector of [
     "app-shell",
     "landing-screen",
+    "prepare-screen",
     "game-screen",
     "board",
     "hand-cards",
@@ -356,6 +361,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
   for (const component of [
     app,
     landing,
+    prepare,
     quiz,
     result,
     actionButton,
@@ -369,6 +375,46 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     choiceButton,
   ]) {
     assert.match(component, /<style>/);
+  }
+});
+
+test("準備画面で問題・フォント・効果音を先読みしてから開始する", () => {
+  assert.match(prepare, /問題を開始します/);
+  assert.doesNotMatch(prepare, /準備できました/);
+  assert.match(prepare, /id="sound-toggle"/);
+  assert.match(prepare, /aria-pressed=\{soundEnabled\}/);
+  assert.match(prepare, /"音あり" : "音なし"/);
+  assert.match(prepare, /id="start-quiz"/);
+  assert.match(prepare, /disabled=\{!ready\}/);
+  assert.match(prepare, /\.prepare-controls \{[\s\S]*margin-top: auto;/);
+  const soundIconRule =
+    prepare.match(/\.sound-icon \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  assert.match(soundIconRule, /linear-gradient/);
+  assert.match(soundIconRule, /0 0\.3rem 0/);
+  assert.match(soundIconRule, /border: 0;/);
+  assert.doesNotMatch(soundIconRule, /var\(--accent\)|241 196 15/);
+  assert.match(prepare, /M11 4\.702a\.705\.705/);
+  assert.match(prepare, /M19\.364 18\.364a9 9/);
+  assert.match(prepare, /<line x1="22" x2="16" y1="9" y2="15"/);
+  assert.match(app, /function showPreparation\(\)/);
+  assert.match(app, /view = "prepare";[\s\S]*preloadSoundEffects\(\);[\s\S]*prepareSession\(\);/);
+  assert.match(app, /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)/);
+  assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
+  assert.match(app, /onStart=\{startSession\}/);
+  assert.match(app, /playSound\("start"\)/);
+  assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
+  assert.match(app, /playSound\(score === session\.length \? "perfect" : "complete"\)/);
+  assert.match(soundEffects, /preload = "auto"/);
+  assert.match(soundEffects, /currentTime = 0/);
+
+  for (const filename of [
+    "kettei_33.mp3",
+    "audiostock_106548.mp3",
+    "kettei_2.mp3",
+    "kettei_37.mp3",
+    "kettei_21.mp3",
+  ]) {
+    assert.ok(fs.statSync(path.join(root, "public", "sounds", filename)).size > 0);
   }
 });
 
