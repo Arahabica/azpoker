@@ -846,14 +846,29 @@ NEW_A_COPY = {
     "runner_flush_or_straight": ("ストレートかフラッシュの確率は？", "どちらも残り2枚が必要で、重なる組合せは一度だけ数えます。"),
     "board_pair": ("ボードにペアができる確率は？", "ボード上で同じ数字や文字が2枚以上になる可能性です。"),
     "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2種類の数字や文字がペアになる可能性です。"),
-    "overcard": ("手札のペアより高いカードの確率は？", "ポケットペアより強いカードが出る可能性です。"),
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
     "two_pair_counterfeit": ("低いペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
     "same_hand_category": ("今の役のまま終わる確率は？", "役の種類が変わらない可能性です。"),
 }
 
 
-def new_a_copy(category: str, target_suit: str | None = None) -> tuple[str, str]:
+def new_a_copy(
+    category: str,
+    stage: str,
+    hole: tuple[str, ...],
+    target_suit: str | None = None,
+) -> tuple[str, str]:
+    if category == "overcard":
+        if len(hole) != 2 or hole[0][0] != hole[1][0]:
+            raise ValueError("overcardには手札のペアが必要です")
+        pair_rank = hole[0][0]
+        next_rank = RANKS[RANKS.index(pair_rank) + 1]
+        condition = "A" if next_rank == "A" else f"{display_rank(next_rank)}以上"
+        subject = "次のカード" if stage == "turn" else "残り2枚のどちらか"
+        return (
+            f"{subject}が{condition}の確率は？",
+            f"手札は{display_rank(pair_rank)}のペアです。{subject}が{condition}になる可能性です。",
+        )
     if category == "four_flush_board":
         suit_name = SUIT_NAMES[target_suit]
         return (
@@ -892,7 +907,7 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
             key = f"{category}:{target_suit}:{stage}:{canonical_cards([list(hole), list(board)])}"
             if key in seen:
                 continue
-            prompt, explain = new_a_copy(category, target_suit)
+            prompt, explain = new_a_copy(category, stage, hole, target_suit)
             fields = answer_fields(value, "残り枚数、重複する組合せ、ボードの変化のどれかを見落とす")
             question = {
                 "id": f"a-{LEGACY_MODE_COUNTS['A'] + len(questions) + 1:05d}",
@@ -1420,6 +1435,8 @@ def normalize_question_copy(question: dict) -> None:
     elif question["mode"] == "A" and question["category"] in NEW_A_COUNTS:
         question["prompt"], question["explain"] = new_a_copy(
             question["category"],
+            question["stage"],
+            tuple(question["hole"]),
             question.get("targetSuit"),
         )
     if question["mode"] == "B" and question["category"] in NEW_B_COUNTS:

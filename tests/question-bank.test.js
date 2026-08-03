@@ -139,6 +139,23 @@ test("ナッツフラッシュと同じ役の種類を問うカテゴリを出�
   );
 });
 
+test("手札のペアより高いカードは具体的な数字と残り枚数で尋ねる", () => {
+  const ranks = [..."23456789TJQKA"];
+  const overcardQuestions = bank.filter((question) => question.category === "overcard");
+
+  assert.equal(overcardQuestions.length, 400);
+  for (const question of overcardQuestions) {
+    const pairRank = question.hole[0][0];
+    assert.equal(question.hole[1][0], pairRank, `${question.id}: 手札がペアでない`);
+    const nextRank = ranks[ranks.indexOf(pairRank) + 1];
+    const displayedRank = nextRank === "T" ? "10" : nextRank;
+    const condition = nextRank === "A" ? "A" : `${displayedRank}以上`;
+    const subject = question.stage === "turn" ? "次のカード" : "残り2枚のどちらか";
+
+    assert.equal(question.prompt, `${subject}が${condition}の確率は？`, question.id);
+  }
+});
+
 test("A5sの2人勝率は捨て選択肢を使わない", () => {
   const question = bank.find(
     (candidate) => candidate.mode === "C" && candidate.conceptKey === "A5s:2",

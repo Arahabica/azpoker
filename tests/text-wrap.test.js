@@ -28,4 +28,12 @@ test("卓人数・対象・条件の間を改行候補にする", () => {
     splitAtNaturalBreaks("Jがスリーになる確率は？"),
     ["Jがスリーになる確率は？"],
   );
+  assert.deepEqual(
+    splitAtNaturalBreaks("残り2枚のどちらかが3以上の確率は？"),
+    ["残り2枚のどちらかが", "3以上の確率は？"],
+  );
+  assert.deepEqual(
+    splitAtNaturalBreaks("次のカードが10以上の確率は？"),
+    ["次のカードが", "10以上の確率は？"],
+  );
 });
