@@ -147,4 +147,4 @@
 - JSON取得失敗から再試行できる。
 - 準備画面で10問とゲーム用アセットを先読みし、準備完了後だけスタートできる。
 - `pnpm check` がTypeScript 7とSvelteの型検査、テスト、問題検査、静的トップを含む本番ビルドまで完走する。
-- Cloudflareへは承認後に検証済みの `dist/` だけを公開する。
+- Cloudflare PagesはGitHubの `main` と連携し、`pnpm check` 成功後に生成された `dist/` だけを本番へ公開する。

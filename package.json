@@ -20,7 +20,6 @@
     "check:bank": "python3 scripts/generate_large_question_bank.py --check",
     "questions:build": "python3 scripts/generate_large_question_bank.py",
     "check": "pnpm run typecheck && pnpm test && pnpm run check:bank && pnpm run build",
-    "deploy:pages": "pnpm check && wrangler pages deploy dist --project-name=anzan-poker --branch=main",
     "fonts:build": "node scripts/build_font_subsets.mjs"
   },
   "devDependencies": {
@@ -30,13 +29,11 @@
     "svelte-check": "^4.7.4",
     "tsx": "^4.23.5",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vite": "^6.4.3",
-    "wrangler": "4.118.0"
+    "vite": "^6.4.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild",
-      "workerd"
+      "esbuild"
     ]
   }
 }

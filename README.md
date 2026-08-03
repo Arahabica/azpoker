@@ -39,13 +39,9 @@ pnpm questions:build
 
 Cloudflare Pages: <https://anzan-poker.pages.dev/>
 
-公開方式はDirect Uploadです。次のコマンドは検証と本番ビルドを完走してから、生成された `dist/` だけを `anzan-poker` プロジェクトの本番環境へアップロードします。
+Cloudflare PagesはGitHubリポジトリ `Arahabica/azpoker` と連携しています。production branchは `main` です。pull requestを `main` へマージすると、Cloudflareが `pnpm check` を実行し、成功した `dist/` を本番へデプロイします。
 
-```sh
-pnpm deploy:pages
-```
-
-ソースコードとGit履歴はアップロードしません。Direct Uploadで作成した同じPagesプロジェクトはGit連携方式へ変更できないため、自動デプロイへ移行する場合は別プロジェクトを作成します。
+Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変数 `PNPM_VERSION=10.30.1` で固定しています。公開対象は生成済みの `dist/` だけです。
 
 ## ドキュメント
 
