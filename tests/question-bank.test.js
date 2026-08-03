@@ -17,7 +17,8 @@ function choicePercent(value) {
 }
 
 function minimumChoiceGap(answer) {
-  if (answer <= 3) return 1;
+  if (answer === 0) return 3;
+  if (answer <= 3) return 2;
   if (answer < 20) return 5;
   return 10;
 }
@@ -66,8 +67,8 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     full_house: 400,
     four_kind: 250,
     straight_flush: 100,
-    runner_straight: 450,
-    runner_flush: 400,
+    runner_straight: 700,
+    runner_flush: 650,
     runner_flush_or_straight: 350,
     board_pair: 350,
     board_two_pair: 300,
@@ -76,7 +77,6 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     pocket_pair_counterfeit: 350,
     two_pair_counterfeit: 300,
     same_hand_category: 250,
-    nut_flush: 500,
   };
   const actual = Object.fromEntries(
     Object.keys(expected).map((category) => [
@@ -106,12 +106,37 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
       assert.notEqual(question.distractor, "2.5%", `${question.id}: 旧2.5%誤答`);
       const answer = choicePercent(question.answer);
       const distractor = choicePercent(question.distractor);
+      if (answer === 2) {
+        assert.ok(distractor >= 5, `${question.id}: 2%の誤答が近すぎる`);
+      }
       assert.ok(
         Math.abs(answer - distractor) >= minimumChoiceGap(answer),
         `${question.id}: 選択肢が近すぎる`,
       );
     }
   }
+});
+
+test("1.9%前後は約2%とし、隣接する1%・3%を誤答にしない", () => {
+  const questions = bank.filter(
+    (question) => question.answer === "2%" && question.trueP >= 1.85 && question.trueP <= 1.95,
+  );
+
+  assert.ok(questions.length > 0);
+  for (const question of questions) {
+    assert.ok(choicePercent(question.distractor) >= 5, question.id);
+  }
+});
+
+test("ナッツフラッシュと同じ役の種類を問うカテゴリを出題しない", () => {
+  assert.equal(
+    bank.some((question) => ["nut_flush", "same_final_category"].includes(question.category)),
+    false,
+  );
+  assert.equal(
+    bank.some((question) => question.prompt.includes("最高のフラッシュ")),
+    false,
+  );
 });
 
 test("A5sの2人勝率は捨て選択肢を使わない", () => {
@@ -199,16 +224,15 @@ test("ボード4枚問題は対象のマークを具体的に示す", () => {
   }
 });
 
-test("モードBの数値問題を短い8形式へ均等に振り分ける", () => {
+test("モードBの数値問題を勝敗に関係する7形式へ振り分ける", () => {
   const expected = {
-    tie_probability: 225,
-    trailing_hand_wins: 225,
-    same_final_category: 225,
+    tie_probability: 300,
+    trailing_hand_wins: 300,
     clean_out: 225,
     next_card_reversal: 225,
     board_straight_chop: 225,
     board_flush_chop: 225,
-    leading_hand_holds: 225,
+    leading_hand_holds: 300,
   };
   const numericModeB = bank.filter(
     (question) => question.mode === "B" && question.answerType === "percent",
@@ -232,11 +256,10 @@ test("モードBの数値問題を短い8形式へ均等に振り分ける", () 
     assert.equal(question.prompt, "次のカードで役の強さが逆転する確率は？");
   }
 
-  for (const question of numericModeB.filter(
-    (candidate) => candidate.category === "same_final_category",
-  )) {
-    assert.equal(question.prompt, "両方の役の種類が同じになる確率は？");
-  }
+  assert.equal(
+    numericModeB.some((question) => question.category === "same_final_category"),
+    false,
+  );
 
   for (const question of numericModeB.filter(
     (candidate) => candidate.category === "board_straight_chop",

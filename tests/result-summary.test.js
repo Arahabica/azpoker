@@ -50,30 +50,53 @@ test("速い全問正解を特別な結果として扱う", () => {
       totalLabel: "10問中",
       elapsedLabel: "32.5秒",
       limitLabel: "制限時間: 55秒",
-      timeoutLabel: "時間切れ: 0問",
+      timeoutLabel: null,
       perfect: true,
       fast: true,
     },
   );
 });
 
-test("同じ正答数でも回答速度で文言を変える", () => {
-  const fast = getResultSummary({
-    score: 6,
+test("2問以上間違えた結果では速さを褒めない", () => {
+  const eightCorrect = getResultSummary({
+    score: 8,
     total: 10,
     elapsedMs: 30_000,
     timeLimitMs: 100_000,
-    timeoutCount: 2,
+    timeoutCount: 0,
   });
-  const steady = getResultSummary({
-    score: 6,
+  const fiveCorrectWithTimeouts = getResultSummary({
+    score: 5,
     total: 10,
-    elapsedMs: 80_000,
-    timeLimitMs: 100_000,
+    elapsedMs: 56_500,
+    timeLimitMs: 102_000,
     timeoutCount: 2,
   });
 
-  assert.notEqual(fast.headline, steady.headline);
-  assert.equal(fast.fast, true);
-  assert.equal(steady.fast, false);
+  assert.equal(eightCorrect.headline, "惜しい！もう少し！");
+  assert.equal(fiveCorrectWithTimeouts.headline, "ここから伸びる！もう一勝負！");
+  assert.equal(eightCorrect.fast, true);
+  assert.equal(fiveCorrectWithTimeouts.fast, true);
+});
+
+test("9問正解かつ時間切れなしの場合だけ速さを褒める", () => {
+  const noTimeout = getResultSummary({
+    score: 9,
+    total: 10,
+    elapsedMs: 40_000,
+    timeLimitMs: 100_000,
+    timeoutCount: 0,
+  });
+  const timedOut = getResultSummary({
+    score: 9,
+    total: 10,
+    elapsedMs: 40_000,
+    timeLimitMs: 100_000,
+    timeoutCount: 1,
+  });
+
+  assert.equal(noTimeout.headline, "速い！パーフェクトまであと1問！");
+  assert.equal(timedOut.headline, "惜しい！パーフェクトはもう目前！");
+  assert.equal(noTimeout.timeoutLabel, null);
+  assert.equal(timedOut.timeoutLabel, "時間切れ: 1問");
 });

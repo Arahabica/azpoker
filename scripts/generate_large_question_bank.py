@@ -23,7 +23,7 @@ SUIT_NAMES = {"c": "クラブ", "d": "ダイヤ", "h": "ハート", "s": "スペ
 DECK = tuple(f"{rank}{suit}" for rank in RANKS for suit in SUITS)
 RANK_VALUE = {rank: index + 2 for index, rank in enumerate(RANKS)}
 DISPLAY_RANK = {"T": "10"}
-BUCKETS = (0, 1, 3, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
+BUCKETS = (0, 1, 2, 3, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
 LEGACY_MODE_COUNTS = {"A": 6000, "B": 3000, "C": 338, "D": 662}
 MODE_COUNTS = {"A": 10_000, "B": 4800, "C": 1200, "D": 4000}
 HAND_NAMES = ("ハイカード", "ワンペア", "ツーペア", "スリー", "ストレート", "フラッシュ", "フルハウス", "フォーカード", "ストレートフラッシュ")
@@ -39,8 +39,8 @@ A_COUNTS = {
     "straight_flush": 100,
 }
 NEW_A_COUNTS = {
-    "runner_straight": 450,
-    "runner_flush": 400,
+    "runner_straight": 700,
+    "runner_flush": 650,
     "runner_flush_or_straight": 350,
     "board_pair": 350,
     "board_two_pair": 300,
@@ -49,17 +49,15 @@ NEW_A_COUNTS = {
     "pocket_pair_counterfeit": 350,
     "two_pair_counterfeit": 300,
     "same_hand_category": 250,
-    "nut_flush": 500,
 }
 NEW_B_COUNTS = {
-    "tie_probability": 225,
-    "trailing_hand_wins": 225,
-    "same_final_category": 225,
+    "tie_probability": 300,
+    "trailing_hand_wins": 300,
     "clean_out": 225,
     "next_card_reversal": 225,
     "board_straight_chop": 225,
     "board_flush_chop": 225,
-    "leading_hand_holds": 225,
+    "leading_hand_holds": 300,
 }
 NEW_D_COUNTS = {
     "opponent_pocket_pair": 209,
@@ -95,8 +93,10 @@ def percent_label(value: float) -> str:
 
 def minimum_choice_gap(correct: float) -> float:
     """Keep normal probabilities readable while retaining detail near zero."""
+    if correct == 0:
+        return 3
     if correct <= 3:
-        return 1
+        return 2
     if correct < 20:
         return 5
     return 10
@@ -105,13 +105,18 @@ def minimum_choice_gap(correct: float) -> float:
 def spaced_distractor(correct: float, wrong: float) -> float:
     """Move an overly close distractor outward without changing its direction."""
     minimum_gap = minimum_choice_gap(correct)
-    if wrong != correct and abs(wrong - correct) >= minimum_gap:
+    if (
+        wrong != correct
+        and abs(wrong - correct) >= minimum_gap
+        and not (correct > 0 and wrong == 0)
+    ):
         return wrong
 
     candidates = tuple(
         bucket
         for bucket in BUCKETS
         if bucket != correct and abs(bucket - correct) >= minimum_gap
+        and not (correct > 0 and bucket == 0)
     )
     direction = 1 if wrong >= correct else -1
     same_direction = tuple(
@@ -707,7 +712,7 @@ def answer_fields(value: float, model: str) -> dict:
     """Create a readable choice near a concrete misconception."""
     correct = nearest_bucket(value)
     if correct < 5:
-        candidates = (0, 1, 3, 5, 7.5)
+        candidates = (0, 1, 2, 3, 5, 7.5)
     elif correct < 20:
         candidates = tuple(bucket for bucket in BUCKETS if abs(bucket - correct) <= 7.5)
     else:
@@ -779,10 +784,6 @@ def new_a_event(
         return lower not in evaluate(cards)[1:]
     if category == "same_hand_category":
         return evaluate(cards)[0] == evaluate((*hole, *start_board))[0]
-    if category == "nut_flush":
-        return has_flush_using_hole(hole, final_board) and any(
-            card[0] == "A" and card[1] == suit for card in hole for suit in SUITS
-        )
     raise ValueError(category)
 
 
@@ -834,14 +835,6 @@ def build_new_a_state(category: str, rng: random.Random):
         board_start = tuple(f"{rank}{rng.choice([s for s in SUITS if f'{rank}{s}' not in hole])}" for rank in ranks)
         board = (*board_start, *draw_cards(rng, 1, set(hole) | set(board_start)))
         return "flop", hole, board
-    if category == "nut_flush":
-        suit = rng.choice(SUITS)
-        ace = f"A{suit}"
-        second = rng.choice([card for card in DECK if card != ace])
-        hole = (ace, second)
-        stage = rng.choice(("flop", "turn"))
-        board = draw_cards(rng, 3 if stage == "flop" else 4, set(hole))
-        return stage, hole, board
     stage = rng.choice(("flop", "turn"))
     cards = tuple(rng.sample(DECK, 5 if stage == "flop" else 6))
     return stage, cards[:2], cards[2:]
@@ -857,7 +850,6 @@ NEW_A_COPY = {
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
     "two_pair_counterfeit": ("低いペアが使われなくなる確率は？", "ボードの変化で現在のツーペアが弱くなる可能性です。"),
     "same_hand_category": ("今の役のまま終わる確率は？", "役の種類が変わらない可能性です。"),
-    "nut_flush": ("最高のフラッシュの確率は？", "そのボードで作れる最も高いフラッシュになる可能性です。"),
 }
 
 
@@ -943,7 +935,6 @@ def next_card_reversal_percent(hands, board, leader, trailer) -> float:
 
 NEW_B_COPY = {
     "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
-    "same_final_category": ("両方の役の種類が同じになる確率は？", "キッカーの強さに関係なく、役の種類が同じになる可能性です。"),
     "clean_out": ("最後の1枚で逆転する確率は？", "負けている側を逆転勝ちさせるカードを、クリーンアウトと呼びます。"),
     "next_card_reversal": (
         "次のカードで役の強さが逆転する確率は？",
@@ -1018,8 +1009,6 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                     return scores[0] == scores[1]
                 if category in {"trailing_hand_wins", "clean_out"}:
                     return scores[trailer] > scores[leader]
-                if category == "same_final_category":
-                    return scores[0][0] == scores[1][0]
                 if category == "leading_hand_holds":
                     return scores[leader] > scores[trailer]
                 board_score = evaluate(tuple(final_board))
@@ -1354,6 +1343,8 @@ def validate(bank: list[dict]) -> None:
     if len({question["conceptKey"] for question in bank}) != len(bank):
         raise RuntimeError("スート同型を含む問題構造が重複しています")
     for question in bank:
+        if question.get("category") in {"nut_flush", "same_final_category"}:
+            raise RuntimeError(f"廃止した問題カテゴリです: {question['id']}")
         cards = question.get("hole", []) + question.get("board", [])
         cards += [card for hand in question.get("hands", []) for card in hand]
         if len(cards) != len(set(cards)):
@@ -1597,7 +1588,7 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v4", "B": "-v5", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v5", "B": "-v6", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         if cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))

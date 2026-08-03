@@ -81,9 +81,11 @@
         <p class="stat-caption">
           <MixedFontText text={summary.limitLabel} />
         </p>
-        <p class="timeout-count">
-          <MixedFontText text={summary.timeoutLabel} />
-        </p>
+        {#if summary.timeoutLabel}
+          <p class="timeout-count">
+            <MixedFontText text={summary.timeoutLabel} />
+          </p>
+        {/if}
       </div>
     </div>
   </div>

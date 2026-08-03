@@ -38,8 +38,9 @@
     onclick={onRequestLeave}
   >
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10 5H6.8A1.8 1.8 0 0 0 5 6.8v10.4A1.8 1.8 0 0 0 6.8 19H10"></path>
-      <path d="m14 8 4 4-4 4M18 12H9"></path>
+      <path d="M11 4H5.5v16H11"></path>
+      <path d="m11 5 4 1.5v11L11 19Z"></path>
+      <path d="M13.5 12H21m-3-3 3 3-3 3"></path>
     </svg>
   </button>
   <div class="answer-mark" data-result={correct ? "correct" : "wrong"} aria-hidden="true">
@@ -111,7 +112,7 @@
   }
 
   .leave-button svg {
-    width: 1.25rem;
+    width: 1.4rem;
     fill: none;
     stroke: currentcolor;
     stroke-linecap: round;

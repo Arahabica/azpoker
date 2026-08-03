@@ -39,37 +39,31 @@ function formatTimeLimit(timeLimitMs) {
   return `${Math.round(timeLimitMs / 1_000)}秒`;
 }
 
-function getHeadline({ score, total, fast }) {
+function getHeadline({ score, total, fast, timeoutCount }) {
+  const canPraiseSpeed = fast && timeoutCount === 0;
+
   if (score === total) {
-    return fast
+    return canPraiseSpeed
       ? "天才！君こそポーカーキングだ！"
       : "完璧！一問も逃さない！";
   }
   if (score === total - 1) {
-    return fast
+    return canPraiseSpeed
       ? "速い！パーフェクトまであと1問！"
       : "惜しい！パーフェクトはもう目前！";
   }
 
   const accuracy = score / total;
   if (accuracy >= 0.8) {
-    return fast
-      ? "鋭い！その速さならあと少し！"
-      : "惜しい！もう少し！";
+    return "惜しい！もう少し！";
   }
   if (accuracy >= 0.6) {
-    return fast
-      ? "いい読み！次は精度も上げよう！"
-      : "いい調子！迷った問題を振り返ろう！";
+    return "いい調子！迷った問題を振り返ろう！";
   }
   if (accuracy >= 0.4) {
-    return fast
-      ? "判断は速い！次は正確さも狙おう！"
-      : "ここから伸びる！もう一勝負！";
+    return "ここから伸びる！もう一勝負！";
   }
-  return fast
-    ? "その勢いは武器になる！"
-    : "大丈夫、ここから強くなる！";
+  return "大丈夫、ここから強くなる！";
 }
 
 function getResultSummary(result) {
@@ -79,12 +73,12 @@ function getResultSummary(result) {
   const fast = elapsedMs / timeLimitMs <= FAST_RESULT_RATIO;
 
   return Object.freeze({
-    headline: getHeadline({ score, total, fast }),
+    headline: getHeadline({ score, total, fast, timeoutCount }),
     scoreLabel: perfect ? `${total}問全問正解` : `${score}問正解`,
     totalLabel: `${total}問中`,
     elapsedLabel: formatElapsedTime(elapsedMs),
     limitLabel: `制限時間: ${formatTimeLimit(timeLimitMs)}`,
-    timeoutLabel: `時間切れ: ${timeoutCount}問`,
+    timeoutLabel: timeoutCount > 0 ? `時間切れ: ${timeoutCount}問` : null,
     perfect,
     fast,
   });
