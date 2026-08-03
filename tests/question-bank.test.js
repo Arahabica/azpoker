@@ -26,7 +26,10 @@ function minimumChoiceGap(answer) {
 test("問題バンクは20,000問で、計画どおりのモード構成を持つ", () => {
   assert.equal(bank.length, 20_000);
   assert.equal(new Set(bank.map((question) => question.id)).size, 20_000);
-  assert.equal(new Set(bank.map((question) => question.conceptKey)).size, 20_000);
+  assert.equal(
+    new Set(bank.map((question) => question.conceptKey)).size,
+    20_000,
+  );
   assert.deepEqual(
     Object.fromEntries(
       ["A", "B", "C", "D"].map((mode) => [
@@ -47,9 +50,12 @@ test("100問単位のJSONとmanifestを生成する", () => {
       .readdirSync(path.join(questionsRoot, details.path))
       .filter((filename) => filename.endsWith(".json"));
     assert.equal(files.length, details.files);
-    files.sort().forEach((filename, index) => {
+    files.sort().forEach((filename) => {
       const chunk = JSON.parse(
-        fs.readFileSync(path.join(questionsRoot, details.path, filename), "utf8"),
+        fs.readFileSync(
+          path.join(questionsRoot, details.path, filename),
+          "utf8",
+        ),
       );
       assert.equal(chunk.length, 100, `${group}/${filename}`);
     });
@@ -81,12 +87,20 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
   const actual = Object.fromEntries(
     Object.keys(expected).map((category) => [
       category,
-      bank.filter((question) => question.mode === "A" && question.category === category).length,
+      bank.filter(
+        (question) => question.mode === "A" && question.category === category,
+      ).length,
     ]),
   );
   assert.deepEqual(actual, expected);
-  assert.equal(bank.some((question) => question.category === "straight_threat_board"), false);
-  assert.equal(bank.some((question) => question.category === "next_card_strong_draw"), false);
+  assert.equal(
+    bank.some((question) => question.category === "straight_threat_board"),
+    false,
+  );
+  assert.equal(
+    bank.some((question) => question.category === "next_card_strong_draw"),
+    false,
+  );
 });
 
 test("全問のカード、選択肢、誤答理由が有効", () => {
@@ -96,14 +110,26 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
       ...question.board,
       ...(question.hands ?? []).flat(),
     ];
-    assert.equal(new Set(cards).size, cards.length, `${question.id}: カード重複`);
+    assert.equal(
+      new Set(cards).size,
+      cards.length,
+      `${question.id}: カード重複`,
+    );
     assert.ok(question.distractorModel, `${question.id}: 誤答理由`);
     assert.ok(["medium", "hard"].includes(question.difficulty));
     assert.ok(["hand", "percent"].includes(question.answerType));
     if (question.answerType === "percent") {
-      assert.notEqual(question.answer, question.distractor, `${question.id}: 選択肢重複`);
+      assert.notEqual(
+        question.answer,
+        question.distractor,
+        `${question.id}: 選択肢重複`,
+      );
       assert.notEqual(question.answer, "2.5%", `${question.id}: 旧2.5%正解`);
-      assert.notEqual(question.distractor, "2.5%", `${question.id}: 旧2.5%誤答`);
+      assert.notEqual(
+        question.distractor,
+        "2.5%",
+        `${question.id}: 旧2.5%誤答`,
+      );
       const answer = choicePercent(question.answer);
       const distractor = choicePercent(question.distractor);
       if (answer === 2) {
@@ -119,7 +145,10 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
 
 test("1.9%前後は約2%とし、隣接する1%・3%を誤答にしない", () => {
   const questions = bank.filter(
-    (question) => question.answer === "2%" && question.trueP >= 1.85 && question.trueP <= 1.95,
+    (question) =>
+      question.answer === "2%" &&
+      question.trueP >= 1.85 &&
+      question.trueP <= 1.95,
   );
 
   assert.ok(questions.length > 0);
@@ -130,7 +159,9 @@ test("1.9%前後は約2%とし、隣接する1%・3%を誤答にしない", () =
 
 test("ナッツフラッシュと同じ役の種類を問うカテゴリを出題しない", () => {
   assert.equal(
-    bank.some((question) => ["nut_flush", "same_final_category"].includes(question.category)),
+    bank.some((question) =>
+      ["nut_flush", "same_final_category"].includes(question.category),
+    ),
     false,
   );
   assert.equal(
@@ -141,18 +172,29 @@ test("ナッツフラッシュと同じ役の種類を問うカテゴリを出�
 
 test("手札のペアより高いカードは具体的な数字と残り枚数で尋ねる", () => {
   const ranks = [..."23456789TJQKA"];
-  const overcardQuestions = bank.filter((question) => question.category === "overcard");
+  const overcardQuestions = bank.filter(
+    (question) => question.category === "overcard",
+  );
 
   assert.equal(overcardQuestions.length, 400);
   for (const question of overcardQuestions) {
     const pairRank = question.hole[0][0];
-    assert.equal(question.hole[1][0], pairRank, `${question.id}: 手札がペアでない`);
+    assert.equal(
+      question.hole[1][0],
+      pairRank,
+      `${question.id}: 手札がペアでない`,
+    );
     const nextRank = ranks[ranks.indexOf(pairRank) + 1];
     const displayedRank = nextRank === "T" ? "10" : nextRank;
     const condition = nextRank === "A" ? "A" : `${displayedRank}以上`;
-    const subject = question.stage === "turn" ? "次のカード" : "残り2枚のどちらか";
+    const subject =
+      question.stage === "turn" ? "次のカード" : "残り2枚のどちらか";
 
-    assert.equal(question.prompt, `${subject}が${condition}の確率は？`, question.id);
+    assert.equal(
+      question.prompt,
+      `${subject}が${condition}の確率は？`,
+      question.id,
+    );
   }
 });
 
@@ -185,10 +227,22 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     assert.equal(copy.includes("Tの"), false, `${question.id}: T表記`);
     assert.equal(copy.includes("厳密値"), false, `${question.id}: 内部表現`);
     assert.equal(copy.includes("全列挙"), false, `${question.id}: 内部表現`);
-    assert.equal(copy.includes("スート"), false, `${question.id}: 初心者向け表現`);
-    assert.equal(copy.includes("ランク"), false, `${question.id}: 初心者向け表現`);
+    assert.equal(
+      copy.includes("スート"),
+      false,
+      `${question.id}: 初心者向け表現`,
+    );
+    assert.equal(
+      copy.includes("ランク"),
+      false,
+      `${question.id}: 初心者向け表現`,
+    );
     for (const term of explanationOnlyTerms) {
-      assert.equal(question.prompt.includes(term), false, `${question.id}: ${term}`);
+      assert.equal(
+        question.prompt.includes(term),
+        false,
+        `${question.id}: ${term}`,
+      );
     }
     if (question.mode === "D") {
       assert.ok(
@@ -197,18 +251,24 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
       );
     }
   }
-  const runner = bank.find((question) => question.explain.includes("ランナーランナー"));
+  const runner = bank.find((question) =>
+    question.explain.includes("ランナーランナー"),
+  );
   assert.match(runner?.explain ?? "", /残り2枚が両方/);
 
   const cleanOut = bank.find((question) => question.category === "clean_out");
   assert.match(cleanOut?.prompt ?? "", /最後の1枚で逆転する/);
   assert.match(cleanOut?.explain ?? "", /クリーンアウト/);
 
-  const opponentSet = bank.find((question) => question.category === "opponent_set");
+  const opponentSet = bank.find(
+    (question) => question.category === "opponent_set",
+  );
   assert.match(opponentSet?.prompt ?? "", /手札のペアでスリー/);
   assert.match(opponentSet?.explain ?? "", /セット/);
 
-  const opponentOesd = bank.find((question) => question.category === "opponent_oesd");
+  const opponentOesd = bank.find(
+    (question) => question.category === "opponent_oesd",
+  );
   assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
   assert.match(opponentOesd?.explain ?? "", /OESD/);
 });
@@ -259,7 +319,8 @@ test("モードBの数値問題を勝敗に関係する7形式へ振り分ける
     Object.fromEntries(
       Object.keys(expected).map((category) => [
         category,
-        numericModeB.filter((question) => question.category === category).length,
+        numericModeB.filter((question) => question.category === category)
+          .length,
       ]),
     ),
     expected,
@@ -274,7 +335,9 @@ test("モードBの数値問題を勝敗に関係する7形式へ振り分ける
   }
 
   assert.equal(
-    numericModeB.some((question) => question.category === "same_final_category"),
+    numericModeB.some(
+      (question) => question.category === "same_final_category",
+    ),
     false,
   );
 
@@ -287,8 +350,8 @@ test("モードBの数値問題を勝敗に関係する7形式へ振り分ける
     );
   }
 
-  for (const question of numericModeB.filter(
-    (candidate) => ["trailing_hand_wins", "leading_hand_holds"].includes(candidate.category),
+  for (const question of numericModeB.filter((candidate) =>
+    ["trailing_hand_wins", "leading_hand_holds"].includes(candidate.category),
   )) {
     assert.ok([0, 1].includes(question.targetHand), `${question.id}: 対象手札`);
     const side = question.targetHand === 0 ? "左" : "右";
@@ -308,21 +371,41 @@ test("手札比較は現在の役ではなく最終的な勝率を尋ねる", ()
 
 test("モードDは2人・6人、全13ランクと追加カテゴリを含む", () => {
   const questions = bank.filter((question) => question.mode === "D");
-  assert.deepEqual(new Set(questions.map((question) => question.playerCount)), new Set([2, 6]));
   assert.deepEqual(
-    new Set(questions.filter((question) => question.category === "opponent_rank").map((question) => question.targetRank)),
+    new Set(questions.map((question) => question.playerCount)),
+    new Set([2, 6]),
+  );
+  assert.deepEqual(
+    new Set(
+      questions
+        .filter((question) => question.category === "opponent_rank")
+        .map((question) => question.targetRank),
+    ),
     new Set("23456789TJQKA"),
   );
   for (const category of [
-    "opponent_pocket_pair", "opponent_overpair", "opponent_set", "opponent_top_pair_plus",
-    "opponent_two_pair", "opponent_straight", "opponent_flush", "opponent_oesd",
-    "opponent_gutshot", "opponent_flush_draw", "opponent_combo_draw", "opponent_higher_flush",
-    "opponent_same_pair_higher_kicker", "all_opponents_miss_board",
-    "exactly_one_opponent_target_rank", "multiple_opponents_target_rank",
+    "opponent_pocket_pair",
+    "opponent_overpair",
+    "opponent_set",
+    "opponent_top_pair_plus",
+    "opponent_two_pair",
+    "opponent_straight",
+    "opponent_flush",
+    "opponent_oesd",
+    "opponent_gutshot",
+    "opponent_flush_draw",
+    "opponent_combo_draw",
+    "opponent_higher_flush",
+    "opponent_same_pair_higher_kicker",
+    "all_opponents_miss_board",
+    "exactly_one_opponent_target_rank",
+    "multiple_opponents_target_rank",
   ]) {
-    assert.ok(questions.some((question) => question.category === category), category);
+    assert.ok(
+      questions.some((question) => question.category === category),
+      category,
+    );
   }
-
 
   const rankValues = Object.fromEntries(
     [..."23456789TJQKA"].map((rank, index) => [rank, index]),
@@ -345,10 +428,25 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
 });
 
 test("B+Cパックは従来B 50問・数値B 30問・C 20問", () => {
-  for (const filename of fs.readdirSync(path.join(questionsRoot, "bc")).filter((name) => name.endsWith(".json"))) {
-    const chunk = JSON.parse(fs.readFileSync(path.join(questionsRoot, "bc", filename), "utf8"));
-    assert.equal(chunk.filter((question) => question.mode === "B" && question.answerType === "hand").length, 50);
-    assert.equal(chunk.filter((question) => question.mode === "B" && question.answerType === "percent").length, 30);
+  for (const filename of fs
+    .readdirSync(path.join(questionsRoot, "bc"))
+    .filter((name) => name.endsWith(".json"))) {
+    const chunk = JSON.parse(
+      fs.readFileSync(path.join(questionsRoot, "bc", filename), "utf8"),
+    );
+    assert.equal(
+      chunk.filter(
+        (question) => question.mode === "B" && question.answerType === "hand",
+      ).length,
+      50,
+    );
+    assert.equal(
+      chunk.filter(
+        (question) =>
+          question.mode === "B" && question.answerType === "percent",
+      ).length,
+      30,
+    );
     assert.equal(chunk.filter((question) => question.mode === "C").length, 20);
   }
 });

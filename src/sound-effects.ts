@@ -135,10 +135,12 @@ class SoundEffects {
 }
 
 function createSoundEffects({
-  AudioContextConstructor = globalThis.AudioContext
-    ?? (globalThis as typeof globalThis & {
-      webkitAudioContext?: AudioContextConstructor;
-    }).webkitAudioContext,
+  AudioContextConstructor = globalThis.AudioContext ??
+    (
+      globalThis as typeof globalThis & {
+        webkitAudioContext?: AudioContextConstructor;
+      }
+    ).webkitAudioContext,
   fetchImpl = globalThis.fetch,
 }: SoundEffectsOptions = {}): SoundEffects {
   return new SoundEffects({ AudioContextConstructor, fetchImpl });

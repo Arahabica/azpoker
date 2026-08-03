@@ -23,7 +23,14 @@ Viteが表示したローカルURLをブラウザで開きます。
 pnpm check
 ```
 
-`check` はTypeScript 7の型検査、Svelteコンポーネント検査、テスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はTypeScript 7の型検査、Svelteコンポーネント検査、ESLint、Prettierの整形検査、テスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+
+lintと整形を自動修正する場合:
+
+```sh
+pnpm lint:fix
+pnpm format
+```
 
 GitHub Actionsでも、`main`へのpushとpull requestごとに依存関係を固定して同じコマンドを実行します。
 

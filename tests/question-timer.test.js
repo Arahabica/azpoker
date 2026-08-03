@@ -58,7 +58,11 @@ function createFakeScheduler() {
 
 test("問題の種類から5秒・8秒・12秒・16秒を割り当てる", () => {
   assert.equal(
-    getQuestionTimeLimitMs({ mode: "A", difficulty: "medium", stage: "preflop" }),
+    getQuestionTimeLimitMs({
+      mode: "A",
+      difficulty: "medium",
+      stage: "preflop",
+    }),
     5_000,
   );
   assert.equal(
@@ -74,7 +78,11 @@ test("問題の種類から5秒・8秒・12秒・16秒を割り当てる", () =>
     16_000,
   );
   assert.equal(
-    getQuestionTimeLimitMs({ mode: "B", difficulty: "medium", stage: "preflop" }),
+    getQuestionTimeLimitMs({
+      mode: "B",
+      difficulty: "medium",
+      stage: "preflop",
+    }),
     16_000,
   );
 });

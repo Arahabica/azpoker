@@ -137,7 +137,8 @@ test("音源を取得できなくてもクイズ用の処理へ例外を漏ら�
 
 test("Web Audio APIを初期化できない場合は明示的に失敗する", () => {
   assert.throws(
-    () => createSoundEffects({ AudioContextConstructor: null, fetchImpl: fetch }),
+    () =>
+      createSoundEffects({ AudioContextConstructor: null, fetchImpl: fetch }),
     /Web Audio API is unavailable/,
   );
 });

@@ -2,19 +2,7 @@ export type RandomSource = () => number;
 
 export type Suit = "c" | "d" | "h" | "s";
 export type SourceRank =
-  | "2"
-  | "3"
-  | "4"
-  | "5"
-  | "6"
-  | "7"
-  | "8"
-  | "9"
-  | "T"
-  | "J"
-  | "Q"
-  | "K"
-  | "A";
+  "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "T" | "J" | "Q" | "K" | "A";
 export type DisplayRank = Exclude<SourceRank, "T"> | "10";
 export type Card = `${SourceRank}${Suit}`;
 export type Hole = readonly [Card, Card];
@@ -87,9 +75,12 @@ export interface QuestionManifest {
   total: number;
   batchSize: number;
   modes: Record<GameMode, { count: number }>;
-  groups: Record<"A" | "BC" | "D", {
-    count: number;
-    files: number;
-    path: string;
-  }>;
+  groups: Record<
+    "A" | "BC" | "D",
+    {
+      count: number;
+      files: number;
+      path: string;
+    }
+  >;
 }

@@ -22,11 +22,7 @@
   }: Props = $props();
 </script>
 
-<section
-  id="prepare"
-  class="prepare-screen"
-  aria-labelledby="prepare-title"
->
+<section id="prepare" class="prepare-screen" aria-labelledby="prepare-title">
   <h1 id="prepare-title" tabindex="-1">問題を開始します</h1>
 
   <div class="prepare-controls">
@@ -42,13 +38,17 @@
       <span class="sound-icon" aria-hidden="true">
         {#if soundEnabled}
           <svg viewBox="0 0 24 24">
-            <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"></path>
+            <path
+              d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"
+            ></path>
             <path d="M16 9a5 5 0 0 1 0 6"></path>
             <path d="M19.364 18.364a9 9 0 0 0 0-12.728"></path>
           </svg>
         {:else}
           <svg viewBox="0 0 24 24">
-            <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"></path>
+            <path
+              d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"
+            ></path>
             <line x1="22" x2="16" y1="9" y2="15"></line>
             <line x1="16" x2="22" y1="9" y2="15"></line>
           </svg>
@@ -70,7 +70,11 @@
 
   <div class="prepare-action">
     {#if error}
-      <ActionButton id="retry-load" label="もう一度読み込む" onClick={onRetry} />
+      <ActionButton
+        id="retry-load"
+        label="もう一度読み込む"
+        onClick={onRetry}
+      />
     {:else}
       <ActionButton
         id="start-quiz"
@@ -90,9 +94,7 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding:
-      max(2rem, env(safe-area-inset-top))
-      var(--gutter)
+    padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
   }

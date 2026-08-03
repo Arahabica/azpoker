@@ -9,7 +9,11 @@ const bank = loadQuestionBank();
 test("問題文を意味のまとまりへ分け、変な位置で改行させない", () => {
   for (const question of bank) {
     const phrases = splitAtNaturalBreaks(question.prompt);
-    assert.equal(phrases.join(""), question.prompt, `${question.id}: 本文を維持`);
+    assert.equal(
+      phrases.join(""),
+      question.prompt,
+      `${question.id}: 本文を維持`,
+    );
     for (const phrase of phrases) {
       assert.ok(
         [...phrase].length <= 14,
@@ -21,19 +25,20 @@ test("問題文を意味のまとまりへ分け、変な位置で改行させ�
 
 test("卓人数・対象・条件の間を改行候補にする", () => {
   assert.deepEqual(
-    splitAtNaturalBreaks("6人卓でほかの誰かがストレートとフラッシュ待ちの確率は？"),
+    splitAtNaturalBreaks(
+      "6人卓でほかの誰かがストレートとフラッシュ待ちの確率は？",
+    ),
     ["6人卓で", "ほかの誰かが", "ストレートと", "フラッシュ待ちの確率は？"],
   );
-  assert.deepEqual(
-    splitAtNaturalBreaks("Jがスリーになる確率は？"),
-    ["Jがスリーになる確率は？"],
-  );
-  assert.deepEqual(
-    splitAtNaturalBreaks("残り2枚のどちらかが3以上の確率は？"),
-    ["残り2枚のどちらかが", "3以上の確率は？"],
-  );
-  assert.deepEqual(
-    splitAtNaturalBreaks("次のカードが10以上の確率は？"),
-    ["次のカードが", "10以上の確率は？"],
-  );
+  assert.deepEqual(splitAtNaturalBreaks("Jがスリーになる確率は？"), [
+    "Jがスリーになる確率は？",
+  ]);
+  assert.deepEqual(splitAtNaturalBreaks("残り2枚のどちらかが3以上の確率は？"), [
+    "残り2枚のどちらかが",
+    "3以上の確率は？",
+  ]);
+  assert.deepEqual(splitAtNaturalBreaks("次のカードが10以上の確率は？"), [
+    "次のカードが",
+    "10以上の確率は？",
+  ]);
 });

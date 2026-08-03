@@ -2,11 +2,11 @@
 
 カードランク用Arbutus Slabを含め、アプリが使うフォントはすべて`assets/fonts/`から自己配信する。UI用フォントは初期転送量を抑えるため、次の3ファイルに分けている。
 
-| ファイル | 用途 | 収録内容 | サイズ |
-| --- | --- | --- | ---: |
-| `kosugi-maru/KosugiMaru-Landing.woff2` | 初期トップ | `暗算ポーカー`と`はじめる`の固有9文字 | 2,176 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2` | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 51,872 bytes |
-| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字 | `A-Z`、`a-z`、`0-9`、`.`、`%` | 4,712 bytes |
+| ファイル                                    | 用途                               | 収録内容                                 |       サイズ |
+| ------------------------------------------- | ---------------------------------- | ---------------------------------------- | -----------: |
+| `kosugi-maru/KosugiMaru-Landing.woff2`      | 初期トップ                         | `暗算ポーカー`と`はじめる`の固有9文字    |  2,176 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 51,872 bytes |
+| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字                         | `A-Z`、`a-z`、`0-9`、`.`、`%`            |  4,712 bytes |
 
 トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。開始準備画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
 

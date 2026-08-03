@@ -76,10 +76,7 @@ function getCountdownSnapshot(
     throw new TypeError(`不正な残り時間です: ${String(remainingMs)}`);
   }
 
-  const clampedRemainingMs = Math.min(
-    durationMs,
-    Math.max(0, remainingMs),
-  );
+  const clampedRemainingMs = Math.min(durationMs, Math.max(0, remainingMs));
 
   return Object.freeze({
     remainingMs: clampedRemainingMs,
@@ -95,7 +92,8 @@ function browserScheduler(): Scheduler {
     now: () => globalThis.performance.now(),
     requestFrame: (callback) => globalThis.requestAnimationFrame(callback),
     cancelFrame: (id) => globalThis.cancelAnimationFrame(id),
-    setExpiration: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
+    setExpiration: (callback, delayMs) =>
+      globalThis.setTimeout(callback, delayMs),
     clearExpiration: (id) => globalThis.clearTimeout(id),
   };
 }
@@ -134,10 +132,7 @@ function startQuestionCountdown({
     if (stopped) return;
     const remainingMs = deadline - scheduler.now();
     if (remainingMs > 0) {
-      expirationTimerId = scheduler.setExpiration(
-        expireWhenDue,
-        remainingMs,
-      );
+      expirationTimerId = scheduler.setExpiration(expireWhenDue, remainingMs);
       return;
     }
     finish();

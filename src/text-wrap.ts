@@ -39,7 +39,7 @@ function splitAtNaturalBreaks(value: string | number): string[] {
 
   for (let index = 0; index < text.length; index += 1) {
     const phrase = NATURAL_BREAK_AFTER.find((candidate) =>
-      text.startsWith(candidate, index)
+      text.startsWith(candidate, index),
     );
     if (!phrase) continue;
     boundaries.add(index + phrase.length);

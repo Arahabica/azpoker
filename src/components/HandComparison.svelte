@@ -31,7 +31,7 @@
 </script>
 
 <div class="hand-options" aria-label="選択肢">
-  {#each hands as hand, index}
+  {#each hands as hand, index (index)}
     {#if selectable}
       <button
         type="button"
@@ -45,7 +45,10 @@
         <HoleCards cards={hand} />
       </button>
     {:else}
-      <div class="hand-option static-hand" aria-label={`${index + 1}つ目の手札`}>
+      <div
+        class="hand-option static-hand"
+        aria-label={`${index + 1}つ目の手札`}
+      >
         <HoleCards cards={hand} />
       </div>
     {/if}

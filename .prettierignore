@@ -1,0 +1,8 @@
+.pnpm-store/
+.prerender/
+dist/
+node_modules/
+public/questions/
+public/sounds/
+pnpm-lock.yaml
+assets/fonts/**/*.woff2

@@ -48,10 +48,13 @@
     outcomes.filter((outcome) => outcome === "timeout").length,
   );
 
-  async function focusElement(selector: string): Promise<void> {
-    await tick();
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
+  function focusElement(selector: string): void {
+    void tick().then(() => {
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>(selector)
+          ?.focus({ preventScroll: true });
+      });
     });
   }
 
@@ -60,10 +63,13 @@
   }
 
   function ensureSoundEffects() {
-    const AudioContextConstructor = globalThis.AudioContext
-      ?? (globalThis as typeof globalThis & {
-        webkitAudioContext?: typeof AudioContext;
-      }).webkitAudioContext;
+    const AudioContextConstructor =
+      globalThis.AudioContext ??
+      (
+        globalThis as typeof globalThis & {
+          webkitAudioContext?: typeof AudioContext;
+        }
+      ).webkitAudioContext;
     if (!soundEffects && typeof AudioContextConstructor === "function") {
       try {
         soundEffects = createSoundEffects({
@@ -89,7 +95,7 @@
   function setSoundEnabled(enabled: boolean): void {
     soundEnabled = Boolean(enabled);
     if (soundEnabled) {
-      preloadSoundEffects();
+      void preloadSoundEffects();
     } else {
       soundEffects?.stopAll();
     }
@@ -97,7 +103,7 @@
 
   function playSound(name: SoundName): void {
     if (soundEnabled) {
-      ensureSoundEffects()?.play(name);
+      void ensureSoundEffects()?.play(name);
     }
   }
 
@@ -112,14 +118,14 @@
 
   function prepareQuestion(question: Question): void {
     answerResult = null;
-    choices = question.answerType === "hand"
-      ? []
-      : shuffle([question.answer, question.distractor]);
+    choices =
+      question.answerType === "hand"
+        ? []
+        : shuffle([question.answer, question.distractor]);
     focusElement("#prompt");
   }
 
   async function selectSession(): Promise<Question[]> {
-    let pool: Question[] = [];
     let nextSession: Question[] | undefined;
     const refreshOrder: readonly ("BC" | "A" | "D" | null)[] = [
       null,
@@ -128,7 +134,7 @@
       "D",
     ];
     for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
-      pool = await loadQuestionPool(
+      const pool = await loadQuestionPool(
         Math.random,
         globalThis.fetch,
         refreshOrder[attempt] ?? null,
@@ -159,7 +165,7 @@
       rememberQuestions(session);
       currentIndex = 0;
       score = 0;
-      outcomes = Array(nextSession.length).fill(null);
+      outcomes = Array<QuestionOutcome | null>(nextSession.length).fill(null);
       sessionElapsedMs = 0;
       sessionTimeLimitMs = nextSession.reduce(
         (total, question) => total + getQuestionTimeLimitMs(question),
@@ -183,7 +189,7 @@
     sessionTimeLimitMs = 0;
     view = "prepare";
     focusElement("#prepare-title");
-    prepareSession();
+    void prepareSession();
   }
 
   function startSession(): void {
@@ -332,7 +338,11 @@
     margin: 0 auto;
     overflow: hidden;
     background:
-      radial-gradient(circle at 50% 32%, rgb(87 236 186 / 16%), transparent 54%),
+      radial-gradient(
+        circle at 50% 32%,
+        rgb(87 236 186 / 16%),
+        transparent 54%
+      ),
       repeating-linear-gradient(
         118deg,
         transparent 0,
@@ -340,7 +350,12 @@
         rgb(255 255 255 / 1.8%) 5px,
         transparent 6px
       ),
-      linear-gradient(160deg, var(--felt-light), var(--felt) 50%, var(--felt-dark));
+      linear-gradient(
+        160deg,
+        var(--felt-light),
+        var(--felt) 50%,
+        var(--felt-dark)
+      );
     isolation: isolate;
   }
 
@@ -349,8 +364,18 @@
     inset: 0;
     z-index: -1;
     background:
-      linear-gradient(90deg, rgb(0 0 0 / 12%), transparent 9%, transparent 91%, rgb(0 0 0 / 12%)),
-      radial-gradient(ellipse at 50% 56%, transparent 45%, rgb(0 31 24 / 18%) 100%);
+      linear-gradient(
+        90deg,
+        rgb(0 0 0 / 12%),
+        transparent 9%,
+        transparent 91%,
+        rgb(0 0 0 / 12%)
+      ),
+      radial-gradient(
+        ellipse at 50% 56%,
+        transparent 45%,
+        rgb(0 31 24 / 18%) 100%
+      );
     content: "";
     pointer-events: none;
   }

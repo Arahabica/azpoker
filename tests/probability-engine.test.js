@@ -145,11 +145,7 @@ test("ポケットペアが3カード以上になる確率を計算する", () =
   assertRoundsTo(preflop.percent, 19.2);
   assertRoundsTo(flop.percent, 8.4);
   assert.equal(
-    hasThreeOfAKindUsingHole(
-      ["Kh", "Qd"],
-      ["Ac", "Ad", "As", "2h", "7c"],
-      "A",
-    ),
+    hasThreeOfAKindUsingHole(["Kh", "Qd"], ["Ac", "Ad", "As", "2h", "7c"], "A"),
     false,
   );
 });

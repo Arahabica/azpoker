@@ -51,9 +51,13 @@ const STRAIGHT_MASKS = Object.freeze([
 ]);
 const FULL_DECK: readonly Card[] = Object.freeze(
   [...SUITS].flatMap((suit) =>
-    [...RANKS].map((rank) => `${rank}${suit}` as Card)
+    [...RANKS].map((rank) => `${rank}${suit}` as Card),
   ),
 );
+
+function isArrayValue(value: unknown): boolean {
+  return Array.isArray(value);
+}
 
 function rankMask(ranks: readonly number[]): number {
   return ranks.reduce((mask, rank) => mask | (1 << rank), 0);
@@ -75,11 +79,11 @@ function assertSituation(
   target: ProbabilityTarget,
   targetRank?: SourceRank,
 ): void {
-  if (!Array.isArray(hole) || hole.length !== 2) {
+  if (!isArrayValue(hole) || hole.length !== 2) {
     throw new TypeError("hole は2枚で指定してください");
   }
 
-  if (!Array.isArray(board) || ![0, 3, 4, 5].includes(board.length)) {
+  if (!isArrayValue(board) || ![0, 3, 4, 5].includes(board.length)) {
     throw new TypeError("board は0枚、3枚、4枚、5枚のいずれかです");
   }
 

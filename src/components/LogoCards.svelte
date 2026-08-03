@@ -35,16 +35,12 @@
     --card-reveal-duration: 200ms;
     --card-reveal-start-opacity: 0.8;
     --card-context-shadow:
-      0 0.8rem 1.4rem rgb(0 30 22 / 32%),
-      inset 0 0 0 1px rgb(255 255 255 / 72%);
+      0 0.8rem 1.4rem rgb(0 30 22 / 32%), inset 0 0 0 1px rgb(255 255 255 / 72%);
     width: clamp(4.7rem, 22vw, 5.6rem);
     transform: rotate(var(--card-end-angle));
     transform-origin: 50% 88%;
-    animation:
-      reveal-logo-card
-      var(--card-reveal-duration)
-      var(--card-reveal-easing)
-      both;
+    animation: reveal-logo-card var(--card-reveal-duration)
+      var(--card-reveal-easing) both;
   }
 
   .logo-card + .logo-card {
@@ -54,8 +50,7 @@
   @keyframes reveal-logo-card {
     from {
       opacity: var(--card-reveal-start-opacity);
-      transform:
-        translateY(var(--card-reveal-start-y))
+      transform: translateY(var(--card-reveal-start-y))
         rotate(var(--card-start-angle));
     }
 

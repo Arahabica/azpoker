@@ -34,6 +34,7 @@
     "#7d8cff",
   ];
   const confetti = Array.from({ length: 48 }, (_, index) => ({
+    id: index,
     color: confettiColors[index % confettiColors.length],
     x: (index * 37) % 101,
     delay: (index % 12) * 70,
@@ -52,7 +53,7 @@
 >
   {#if summary.perfect}
     <div class="confetti" aria-hidden="true">
-      {#each confetti as piece}
+      {#each confetti as piece (piece.id)}
         <span
           class="confetti-piece"
           class:is-wide={piece.wide}
@@ -120,9 +121,7 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding:
-      max(2rem, env(safe-area-inset-top))
-      var(--gutter)
+    padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
   }
@@ -164,7 +163,11 @@
     border: 1px solid rgb(255 228 94 / 42%);
     border-radius: 50%;
     background:
-      radial-gradient(circle at 50% 38%, rgb(255 242 157 / 22%), transparent 56%),
+      radial-gradient(
+        circle at 50% 38%,
+        rgb(255 242 157 / 22%),
+        transparent 56%
+      ),
       rgb(31 85 65 / 72%);
     box-shadow:
       0 0 0 0.45rem rgb(241 196 15 / 8%),
@@ -259,7 +262,8 @@
     background: var(--confetti-color);
     opacity: 0;
     box-shadow: 0 0.2rem 0.35rem rgb(0 0 0 / 14%);
-    animation: confetti-fall var(--confetti-duration) ease-in var(--confetti-delay) both;
+    animation: confetti-fall var(--confetti-duration) ease-in
+      var(--confetti-delay) both;
   }
 
   .confetti-piece.is-wide {
@@ -279,7 +283,8 @@
 
     100% {
       opacity: 0.9;
-      transform: translate3d(var(--confetti-drift), 112vh, 0) rotate(var(--confetti-rotation));
+      transform: translate3d(var(--confetti-drift), 112vh, 0)
+        rotate(var(--confetti-rotation));
     }
   }
 

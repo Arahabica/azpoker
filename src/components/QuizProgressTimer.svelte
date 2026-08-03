@@ -56,15 +56,19 @@
     aria-valuenow={currentIndex + 1}
     aria-valuetext={`${currentIndex + 1}問目 / ${total}問`}
   >
-    {#each Array(total) as _, index}
+    {#each Array.from({ length: total }, (_, index) => index) as index (index)}
       {@const outcome = outcomes[index]}
       {@const isActive = index === currentIndex}
       <span
         class="progress-segment"
         class:is-active={isActive}
         class:is-running={isActive && running}
-        class:is-warning={isActive && running && countdown.warning === "warning"}
-        class:is-critical={isActive && running && countdown.warning === "critical"}
+        class:is-warning={isActive &&
+          running &&
+          countdown.warning === "warning"}
+        class:is-critical={isActive &&
+          running &&
+          countdown.warning === "critical"}
         class:is-correct={outcome === "correct"}
         class:is-wrong={outcome === "wrong" || outcome === "timeout"}
         style={isActive
