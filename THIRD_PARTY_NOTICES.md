@@ -14,7 +14,7 @@ complete license is included at `assets/fonts/arbutus-slab/OFL.txt`.
 
 ## Bootstrap Icons
 
-The heart, spade, and club paths in `src/components/card-suits.js` are modified
+The heart, spade, and club paths in `src/components/card-suits.ts` are modified
 from Bootstrap Icons v1.13.1 (`suit-heart-fill`, `suit-spade-fill`, and
 `suit-club-fill`).
 
@@ -42,7 +42,7 @@ THE SOFTWARE.
 
 ## Modiano diamond
 
-The diamond path in `src/components/card-suits.js` is derived from
+The diamond path in `src/components/card-suits.ts` is derived from
 `SuitDiamonds.svg` by F l a n k e r. The source file has been released into the
 public domain.
 

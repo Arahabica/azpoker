@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.30.1",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "10.30.1"
+  },
   "type": "module",
   "description": "暗算ポーカー｜勝率と確率のドリル",
   "scripts": {

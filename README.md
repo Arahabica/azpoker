@@ -1,10 +1,14 @@
 # 暗算ポーカー
 
+[![CI](https://github.com/Arahabica/azpoker/actions/workflows/ci.yml/badge.svg)](https://github.com/Arahabica/azpoker/actions/workflows/ci.yml)
+
 ポーカーのドロー確率、2ハンドの強さ、プリフロップ勝率を2択で答える、10問1セットのブラウザドリルです。
 
 UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。トップ画面はビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
 
 ## 起動
+
+Node.js 24.18.0とpnpm 10.30.1を使います。Node.jsのバージョンは`.node-version`、pnpmのバージョンは`package.json`で固定しています。
 
 ```sh
 pnpm install
@@ -20,6 +24,8 @@ pnpm check
 ```
 
 `check` はTypeScript 7の型検査、Svelteコンポーネント検査、テスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+
+GitHub Actionsでも、`main`へのpushとpull requestごとに依存関係を固定して同じコマンドを実行します。
 
 TypeScript 7.0はまだSvelteが利用するコンパイラAPIを提供していないため、`.ts`のCLI検査にはTypeScript 7、`.svelte`の埋め込み検査には互換用TypeScript 6を併用します。どちらも開発依存だけで、配信するJavaScriptには含まれません。
 
