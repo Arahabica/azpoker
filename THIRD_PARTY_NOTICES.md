@@ -101,10 +101,13 @@ License: https://creativecommons.org/licenses/by/4.0/
 ## Lucide icons
 
 The sound-on and sound-off icons in `src/screens/PrepareScreen.svelte` use the
-`Volume2` and `VolumeX` paths from Lucide v0.503.0.
+`Volume2` and `VolumeX` paths from Lucide v0.503.0. The leave icon in
+`src/components/AnswerSheet.svelte` uses the `DoorOpen` path from Lucide
+v0.504.0.
 
 Source: https://lucide.dev/icons/volume-2 and
-https://lucide.dev/icons/volume-x
+https://lucide.dev/icons/volume-x and
+https://lucide.dev/icons/door-open
 
 ISC License
 
