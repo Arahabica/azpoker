@@ -11,6 +11,7 @@
     outcomes?: readonly (QuestionOutcome | null)[];
     durationMs: number;
     running?: boolean;
+    onWarning: (questionIndex: number) => void;
     onTimeout: (questionIndex: number) => void;
   }
 
@@ -20,6 +21,7 @@
     outcomes = [],
     durationMs,
     running = false,
+    onWarning,
     onTimeout,
   }: Props = $props();
 
@@ -41,6 +43,7 @@
       onUpdate: (nextRemainingMs) => {
         remainingMs = nextRemainingMs;
       },
+      onWarning: () => onWarning(questionIndex),
       onExpire: () => onTimeout(questionIndex),
     });
   });

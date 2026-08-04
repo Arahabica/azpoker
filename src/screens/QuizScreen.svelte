@@ -26,6 +26,7 @@
     outcomes: readonly (QuestionOutcome | null)[];
     onLeave: () => void;
     onAnswer: (selected: QuestionAnswer, elapsedMs: number) => void;
+    onTimeWarning: (questionIndex: number) => void;
     onTimeout: (questionIndex: number, elapsedMs: number) => void;
     onNext: () => void;
   }
@@ -39,6 +40,7 @@
     outcomes,
     onLeave,
     onAnswer,
+    onTimeWarning,
     onTimeout,
     onNext,
   }: Props = $props();
@@ -128,6 +130,7 @@
       {outcomes}
       {durationMs}
       running={choicesReady && !answerResult}
+      onWarning={onTimeWarning}
       onTimeout={handleQuestionTimeout}
     />
   </header>

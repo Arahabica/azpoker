@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SOUND_URLS, createSoundEffects } from "../src/sound-effects.ts";
+import {
+  SOUND_GAINS,
+  SOUND_URLS,
+  WARNING_LOOP_END_SECONDS,
+  WARNING_LOOP_START_SECONDS,
+  createSoundEffects,
+} from "../src/sound-effects.ts";
 
 class FakeSource {
   constructor() {
@@ -10,6 +16,9 @@ class FakeSource {
     this.startedAt = null;
     this.stoppedAt = null;
     this.onended = null;
+    this.loop = false;
+    this.loopStart = 0;
+    this.loopEnd = 0;
   }
 
   connect(destination) {
@@ -25,6 +34,17 @@ class FakeSource {
   }
 }
 
+class FakeGain {
+  constructor() {
+    this.gain = { value: 1 };
+    this.connectedTo = null;
+  }
+
+  connect(destination) {
+    this.connectedTo = destination;
+  }
+}
+
 class FakeAudioContext {
   static instances = [];
 
@@ -33,6 +53,7 @@ class FakeAudioContext {
     this.destination = { name: "destination" };
     this.decoded = [];
     this.sources = [];
+    this.gains = [];
     this.resumeCount = 0;
     this.closeCount = 0;
     FakeAudioContext.instances.push(this);
@@ -53,6 +74,12 @@ class FakeAudioContext {
     const source = new FakeSource();
     this.sources.push(source);
     return source;
+  }
+
+  createGain() {
+    const gain = new FakeGain();
+    this.gains.push(gain);
+    return gain;
   }
 
   async close() {
@@ -88,7 +115,7 @@ function createReceiverCheckedFetch() {
   return { fetchImpl, urls };
 }
 
-test("開始前に5つの効果音を取得してAudioBufferへデコードする", async () => {
+test("開始前に6つの効果音を取得してAudioBufferへデコードする", async () => {
   FakeAudioContext.instances = [];
   const { fetchImpl, urls } = createFakeFetch();
   const sounds = createSoundEffects({
@@ -100,15 +127,16 @@ test("開始前に5つの効果音を取得してAudioBufferへデコードす�
     "start",
     "correct",
     "wrong",
+    "warning",
     "complete",
     "perfect",
   ]);
   assert.equal(await sounds.preload(), true);
   assert.deepEqual(urls, Object.values(SOUND_URLS));
-  assert.equal(FakeAudioContext.instances[0].decoded.length, 5);
+  assert.equal(FakeAudioContext.instances[0].decoded.length, 6);
 
   await sounds.preload();
-  assert.equal(urls.length, 5, "デコード済みの音源を再取得しない");
+  assert.equal(urls.length, 6, "デコード済みの音源を再取得しない");
 });
 
 test("Window.fetchの呼び出し元を維持して音源を取得する", async () => {
@@ -142,13 +170,39 @@ test("再生時にAudioContextを再開してデコード済み音源を即再�
     new TextDecoder().decode(source.buffer.encoded),
     SOUND_URLS.correct,
   );
-  assert.equal(source.connectedTo, context.destination);
+  const gain = context.gains[0];
+  assert.equal(source.connectedTo, gain);
+  assert.equal(gain.connectedTo, context.destination);
+  assert.equal(gain.gain.value, 1);
   assert.equal(source.startedAt, 0);
 
   sounds.stopAll();
   assert.equal(source.stoppedAt, 0);
   sounds.destroy();
   assert.equal(context.closeCount, 1);
+});
+
+test("時間警告だけ音量を40%に下げて時間切れまで反復できる", async () => {
+  FakeAudioContext.instances = [];
+  const { fetchImpl } = createFakeFetch();
+  const sounds = createSoundEffects({
+    AudioContextConstructor: FakeAudioContext,
+    fetchImpl,
+  });
+  await sounds.preload();
+  await sounds.resume();
+
+  assert.equal(await sounds.play("warning"), true);
+  const context = FakeAudioContext.instances[0];
+  const source = context.sources[0];
+  assert.equal(context.gains[0].gain.value, 0.4);
+  assert.equal(SOUND_GAINS.warning, 0.4);
+  assert.equal(source.loop, true);
+  assert.equal(source.loopStart, WARNING_LOOP_START_SECONDS);
+  assert.equal(source.loopEnd, WARNING_LOOP_END_SECONDS);
+
+  sounds.stopAll();
+  assert.equal(source.stoppedAt, 0);
 });
 
 test("音源を取得できなくてもクイズ用の処理へ例外を漏らさない", async () => {

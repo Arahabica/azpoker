@@ -103,7 +103,9 @@
 
   function playSound(name: SoundName): void {
     if (soundEnabled) {
-      void ensureSoundEffects()?.play(name);
+      const effects = ensureSoundEffects();
+      effects?.stopAll();
+      void effects?.play(name);
     }
   }
 
@@ -256,6 +258,17 @@
     });
   }
 
+  function handleTimeWarning(questionIndex: number): void {
+    if (
+      view !== "game" ||
+      questionIndex !== currentIndex ||
+      Boolean(answerResult)
+    ) {
+      return;
+    }
+    playSound("warning");
+  }
+
   function showResult(): void {
     playSound(score === session.length ? "perfect" : "complete");
     view = "result";
@@ -312,6 +325,7 @@
       {outcomes}
       onLeave={showLanding}
       onAnswer={handleAnswer}
+      onTimeWarning={handleTimeWarning}
       onTimeout={handleTimeout}
       onNext={goNext}
     />

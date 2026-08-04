@@ -155,3 +155,30 @@ test("回答時に停止すると期限を過ぎても時間切れにしない",
   assert.equal(expirationCount, 0);
   assert.equal(fake.pendingCount(), 0);
 });
+
+test("残り2秒に入ったときだけ音声警告を一度通知する", () => {
+  const fake = createFakeScheduler();
+  let warningCount = 0;
+  const stop = startQuestionCountdown({
+    durationMs: 8_000,
+    onUpdate() {},
+    onWarning: () => {
+      warningCount += 1;
+    },
+    onExpire() {},
+    scheduler: fake.scheduler,
+  });
+
+  fake.setNow(5_999);
+  fake.runFrame();
+  assert.equal(warningCount, 0);
+
+  fake.setNow(6_000);
+  fake.runFrame();
+  assert.equal(warningCount, 1);
+
+  fake.setNow(7_000);
+  fake.runFrame();
+  assert.equal(warningCount, 1);
+  stop();
+});

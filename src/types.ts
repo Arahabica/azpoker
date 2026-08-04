@@ -15,7 +15,8 @@ export type PercentChoice = `${number}%`;
 export type HandIndex = 0 | 1;
 export type QuestionAnswer = PercentChoice | HandIndex;
 export type QuestionOutcome = "correct" | "wrong" | "timeout";
-export type SoundName = "start" | "correct" | "wrong" | "complete" | "perfect";
+export type SoundName =
+  "start" | "correct" | "wrong" | "warning" | "complete" | "perfect";
 
 interface QuestionBase {
   id: string;

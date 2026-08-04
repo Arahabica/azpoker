@@ -471,6 +471,7 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
   assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
   assert.match(app, /onStart=\{startSession\}/);
   assert.match(app, /playSound\("start"\)/);
+  assert.match(app, /playSound\("warning"\)/);
   assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
   assert.match(
     app,
@@ -485,8 +486,9 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
     "kettei_33.mp3",
     "audiostock_106548.mp3",
     "kettei_2.mp3",
-    "kettei_37.mp3",
-    "kettei_21.mp3",
+    "otologic-warning-siren05-03.mp3",
+    "otologic-multi-accent04-1.mp3",
+    "otologic-multi-accent03-2.mp3",
   ]) {
     assert.ok(
       fs.statSync(path.join(root, "public", "sounds", filename)).size > 0,
