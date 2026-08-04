@@ -80,10 +80,23 @@ The following sounds are by 効果音ラボ:
 
 - `public/sounds/kettei_33.mp3`: 決定ボタンを押す33（開始）
 - `public/sounds/kettei_2.mp3`: 決定ボタンを押す2（不正解・時間切れ）
-- `public/sounds/kettei_37.mp3`: 決定ボタンを押す37（通常結果）
-- `public/sounds/kettei_21.mp3`: 決定ボタンを押す21（全問正解）
 
 Source: https://soundeffect-lab.info/sound/button/
+
+The following sounds are by OtoLogic and are licensed under the Creative
+Commons Attribution 4.0 International license (CC BY 4.0):
+
+- `public/sounds/otologic-multi-accent04-1.mp3`: マルチアクセント04-1（短・低、通常結果）
+- `public/sounds/otologic-multi-accent03-2.mp3`: マルチアクセント03-2（高、全問正解）
+- `public/sounds/otologic-warning-siren05-03.mp3`: 警告音 サイレン05-03（速・短、時間警告）
+
+Sources:
+
+- https://otologic.jp/free/se/multi-accent01.html
+- https://otologic.jp/free/se/warning01.html
+- https://otologic.jp/free/license
+
+License: https://creativecommons.org/licenses/by/4.0/
 
 ## Lucide icons
 

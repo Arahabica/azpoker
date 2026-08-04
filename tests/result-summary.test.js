@@ -74,7 +74,10 @@ test("2問以上間違えた結果では速さを褒めない", () => {
   });
 
   assert.equal(eightCorrect.headline, "惜しい！もう少し！");
-  assert.equal(fiveCorrectWithTimeouts.headline, "ここから伸びる！もう一勝負！");
+  assert.equal(
+    fiveCorrectWithTimeouts.headline,
+    "ここから伸びる！もう一勝負！",
+  );
   assert.equal(eightCorrect.fast, true);
   assert.equal(fiveCorrectWithTimeouts.fast, true);
 });

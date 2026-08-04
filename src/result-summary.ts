@@ -39,9 +39,9 @@ function validateResult({
     throw new TypeError(`不正な制限時間です: ${String(timeLimitMs)}`);
   }
   if (
-    !Number.isInteger(timeoutCount)
-    || timeoutCount < 0
-    || timeoutCount > total - score
+    !Number.isInteger(timeoutCount) ||
+    timeoutCount < 0 ||
+    timeoutCount > total - score
   ) {
     throw new TypeError(`不正な時間切れ数です: ${String(timeoutCount)}`);
   }

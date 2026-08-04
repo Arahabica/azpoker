@@ -25,15 +25,35 @@ test("manifestを読み、A・B+C・Dの100問JSONだけを取得する", async 
       };
     }
     const group = url.match(/\/questions\/(a|bc|d)\//)?.[1].toUpperCase();
-    const questions = group === "A"
-      ? Array.from({ length: 100 }, (_, index) => ({ id: `A-${index}`, mode: "A", category: `a-${index}` }))
-      : group === "BC"
-        ? [
-            ...Array.from({ length: 50 }, (_, index) => ({ id: `BH-${index}`, mode: "B", answerType: "hand" })),
-            ...Array.from({ length: 30 }, (_, index) => ({ id: `BP-${index}`, mode: "B", answerType: "percent" })),
-            ...Array.from({ length: 20 }, (_, index) => ({ id: `C-${index}`, mode: "C" })),
-          ]
-        : Array.from({ length: 100 }, (_, index) => ({ id: `D-${index}`, mode: "D", category: `d-${index}` }));
+    const questions =
+      group === "A"
+        ? Array.from({ length: 100 }, (_, index) => ({
+            id: `A-${index}`,
+            mode: "A",
+            category: `a-${index}`,
+          }))
+        : group === "BC"
+          ? [
+              ...Array.from({ length: 50 }, (_, index) => ({
+                id: `BH-${index}`,
+                mode: "B",
+                answerType: "hand",
+              })),
+              ...Array.from({ length: 30 }, (_, index) => ({
+                id: `BP-${index}`,
+                mode: "B",
+                answerType: "percent",
+              })),
+              ...Array.from({ length: 20 }, (_, index) => ({
+                id: `C-${index}`,
+                mode: "C",
+              })),
+            ]
+          : Array.from({ length: 100 }, (_, index) => ({
+              id: `D-${index}`,
+              mode: "D",
+              category: `d-${index}`,
+            }));
     return {
       ok: true,
       json: async () => questions,
@@ -56,7 +76,10 @@ test("manifestを読み、A・B+C・Dの100問JSONだけを取得する", async 
 test("JSON取得失敗をユーザー向けエラーへ変換する", async () => {
   resetQuestionLoaderForTest();
   await assert.rejects(
-    loadQuestionPool(() => 0, async () => ({ ok: false })),
+    loadQuestionPool(
+      () => 0,
+      async () => ({ ok: false }),
+    ),
     /問題を読み込めませんでした/,
   );
 });

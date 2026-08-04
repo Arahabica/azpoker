@@ -26,6 +26,7 @@
     outcomes: readonly (QuestionOutcome | null)[];
     onLeave: () => void;
     onAnswer: (selected: QuestionAnswer, elapsedMs: number) => void;
+    onTimeWarning: (questionIndex: number) => void;
     onTimeout: (questionIndex: number, elapsedMs: number) => void;
     onNext: () => void;
   }
@@ -39,6 +40,7 @@
     outcomes,
     onLeave,
     onAnswer,
+    onTimeWarning,
     onTimeout,
     onNext,
   }: Props = $props();
@@ -49,6 +51,7 @@
     : false;
   let revealedChoiceIndex = $state<number | null>(null);
   let questionStartedAt = $state(0);
+  let questionStartedForIndex = $state(-1);
   let leaveConfirmationOpen = $state(false);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
   const choicesConcealed = $derived(!choicesReady || Boolean(answerResult));
@@ -71,22 +74,30 @@
   });
 
   $effect(() => {
+    const questionIndex = currentIndex;
+    leaveConfirmationOpen = false;
+
     if (!choicesReady || answerResult || typeof performance === "undefined") {
+      questionStartedAt = 0;
+      questionStartedForIndex = -1;
       return;
     }
 
-    currentIndex;
+    questionStartedForIndex = questionIndex;
     questionStartedAt = performance.now();
   });
 
-  $effect(() => {
-    currentIndex;
-    leaveConfirmationOpen = false;
-  });
-
   function getElapsedMs(): number {
-    if (!questionStartedAt || typeof performance === "undefined") return 0;
-    return Math.min(durationMs, Math.max(0, performance.now() - questionStartedAt));
+    if (
+      questionStartedForIndex !== currentIndex ||
+      !questionStartedAt ||
+      typeof performance === "undefined"
+    )
+      return 0;
+    return Math.min(
+      durationMs,
+      Math.max(0, performance.now() - questionStartedAt),
+    );
   }
 
   function handleAnswer(selected: QuestionAnswer): void {
@@ -111,11 +122,7 @@
   }
 </script>
 
-<section
-  id="game"
-  class="game-screen"
-  aria-labelledby="prompt"
->
+<section id="game" class="game-screen" aria-labelledby="prompt">
   <header class="quiz-header">
     <QuizProgressTimer
       {currentIndex}
@@ -123,6 +130,7 @@
       {outcomes}
       {durationMs}
       running={choicesReady && !answerResult}
+      onWarning={onTimeWarning}
       onTimeout={handleQuestionTimeout}
     />
   </header>
@@ -193,9 +201,7 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding:
-      max(0.65rem, env(safe-area-inset-top))
-      var(--gutter)
+    padding: max(0.65rem, env(safe-area-inset-top)) var(--gutter)
       max(1.15rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
   }

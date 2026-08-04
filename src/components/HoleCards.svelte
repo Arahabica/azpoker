@@ -58,11 +58,8 @@
     width: clamp(4.35rem, 21vw, 5.5rem);
     transform: rotate(var(--card-end-angle));
     transform-origin: 50% 88%;
-    animation:
-      reveal-hole-card
-      var(--card-reveal-duration)
-      var(--card-reveal-easing)
-      both;
+    animation: reveal-hole-card var(--card-reveal-duration)
+      var(--card-reveal-easing) both;
   }
 
   .hand-card:first-child {
@@ -76,8 +73,7 @@
   @keyframes reveal-hole-card {
     from {
       opacity: var(--card-reveal-start-opacity);
-      transform:
-        translateY(var(--card-reveal-start-y))
+      transform: translateY(var(--card-reveal-start-y))
         rotate(var(--card-start-angle));
     }
 

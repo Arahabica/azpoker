@@ -101,10 +101,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    padding:
-      0.7rem
-      var(--gutter)
-      max(1.15rem, env(safe-area-inset-bottom));
+    padding: 0.7rem var(--gutter) max(1.15rem, env(safe-area-inset-bottom));
     border-top: 1px solid rgb(255 255 255 / 12%);
     border-radius: 1.55rem 1.55rem 0 0;
     background: #11211d;

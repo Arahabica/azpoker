@@ -12,7 +12,9 @@ function loadQuestionBank() {
       .filter((filename) => filename.endsWith(".json"))
       .sort()
       .flatMap((filename) =>
-        JSON.parse(fs.readFileSync(path.join(questionsRoot, group, filename), "utf8")),
+        JSON.parse(
+          fs.readFileSync(path.join(questionsRoot, group, filename), "utf8"),
+        ),
       ),
   );
 }

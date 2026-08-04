@@ -33,7 +33,8 @@ const sources = {
 };
 
 const landingText = "暗算ポーカーはじめる";
-const mplusText = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.%";
+const mplusText =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.%";
 const gameText = collectGameText();
 
 function optionValue(name) {
@@ -63,10 +64,11 @@ function collectSourceFiles(directory) {
 
 function collectGameText() {
   const landingPath = path.join(root, "src", "screens", "LandingScreen.svelte");
-  const source = collectSourceFiles(path.join(root, "src"))
-    .filter((filename) => filename !== landingPath)
-    .map((filename) => readFileSync(filename, "utf8"))
-    .join("") + collectQuestionText();
+  const source =
+    collectSourceFiles(path.join(root, "src"))
+      .filter((filename) => filename !== landingPath)
+      .map((filename) => readFileSync(filename, "utf8"))
+      .join("") + collectQuestionText();
   const punctuation = new Set([..." 、。？！・ー./:_-"]);
   const characters = [...source].filter(
     (character) =>
@@ -84,7 +86,9 @@ function collectQuestionText() {
     .flatMap((entry) =>
       readdirSync(path.join(directory, entry.name))
         .filter((filename) => filename.endsWith(".json"))
-        .map((filename) => readFileSync(path.join(directory, entry.name, filename), "utf8")),
+        .map((filename) =>
+          readFileSync(path.join(directory, entry.name, filename), "utf8"),
+        ),
     )
     .join("");
 }
@@ -106,7 +110,9 @@ async function prepareSource({ filename, url }) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`原本フォントを取得できません: ${url} (${response.status})`);
+    throw new Error(
+      `原本フォントを取得できません: ${url} (${response.status})`,
+    );
   }
   writeFileSync(target, Buffer.from(await response.arrayBuffer()));
   return target;
@@ -132,9 +138,7 @@ function buildSubset({ sourcePath, text, outputName, targetPath }) {
     outputDirectory,
     `${path.basename(sourcePath, path.extname(sourcePath))}.css`,
   );
-  const firstRule = readFileSync(cssFilename, "utf8")
-    .split("\n")
-    .find(Boolean);
+  const firstRule = readFileSync(cssFilename, "utf8").split("\n").find(Boolean);
   const sourceMatch = firstRule?.match(/url\("([^"]+\.woff2)"\)/);
   const rangeMatch = firstRule?.match(/unicode-range:\s*([^;]+)/);
   if (!sourceMatch || !rangeMatch) {

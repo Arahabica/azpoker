@@ -1,13 +1,23 @@
 <script lang="ts">
   import { onDestroy, tick } from "svelte";
 
+  import {
+    createInitialGameFlow,
+    getAnswerResult,
+    getPreparationError,
+    getQuestionIndex,
+    transitionGameFlow,
+  } from "./game-flow.ts";
   import { createSession, shuffle } from "./game.ts";
   import { loadQuestionPool, rememberQuestions } from "./question-loader.ts";
+  import {
+    LOADING_INDICATOR_DELAY_MS,
+    waitLoadingAnimation,
+  } from "./loading-timing.ts";
   import { getQuestionTimeLimitMs } from "./question-timer.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
   import type {
-    AnswerResult,
     PercentChoice,
     Question,
     QuestionAnswer,
@@ -16,54 +26,62 @@
   } from "./types.ts";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import PrepareScreen from "./screens/PrepareScreen.svelte";
+  import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
 
-  type View = "landing" | "prepare" | "game" | "result";
+  type SettleQuestionOptions =
+    | {
+        questionIndex: number;
+        correct: boolean;
+        selected: QuestionAnswer;
+        timedOut: false;
+        elapsedMs: number;
+      }
+    | {
+        questionIndex: number;
+        correct: false;
+        selected: null;
+        timedOut: true;
+        elapsedMs: number;
+      };
 
-  interface SettleQuestionOptions {
-    correct: boolean;
-    selected: QuestionAnswer | null;
-    timedOut: boolean;
-    elapsedMs: number;
-  }
-
-  let view = $state<View>("landing");
+  let flow = $state(createInitialGameFlow());
   let session = $state<Question[]>([]);
-  let currentIndex = $state(0);
   let score = $state(0);
   let choices = $state<PercentChoice[]>([]);
-  let answerResult = $state<AnswerResult | null>(null);
   let outcomes = $state<(QuestionOutcome | null)[]>([]);
-  let startupError = $state("");
-  let starting = $state(false);
-  let preparationReady = $state(false);
   let soundEnabled = $state(true);
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
   let soundEffects: SoundEffects | undefined;
 
+  const currentIndex = $derived(getQuestionIndex(flow) ?? 0);
   const currentQuestion = $derived(session[currentIndex]);
+  const answerResult = $derived(getAnswerResult(flow));
+  const startupError = $derived(getPreparationError(flow));
   const timeoutCount = $derived(
     outcomes.filter((outcome) => outcome === "timeout").length,
   );
 
-  async function focusElement(selector: string): Promise<void> {
-    await tick();
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
+  function focusElement(selector: string): void {
+    void tick().then(() => {
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>(selector)
+          ?.focus({ preventScroll: true });
+      });
     });
   }
 
-  function showStartupError(error: unknown): void {
-    startupError = error instanceof Error ? error.message : String(error);
-  }
-
   function ensureSoundEffects() {
-    const AudioContextConstructor = globalThis.AudioContext
-      ?? (globalThis as typeof globalThis & {
-        webkitAudioContext?: typeof AudioContext;
-      }).webkitAudioContext;
+    const AudioContextConstructor =
+      globalThis.AudioContext ??
+      (
+        globalThis as typeof globalThis & {
+          webkitAudioContext?: typeof AudioContext;
+        }
+      ).webkitAudioContext;
     if (!soundEffects && typeof AudioContextConstructor === "function") {
       try {
         soundEffects = createSoundEffects({
@@ -89,7 +107,7 @@
   function setSoundEnabled(enabled: boolean): void {
     soundEnabled = Boolean(enabled);
     if (soundEnabled) {
-      preloadSoundEffects();
+      void preloadSoundEffects();
     } else {
       soundEffects?.stopAll();
     }
@@ -97,7 +115,9 @@
 
   function playSound(name: SoundName): void {
     if (soundEnabled) {
-      ensureSoundEffects()?.play(name);
+      const effects = ensureSoundEffects();
+      effects?.stopAll();
+      void effects?.play(name);
     }
   }
 
@@ -111,15 +131,14 @@
   }
 
   function prepareQuestion(question: Question): void {
-    answerResult = null;
-    choices = question.answerType === "hand"
-      ? []
-      : shuffle([question.answer, question.distractor]);
+    choices =
+      question.answerType === "hand"
+        ? []
+        : shuffle([question.answer, question.distractor]);
     focusElement("#prompt");
   }
 
   async function selectSession(): Promise<Question[]> {
-    let pool: Question[] = [];
     let nextSession: Question[] | undefined;
     const refreshOrder: readonly ("BC" | "A" | "D" | null)[] = [
       null,
@@ -128,7 +147,7 @@
       "D",
     ];
     for (let attempt = 0; attempt < refreshOrder.length; attempt += 1) {
-      pool = await loadQuestionPool(
+      const pool = await loadQuestionPool(
         Math.random,
         globalThis.fetch,
         refreshOrder[attempt] ?? null,
@@ -145,69 +164,83 @@
   }
 
   async function prepareSession(): Promise<void> {
-    if (starting) return;
-    starting = true;
-    preparationReady = false;
-    startupError = "";
+    const preparingFlow = transitionGameFlow(flow, {
+      type: "START_PREPARATION",
+    });
+    if (preparingFlow === flow) return;
+    flow = preparingFlow;
+
     try {
-      const [nextSession] = await Promise.all([
-        selectSession(),
-        preloadGameFonts(),
-        preloadSoundEffects(),
-      ]);
+      const [nextSession] = await waitLoadingAnimation(() =>
+        Promise.all([
+          selectSession(),
+          preloadGameFonts(),
+          preloadSoundEffects(),
+        ]),
+      );
+      const readyFlow = transitionGameFlow(flow, {
+        type: "PREPARATION_SUCCEEDED",
+        totalQuestions: nextSession.length,
+      });
+      if (readyFlow === flow) return;
       session = nextSession;
       rememberQuestions(session);
-      currentIndex = 0;
       score = 0;
-      outcomes = Array(nextSession.length).fill(null);
+      outcomes = Array<QuestionOutcome | null>(nextSession.length).fill(null);
       sessionElapsedMs = 0;
       sessionTimeLimitMs = nextSession.reduce(
         (total, question) => total + getQuestionTimeLimitMs(question),
         0,
       );
-      preparationReady = true;
+      flow = readyFlow;
       focusElement("#start-quiz");
     } catch (error) {
-      showStartupError(error);
-    } finally {
-      starting = false;
+      const failedFlow = transitionGameFlow(flow, {
+        type: "PREPARATION_FAILED",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      if (failedFlow === flow) return;
+      flow = failedFlow;
+      focusElement("#retry-load");
     }
   }
 
   function showPreparation(): void {
-    startupError = "";
-    preparationReady = false;
-    answerResult = null;
-    outcomes = [];
-    sessionElapsedMs = 0;
-    sessionTimeLimitMs = 0;
-    view = "prepare";
-    focusElement("#prepare-title");
-    prepareSession();
+    void prepareSession();
   }
 
   function startSession(): void {
-    if (starting || !preparationReady || session.length === 0) return;
+    const answeringFlow = transitionGameFlow(flow, {
+      type: "START_SESSION",
+    });
+    if (answeringFlow === flow) return;
+    flow = answeringFlow;
     playSound("start");
-    view = "game";
     prepareQuestion(session[0]!);
   }
 
   function settleQuestion({
+    questionIndex,
     correct,
     selected,
     timedOut,
     elapsedMs,
   }: SettleQuestionOptions): boolean {
-    if (answerResult) {
-      return false;
-    }
+    const question = session[questionIndex];
+    if (!question) return false;
+    const answeredFlow = timedOut
+      ? transitionGameFlow(flow, { type: "TIMEOUT", questionIndex })
+      : transitionGameFlow(flow, {
+          type: "ANSWER",
+          questionIndex,
+          correct,
+          selected,
+        });
+    if (answeredFlow === flow) return false;
 
     if (correct) {
       score += 1;
     }
-    const question = currentQuestion;
-    if (!question) return false;
     const timeLimitMs = getQuestionTimeLimitMs(question);
     sessionElapsedMs += Math.min(
       timeLimitMs,
@@ -219,17 +252,19 @@
     } else if (correct) {
       outcome = "correct";
     }
-    outcomes[currentIndex] = outcome;
-    answerResult = { correct, selected, timedOut };
+    outcomes[questionIndex] = outcome;
+    flow = answeredFlow;
     playSound(correct ? "correct" : "wrong");
     focusElement("#next-question");
     return true;
   }
 
   function handleAnswer(selected: QuestionAnswer, elapsedMs: number): void {
+    const questionIndex = currentIndex;
     const question = currentQuestion;
     if (!question) return;
     settleQuestion({
+      questionIndex,
       correct: selected === question.answer,
       selected,
       timedOut: false,
@@ -238,11 +273,8 @@
   }
 
   function handleTimeout(questionIndex: number, elapsedMs: number): void {
-    if (view !== "game" || questionIndex !== currentIndex) {
-      return;
-    }
-
     settleQuestion({
+      questionIndex,
       correct: false,
       selected: null,
       timedOut: true,
@@ -250,31 +282,40 @@
     });
   }
 
-  function showResult(): void {
-    playSound(score === session.length ? "perfect" : "complete");
-    view = "result";
-    focusElement("#retry");
+  function handleTimeWarning(questionIndex: number): void {
+    if (flow.status !== "answering" || questionIndex !== flow.questionIndex) {
+      return;
+    }
+    playSound("warning");
   }
 
   function goNext(): void {
-    if (currentIndex === session.length - 1) {
-      showResult();
+    const nextFlow = transitionGameFlow(flow, {
+      type: "NEXT_QUESTION",
+    });
+    if (nextFlow === flow) return;
+    flow = nextFlow;
+
+    if (nextFlow.status === "result") {
+      playSound(score === session.length ? "perfect" : "complete");
+      focusElement("#retry");
       return;
     }
 
-    currentIndex += 1;
-    prepareQuestion(session[currentIndex]!);
+    const nextQuestionIndex = getQuestionIndex(nextFlow);
+    if (nextQuestionIndex === null) return;
+    const nextQuestion = session[nextQuestionIndex];
+    if (nextQuestion) {
+      prepareQuestion(nextQuestion);
+    }
   }
 
   function showLanding(shouldFocus = true): void {
-    startupError = "";
-    answerResult = null;
     outcomes = [];
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
-    preparationReady = false;
     soundEffects?.stopAll();
-    view = "landing";
+    flow = transitionGameFlow(flow, { type: "LEAVE" });
     if (shouldFocus) {
       focusElement("#start-game");
     }
@@ -284,19 +325,20 @@
 </script>
 
 <main class="app-shell">
-  {#if view === "landing"}
+  {#if flow.status === "top"}
     <LandingScreen onStart={showPreparation} />
-  {:else if view === "prepare"}
+  {:else if flow.status === "preparing"}
+    <PreparationLoadingScreen delayMs={LOADING_INDICATOR_DELAY_MS} />
+  {:else if flow.status === "ready" || flow.status === "preparation-error"}
     <PrepareScreen
       {soundEnabled}
-      loading={starting}
-      ready={preparationReady}
+      ready={flow.status === "ready"}
       error={startupError}
       onSoundChange={setSoundEnabled}
       onStart={startSession}
       onRetry={prepareSession}
     />
-  {:else if view === "game" && currentQuestion}
+  {:else if (flow.status === "answering" || flow.status === "answered") && currentQuestion}
     <QuizScreen
       question={currentQuestion}
       {currentIndex}
@@ -306,10 +348,11 @@
       {outcomes}
       onLeave={showLanding}
       onAnswer={handleAnswer}
+      onTimeWarning={handleTimeWarning}
       onTimeout={handleTimeout}
       onNext={goNext}
     />
-  {:else if view === "result"}
+  {:else if flow.status === "result"}
     <ResultScreen
       {score}
       total={session.length}
@@ -332,7 +375,11 @@
     margin: 0 auto;
     overflow: hidden;
     background:
-      radial-gradient(circle at 50% 32%, rgb(87 236 186 / 16%), transparent 54%),
+      radial-gradient(
+        circle at 50% 32%,
+        rgb(87 236 186 / 16%),
+        transparent 54%
+      ),
       repeating-linear-gradient(
         118deg,
         transparent 0,
@@ -340,7 +387,12 @@
         rgb(255 255 255 / 1.8%) 5px,
         transparent 6px
       ),
-      linear-gradient(160deg, var(--felt-light), var(--felt) 50%, var(--felt-dark));
+      linear-gradient(
+        160deg,
+        var(--felt-light),
+        var(--felt) 50%,
+        var(--felt-dark)
+      );
     isolation: isolate;
   }
 
@@ -349,8 +401,18 @@
     inset: 0;
     z-index: -1;
     background:
-      linear-gradient(90deg, rgb(0 0 0 / 12%), transparent 9%, transparent 91%, rgb(0 0 0 / 12%)),
-      radial-gradient(ellipse at 50% 56%, transparent 45%, rgb(0 31 24 / 18%) 100%);
+      linear-gradient(
+        90deg,
+        rgb(0 0 0 / 12%),
+        transparent 9%,
+        transparent 91%,
+        rgb(0 0 0 / 12%)
+      ),
+      radial-gradient(
+        ellipse at 50% 56%,
+        transparent 45%,
+        rgb(0 31 24 / 18%) 100%
+      );
     content: "";
     pointer-events: none;
   }

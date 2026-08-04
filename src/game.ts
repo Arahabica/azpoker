@@ -1,5 +1,4 @@
 import type {
-  Card,
   Difficulty,
   DisplayRank,
   GameMode,
@@ -36,11 +35,6 @@ const SUIT_NAMES: Readonly<Record<Suit, string>> = Object.freeze({
   s: "スペード",
 });
 const RANKS = "23456789TJQKA";
-const STAGE_LABELS = Object.freeze({
-  preflop: "プリフロップ",
-  flop: "フロップ",
-  turn: "ターン",
-});
 
 interface CardDetails {
   rank: DisplayRank;
@@ -51,7 +45,14 @@ interface CardDetails {
   ariaLabel: string;
 }
 
-function shuffle<T>(items: readonly T[], random: RandomSource = Math.random): T[] {
+function isArrayValue(value: unknown): boolean {
+  return Array.isArray(value);
+}
+
+function shuffle<T>(
+  items: readonly T[],
+  random: RandomSource = Math.random,
+): T[] {
   const result = [...items];
 
   for (let index = result.length - 1; index > 0; index -= 1) {
@@ -64,73 +65,11 @@ function shuffle<T>(items: readonly T[], random: RandomSource = Math.random): T[
   return result;
 }
 
-function sample<T>(items: readonly T[], count: number, random: RandomSource): T[] {
-  const selected: T[] = [];
-  const indexes = new Set<number>();
-  while (selected.length < count) {
-    const index = Math.floor(random() * items.length);
-    if (!indexes.has(index)) {
-      indexes.add(index);
-      selected.push(items[index]!);
-    }
-  }
-  return selected;
-}
-
-function sampleStageQuestions(
-  questions: readonly Question[],
-  count: number,
-  random: RandomSource,
-  requiredCategories: readonly string[] = [],
-): Question[] {
-  const byCategory = new Map<string, Question[]>();
-
-  for (const question of questions) {
-    const existing = byCategory.get(question.category) ?? [];
-    existing.push(question);
-    byCategory.set(question.category, existing);
-  }
-
-  for (const category of requiredCategories) {
-    if (!byCategory.has(category)) {
-      throw new Error(`必須カテゴリの問題がありません: ${category}`);
-    }
-  }
-
-  const remainingCategories = [...byCategory.keys()].filter(
-    (category) => !requiredCategories.includes(category),
-  );
-  const categoryOrder = [
-    ...requiredCategories,
-    ...shuffle(remainingCategories, random),
-  ];
-  const selected: Question[] = [];
-  let categoryIndex = 0;
-
-  while (selected.length < count) {
-    const category = categoryOrder[categoryIndex % categoryOrder.length]!;
-    const candidates = byCategory
-      .get(category)!
-      .filter((question) => !selected.includes(question));
-
-    if (candidates.length > 0) {
-      selected.push(shuffle(candidates, random)[0]!);
-    }
-
-    categoryIndex += 1;
-    if (categoryIndex > questions.length * 2) {
-      throw new Error("セッションに必要な問題を選べません");
-    }
-  }
-
-  return selected;
-}
-
 function createSession(
   bank: readonly Question[],
   random: RandomSource = Math.random,
 ): Question[] {
-  if (!Array.isArray(bank) || bank.length === 0) {
+  if (!isArrayValue(bank) || bank.length === 0) {
     throw new TypeError("問題バンクが空です");
   }
 
@@ -146,11 +85,30 @@ function createSession(
     }
   }
 
-  const classicB = byMode.B.filter((question) => question.answerType === "hand");
-  const numericB = byMode.B.filter((question) => question.answerType === "percent");
+  const classicB = byMode.B.filter(
+    (question) => question.answerType === "hand",
+  );
+  const numericB = byMode.B.filter(
+    (question) => question.answerType === "percent",
+  );
   const dFamily = (question: Question): "draw" | "table" | "holding" => {
-    if (["opponent_oesd", "opponent_gutshot", "opponent_flush_draw", "opponent_combo_draw"].includes(question.category)) return "draw";
-    if (["all_opponents_miss_board", "exactly_one_opponent_target_rank", "multiple_opponents_target_rank"].includes(question.category)) return "table";
+    if (
+      [
+        "opponent_oesd",
+        "opponent_gutshot",
+        "opponent_flush_draw",
+        "opponent_combo_draw",
+      ].includes(question.category)
+    )
+      return "draw";
+    if (
+      [
+        "all_opponents_miss_board",
+        "exactly_one_opponent_target_rank",
+        "multiple_opponents_target_rank",
+      ].includes(question.category)
+    )
+      return "table";
     return "holding";
   };
   if (classicB.length === 0 || numericB.length === 0) {
@@ -178,12 +136,21 @@ function createSession(
 
     for (const pool of slots) {
       const candidates = pool.filter((question) => {
-        if (remainingStages[question.stage] <= 0 || remainingDifficulties[question.difficulty] <= 0) return false;
+        if (
+          remainingStages[question.stage] <= 0 ||
+          remainingDifficulties[question.difficulty] <= 0
+        )
+          return false;
         if (question.trueP === 0 && zeroCount >= 1) return false;
-        if (question.mode === "A" && aCategories.has(question.category)) return false;
-        if (question.mode === "D" && firstD && (
-          question.category === firstD.category || dFamily(question) === dFamily(firstD)
-        )) return false;
+        if (question.mode === "A" && aCategories.has(question.category))
+          return false;
+        if (
+          question.mode === "D" &&
+          firstD &&
+          (question.category === firstD.category ||
+            dFamily(question) === dFamily(firstD))
+        )
+          return false;
         return true;
       });
       if (candidates.length === 0) {
@@ -198,14 +165,18 @@ function createSession(
       if (question.mode === "A") aCategories.add(question.category);
       if (question.mode === "D" && !firstD) firstD = question;
     }
-    if (!failed && Object.values(remainingStages).every((count) => count === 0) && Object.values(remainingDifficulties).every((count) => count === 0)) {
+    if (
+      !failed &&
+      Object.values(remainingStages).every((count) => count === 0) &&
+      Object.values(remainingDifficulties).every((count) => count === 0)
+    ) {
       return shuffle(selected, random);
     }
   }
   throw new Error("条件を満たす10問を選べませんでした");
 }
 
-function cardDetails(card: Card | string): Readonly<CardDetails> {
+function cardDetails(card: string): Readonly<CardDetails> {
   if (typeof card !== "string" || card.length !== 2) {
     throw new TypeError(`不正なカード表記です: ${card}`);
   }
@@ -233,12 +204,12 @@ function cardDetails(card: Card | string): Readonly<CardDetails> {
   });
 }
 
-function formatCard(card: Card | string): string {
+function formatCard(card: string): string {
   const details = cardDetails(card);
   return `${details.symbol}${details.rank}`;
 }
 
-function formatCards(cards: readonly (Card | string)[]): string {
+function formatCards(cards: readonly string[]): string {
   return cards.map(formatCard).join(" ");
 }
 

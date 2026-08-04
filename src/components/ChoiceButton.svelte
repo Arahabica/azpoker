@@ -14,12 +14,7 @@
   const suffix = $derived(text.endsWith("%") ? "%" : "");
 </script>
 
-<button
-  class="choice"
-  type="button"
-  {disabled}
-  onclick={() => onSelect(value)}
->
+<button class="choice" type="button" {disabled} onclick={() => onSelect(value)}>
   <span class="choice-content">
     <span class="choice-qualifier">約</span>
     <span class="choice-value">{number}</span>

@@ -1,9 +1,13 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const outputPath = fileURLToPath(new URL("../dist/index.html", import.meta.url));
+const outputPath = fileURLToPath(
+  new URL("../dist/index.html", import.meta.url),
+);
 const serverOutput = new URL("../.prerender/entry-server.js", import.meta.url);
-const serverOutputDirectory = fileURLToPath(new URL("../.prerender", import.meta.url));
+const serverOutputDirectory = fileURLToPath(
+  new URL("../.prerender", import.meta.url),
+);
 const outlet = "<!--app-html-->";
 
 try {

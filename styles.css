@@ -12,8 +12,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Game.woff2")
-    format("woff2");
+  src: url("./assets/fonts/kosugi-maru/KosugiMaru-Game.woff2") format("woff2");
 }
 
 @font-face {
@@ -81,7 +80,12 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 50% 35%, #17352c 0, #071410 38rem, var(--outside) 70rem),
+    radial-gradient(
+      circle at 50% 35%,
+      #17352c 0,
+      #071410 38rem,
+      var(--outside) 70rem
+    ),
     var(--outside);
   color: var(--text);
 }

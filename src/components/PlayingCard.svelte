@@ -64,5 +64,4 @@
   .playing-card[data-rank="K"] {
     --rank-optical-shift: -2cqi;
   }
-
 </style>

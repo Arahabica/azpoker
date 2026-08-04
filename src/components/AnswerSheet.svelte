@@ -54,7 +54,11 @@
       <path d="M13.5 12H21m-3-3 3 3-3 3"></path>
     </svg>
   </button>
-  <div class="answer-mark" data-result={correct ? "correct" : "wrong"} aria-hidden="true">
+  <div
+    class="answer-mark"
+    data-result={correct ? "correct" : "wrong"}
+    aria-hidden="true"
+  >
     <svg class="answer-icon answer-icon-check" viewBox="0 0 48 48">
       <circle cx="24" cy="24" r="20"></circle>
       <path d="m15 24 6 6 13-14"></path>
@@ -84,10 +88,7 @@
     left: 0;
     z-index: 10;
     max-height: min(56vh, 28rem);
-    padding:
-      0.7rem
-      var(--gutter)
-      max(1.15rem, env(safe-area-inset-bottom));
+    padding: 0.7rem var(--gutter) max(1.15rem, env(safe-area-inset-bottom));
     overflow-y: auto;
     border-top: 1px solid rgb(255 255 255 / 11%);
     border-radius: 1.55rem 1.55rem 0 0;

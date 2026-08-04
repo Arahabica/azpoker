@@ -13,9 +13,22 @@ const SOUND_URLS: Readonly<Record<SoundName, string>> = Object.freeze({
   start: "/sounds/kettei_33.mp3",
   correct: "/sounds/audiostock_106548.mp3",
   wrong: "/sounds/kettei_2.mp3",
-  complete: "/sounds/kettei_37.mp3",
-  perfect: "/sounds/kettei_21.mp3",
+  warning: "/sounds/otologic-warning-siren05-03.mp3",
+  complete: "/sounds/otologic-multi-accent04-1.mp3",
+  perfect: "/sounds/otologic-multi-accent03-2.mp3",
 });
+
+const SOUND_GAINS: Readonly<Record<SoundName, number>> = Object.freeze({
+  start: 1,
+  correct: 1,
+  wrong: 1,
+  warning: 0.4,
+  complete: 1,
+  perfect: 1,
+});
+
+const WARNING_LOOP_START_SECONDS = 0.1;
+const WARNING_LOOP_END_SECONDS = 1.4;
 
 class SoundEffects {
   readonly context: AudioContext;
@@ -33,7 +46,9 @@ class SoundEffects {
     }
 
     this.context = new AudioContextConstructor();
-    this.fetchImpl = fetchImpl;
+    // Window.fetchは呼び出し元のthisを検査するブラウザがある。
+    // クラスのメソッドとして呼んでもSoundEffectsがthisにならないよう固定する。
+    this.fetchImpl = fetchImpl.bind(globalThis);
   }
 
   isRunning(): boolean {
@@ -85,11 +100,19 @@ class SoundEffects {
     return buffers.every(Boolean);
   }
 
-  start(buffer: AudioBuffer): boolean {
+  start(name: SoundName, buffer: AudioBuffer): boolean {
     try {
       const source = this.context.createBufferSource();
+      const gain = this.context.createGain();
       source.buffer = buffer;
-      source.connect(this.context.destination);
+      if (name === "warning") {
+        source.loop = true;
+        source.loopStart = WARNING_LOOP_START_SECONDS;
+        source.loopEnd = WARNING_LOOP_END_SECONDS;
+      }
+      gain.gain.value = SOUND_GAINS[name];
+      source.connect(gain);
+      gain.connect(this.context.destination);
       this.activeSources.add(source);
       source.onended = () => this.activeSources.delete(source);
       source.start(0);
@@ -102,13 +125,13 @@ class SoundEffects {
   play(name: SoundName): Promise<boolean> {
     const buffer = this.buffers.get(name);
     if (buffer && this.context.state === "running") {
-      return Promise.resolve(this.start(buffer));
+      return Promise.resolve(this.start(name, buffer));
     }
 
     return Promise.all([this.resume(), buffer ?? this.load(name)])
       .then(([ready, loaded]) => {
         if (!ready || !loaded) return false;
-        return this.start(loaded);
+        return this.start(name, loaded);
       })
       .catch(() => false);
   }
@@ -135,13 +158,22 @@ class SoundEffects {
 }
 
 function createSoundEffects({
-  AudioContextConstructor = globalThis.AudioContext
-    ?? (globalThis as typeof globalThis & {
-      webkitAudioContext?: AudioContextConstructor;
-    }).webkitAudioContext,
+  AudioContextConstructor = globalThis.AudioContext ??
+    (
+      globalThis as typeof globalThis & {
+        webkitAudioContext?: AudioContextConstructor;
+      }
+    ).webkitAudioContext,
   fetchImpl = globalThis.fetch,
 }: SoundEffectsOptions = {}): SoundEffects {
   return new SoundEffects({ AudioContextConstructor, fetchImpl });
 }
 
-export { SOUND_URLS, SoundEffects, createSoundEffects };
+export {
+  SOUND_GAINS,
+  SOUND_URLS,
+  SoundEffects,
+  WARNING_LOOP_END_SECONDS,
+  WARNING_LOOP_START_SECONDS,
+  createSoundEffects,
+};

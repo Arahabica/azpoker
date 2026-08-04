@@ -58,7 +58,11 @@ function createFakeScheduler() {
 
 test("問題の種類から5秒・8秒・12秒・16秒を割り当てる", () => {
   assert.equal(
-    getQuestionTimeLimitMs({ mode: "A", difficulty: "medium", stage: "preflop" }),
+    getQuestionTimeLimitMs({
+      mode: "A",
+      difficulty: "medium",
+      stage: "preflop",
+    }),
     5_000,
   );
   assert.equal(
@@ -74,7 +78,11 @@ test("問題の種類から5秒・8秒・12秒・16秒を割り当てる", () =>
     16_000,
   );
   assert.equal(
-    getQuestionTimeLimitMs({ mode: "B", difficulty: "medium", stage: "preflop" }),
+    getQuestionTimeLimitMs({
+      mode: "B",
+      difficulty: "medium",
+      stage: "preflop",
+    }),
     16_000,
   );
 });
@@ -146,4 +154,31 @@ test("回答時に停止すると期限を過ぎても時間切れにしない",
   fake.runExpiration();
   assert.equal(expirationCount, 0);
   assert.equal(fake.pendingCount(), 0);
+});
+
+test("残り2.2秒に入ったときだけ音声警告を一度通知する", () => {
+  const fake = createFakeScheduler();
+  let warningCount = 0;
+  const stop = startQuestionCountdown({
+    durationMs: 8_000,
+    onUpdate() {},
+    onWarning: () => {
+      warningCount += 1;
+    },
+    onExpire() {},
+    scheduler: fake.scheduler,
+  });
+
+  fake.setNow(5_799);
+  fake.runFrame();
+  assert.equal(warningCount, 0);
+
+  fake.setNow(5_800);
+  fake.runFrame();
+  assert.equal(warningCount, 1);
+
+  fake.setNow(7_000);
+  fake.runFrame();
+  assert.equal(warningCount, 1);
+  stop();
 });

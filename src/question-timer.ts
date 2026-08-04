@@ -21,6 +21,7 @@ interface Scheduler {
 interface CountdownOptions {
   durationMs: number;
   onUpdate: (remainingMs: number) => void;
+  onWarning?: () => void;
   onExpire: () => void;
   scheduler?: Scheduler;
 }
@@ -33,6 +34,7 @@ const STAGE_TIME_LIMITS_MS: Readonly<Record<Stage, number>> = Object.freeze({
 
 const HARD_TIME_LIMIT_MS = 16_000;
 const WARNING_THRESHOLD_MS = 3_000;
+const SOUND_WARNING_THRESHOLD_MS = 2_200;
 const CRITICAL_THRESHOLD_MS = 1_500;
 
 function getTimerWarning(remainingMs: number): TimerWarning {
@@ -76,10 +78,7 @@ function getCountdownSnapshot(
     throw new TypeError(`不正な残り時間です: ${String(remainingMs)}`);
   }
 
-  const clampedRemainingMs = Math.min(
-    durationMs,
-    Math.max(0, remainingMs),
-  );
+  const clampedRemainingMs = Math.min(durationMs, Math.max(0, remainingMs));
 
   return Object.freeze({
     remainingMs: clampedRemainingMs,
@@ -95,7 +94,8 @@ function browserScheduler(): Scheduler {
     now: () => globalThis.performance.now(),
     requestFrame: (callback) => globalThis.requestAnimationFrame(callback),
     cancelFrame: (id) => globalThis.cancelAnimationFrame(id),
-    setExpiration: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
+    setExpiration: (callback, delayMs) =>
+      globalThis.setTimeout(callback, delayMs),
     clearExpiration: (id) => globalThis.clearTimeout(id),
   };
 }
@@ -103,6 +103,7 @@ function browserScheduler(): Scheduler {
 function startQuestionCountdown({
   durationMs,
   onUpdate,
+  onWarning,
   onExpire,
   scheduler = browserScheduler(),
 }: CountdownOptions): () => void {
@@ -115,6 +116,19 @@ function startQuestionCountdown({
   let animationFrameId = 0;
   let expirationTimerId = 0;
   let stopped = false;
+  let warned = false;
+
+  const updateRemaining = (remainingMs: number) => {
+    onUpdate(remainingMs);
+    if (
+      !warned &&
+      remainingMs > 0 &&
+      remainingMs <= SOUND_WARNING_THRESHOLD_MS
+    ) {
+      warned = true;
+      onWarning?.();
+    }
+  };
 
   const stop = () => {
     if (stopped) return;
@@ -125,7 +139,7 @@ function startQuestionCountdown({
 
   const finish = () => {
     if (stopped) return;
-    onUpdate(0);
+    updateRemaining(0);
     stop();
     onExpire();
   };
@@ -134,10 +148,7 @@ function startQuestionCountdown({
     if (stopped) return;
     const remainingMs = deadline - scheduler.now();
     if (remainingMs > 0) {
-      expirationTimerId = scheduler.setExpiration(
-        expireWhenDue,
-        remainingMs,
-      );
+      expirationTimerId = scheduler.setExpiration(expireWhenDue, remainingMs);
       return;
     }
     finish();
@@ -150,11 +161,11 @@ function startQuestionCountdown({
       finish();
       return;
     }
-    onUpdate(remainingMs);
+    updateRemaining(remainingMs);
     animationFrameId = scheduler.requestFrame(update);
   };
 
-  onUpdate(durationMs);
+  updateRemaining(durationMs);
   animationFrameId = scheduler.requestFrame(update);
   expirationTimerId = scheduler.setExpiration(expireWhenDue, durationMs);
 
@@ -164,6 +175,7 @@ function startQuestionCountdown({
 export {
   CRITICAL_THRESHOLD_MS,
   HARD_TIME_LIMIT_MS,
+  SOUND_WARNING_THRESHOLD_MS,
   STAGE_TIME_LIMITS_MS,
   WARNING_THRESHOLD_MS,
   getCountdownSnapshot,

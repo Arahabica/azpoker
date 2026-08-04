@@ -14,17 +14,21 @@ function read(relativePath) {
 
 const html = read("index.html");
 const app = read("src/App.svelte");
+const gameFlow = read("src/game-flow.ts");
 const main = read("src/main.ts");
 const serverEntry = read("src/entry-server.ts");
 const prerender = read("scripts/prerender.mjs");
 const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
 const prepare = read("src/screens/PrepareScreen.svelte");
+const preparationLoading = read("src/screens/PreparationLoadingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const actionButton = read("src/components/ActionButton.svelte");
 const answerSheet = read("src/components/AnswerSheet.svelte");
-const leaveConfirmationSheet = read("src/components/LeaveConfirmationSheet.svelte");
+const leaveConfirmationSheet = read(
+  "src/components/LeaveConfirmationSheet.svelte",
+);
 const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
@@ -40,6 +44,7 @@ const soundEffects = read("src/sound-effects.ts");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const uiTiming = read("src/ui-timing.ts");
+const loadingTiming = read("src/loading-timing.ts");
 const viteConfig = read("vite.config.ts");
 const tsconfig = read("tsconfig.json");
 const types = read("src/types.ts");
@@ -124,7 +129,10 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
   assert.match(prerender, /body\.includes\('id="landing"'\)/);
   assert.match(prerender, /rm\(serverOutputDirectory/);
   assert.match(main, /import \{ hydrate, mount \} from "svelte"/);
-  assert.match(main, /target\.querySelector\("\.app-shell"\) \? hydrate : mount/);
+  assert.match(
+    main,
+    /target\.querySelector\("\.app-shell"\) \? hydrate : mount/,
+  );
   assert.match(
     packageJson.scripts.build,
     /vite build --ssr src\/entry-server\.ts --outDir \.prerender/,
@@ -133,15 +141,39 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
 });
 
 test("トップ・準備・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
-  assert.match(app, /view === "landing"/);
-  assert.match(app, /view === "prepare"/);
-  assert.match(app, /view === "game"/);
+  assert.match(app, /flow\.status === "top"/);
+  assert.match(app, /flow\.status === "ready"/);
+  assert.match(app, /flow\.status === "answering"/);
+  assert.match(app, /flow\.status === "result"/);
   assert.match(app, /<LandingScreen/);
   assert.match(app, /<PrepareScreen/);
   assert.match(app, /<QuizScreen/);
   assert.match(app, /<ResultScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+});
+
+test("ゲーム進行を純粋なTypeScript状態機械で管理する", () => {
+  for (const status of [
+    "top",
+    "preparing",
+    "ready",
+    "preparation-error",
+    "answering",
+    "answered",
+    "result",
+  ]) {
+    assert.match(gameFlow, new RegExp(`status: "${status}"`));
+  }
+
+  assert.match(app, /let flow = \$state\(createInitialGameFlow\(\)\)/);
+  assert.match(app, /transitionGameFlow\(flow,/);
+  assert.match(app, /getQuestionIndex\(flow\)/);
+  assert.match(app, /getAnswerResult\(flow\)/);
+  assert.doesNotMatch(
+    app,
+    /let (?:view|starting|preparationReady|currentIndex|answerResult) = \$state/,
+  );
 });
 
 test("アクセントカラーに黄色を使う", () => {
@@ -175,12 +207,18 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
     landing,
     /\.landing-screen \{[\s\S]*font-family: "Kosugi Maru Landing", sans-serif;/,
   );
-  assert.match(prepare, /\.prepare-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
+  assert.match(
+    prepare,
+    /\.prepare-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/,
+  );
   assert.match(
     quiz,
     /\.game-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;/,
   );
-  assert.match(result, /\.result-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/);
+  assert.match(
+    result,
+    /\.result-screen \{[\s\S]*font-family: "M PLUS Rounded 1c UI"/,
+  );
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
   assert.doesNotMatch(styles, /fonts\.googleapis/);
   const landingRule = landing.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
@@ -296,7 +334,10 @@ test("PlayingCardはカードの描画と読み上げだけを担当する", () 
     /let \{ card, decorative = false \}(?:: Props)? = \$props\(\)/,
   );
   assert.match(card, /role=\{decorative \? undefined : "img"\}/);
-  assert.match(card, /aria-label=\{decorative \? undefined : details\.ariaLabel\}/);
+  assert.match(
+    card,
+    /aria-label=\{decorative \? undefined : details\.ariaLabel\}/,
+  );
   assert.match(card, /width: 100%/);
   assert.doesNotMatch(card, /variant|index|CARD_ANGLES|start-angle|end-angle/);
   assert.doesNotMatch(card, /@keyframes|animation:|transform:|playing-card--/);
@@ -335,11 +376,17 @@ test("480pxのモバイル領域とPCの左右余白を持つ", () => {
 
 test("ボード・手札・ロゴは利用側で共通トークンを使う", () => {
   assert.match(quiz, /import Board from/);
-  assert.match(quiz, /<Board cards=\{question\.board\} revealKey=\{currentIndex\}/);
+  assert.match(
+    quiz,
+    /<Board cards=\{question\.board\} revealKey=\{currentIndex\}/,
+  );
   assert.doesNotMatch(app, /visibleBoard|boardCards|REVEAL_DELAY_MS/);
   assert.match(uiTiming, /CHOICE_REVEAL_DELAY_MS = 300/);
   assert.doesNotMatch(board, /REVEAL_DELAY_MS|animation-delay/);
-  assert.doesNotMatch(`${card}\n${holeCards}\n${logoCards}`, /animation-delay|--deal-index|42ms|240ms/);
+  assert.doesNotMatch(
+    `${card}\n${holeCards}\n${logoCards}`,
+    /animation-delay|--deal-index|42ms|240ms/,
+  );
   assert.match(board, /`\$\{revealKey\}-\$\{card\}-\$\{index\}`/);
   assert.match(styles, /--card-reveal-duration:/);
   assert.match(styles, /--card-reveal-easing:/);
@@ -358,11 +405,13 @@ test("ボード・手札・ロゴは利用側で共通トークンを使う", ()
     /\.logo-card \{[\s\S]*animation:[\s\S]*reveal-logo-card[\s\S]*var\(--card-reveal-duration\)[\s\S]*var\(--card-reveal-easing\)[\s\S]*both;/,
   );
   const boardAnimation =
-    board.match(/@keyframes reveal-board-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+    board.match(/@keyframes reveal-board-card \{([\s\S]*?)\n {2}\}/)?.[1] ?? "";
   const handAnimation =
-    holeCards.match(/@keyframes reveal-hole-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+    holeCards.match(/@keyframes reveal-hole-card \{([\s\S]*?)\n {2}\}/)?.[1] ??
+    "";
   const logoAnimation =
-    logoCards.match(/@keyframes reveal-logo-card \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+    logoCards.match(/@keyframes reveal-logo-card \{([\s\S]*?)\n {2}\}/)?.[1] ??
+    "";
   assert.match(boardAnimation, /opacity: var\(--card-reveal-start-opacity\)/);
   assert.match(boardAnimation, /opacity: 1/);
   assert.match(boardAnimation, /translateY\(var\(--card-reveal-start-y\)\)/);
@@ -387,6 +436,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "app-shell",
     "landing-screen",
     "prepare-screen",
+    "preparation-loading-screen",
     "game-screen",
     "board",
     "hand-cards",
@@ -406,6 +456,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     app,
     landing,
     prepare,
+    preparationLoading,
     quiz,
     result,
     actionButton,
@@ -422,17 +473,22 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
   }
 });
 
-test("準備画面で問題・フォント・効果音を先読みしてから開始する", () => {
+test("背景上で先読みし、完了後に準備画面をフェードインする", () => {
   assert.match(prepare, /問題を開始します/);
   assert.doesNotMatch(prepare, /準備できました/);
+  assert.doesNotMatch(prepare, /問題を読み込んでいます|準備中…/);
   assert.match(prepare, /id="sound-toggle"/);
   assert.match(prepare, /aria-pressed=\{soundEnabled\}/);
   assert.match(prepare, /"音あり" : "音なし"/);
   assert.match(prepare, /id="start-quiz"/);
   assert.match(prepare, /disabled=\{!ready\}/);
+  assert.match(
+    prepare,
+    /animation: prepare-screen-fade-in 200ms ease-out both;/,
+  );
   assert.match(prepare, /\.prepare-controls \{[\s\S]*margin-top: auto;/);
   const soundIconRule =
-    prepare.match(/\.sound-icon \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+    prepare.match(/\.sound-icon \{([\s\S]*?)\n {2}\}/)?.[1] ?? "";
   assert.match(soundIconRule, /linear-gradient/);
   assert.match(soundIconRule, /0 0\.3rem 0/);
   assert.match(soundIconRule, /border: 0;/);
@@ -441,13 +497,33 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
   assert.match(prepare, /M19\.364 18\.364a9 9/);
   assert.match(prepare, /<line x1="22" x2="16" y1="9" y2="15"/);
   assert.match(app, /function showPreparation\(\)/);
-  assert.match(app, /view = "prepare";[\s\S]*prepareSession\(\);/);
-  assert.match(app, /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/);
+  assert.match(app, /type: "START_PREPARATION"/);
+  assert.match(app, /flow = preparingFlow;/);
+  assert.match(app, /<PreparationLoadingScreen/);
+  assert.match(
+    app,
+    /<PreparationLoadingScreen delayMs=\{LOADING_INDICATOR_DELAY_MS\}/,
+  );
+  assert.match(app, /waitLoadingAnimation\(\(\) =>/);
+  assert.match(
+    app,
+    /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/,
+  );
+  assert.match(loadingTiming, /LOADING_INDICATOR_DELAY_MS = 350/);
+  assert.match(loadingTiming, /LOADING_INDICATOR_MIN_VISIBLE_MS = 600/);
+  assert.match(
+    preparationLoading,
+    /animation:[\s\S]*loading-spinner-appear[\s\S]*loading-spinner-rotate/,
+  );
   assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
   assert.match(app, /onStart=\{startSession\}/);
   assert.match(app, /playSound\("start"\)/);
+  assert.match(app, /playSound\("warning"\)/);
   assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
-  assert.match(app, /playSound\(score === session\.length \? "perfect" : "complete"\)/);
+  assert.match(
+    app,
+    /playSound\(score === session\.length \? "perfect" : "complete"\)/,
+  );
   assert.match(soundEffects, /decodeAudioData/);
   assert.match(soundEffects, /createBufferSource/);
   assert.match(soundEffects, /source\.start\(0\)/);
@@ -457,10 +533,13 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
     "kettei_33.mp3",
     "audiostock_106548.mp3",
     "kettei_2.mp3",
-    "kettei_37.mp3",
-    "kettei_21.mp3",
+    "otologic-warning-siren05-03.mp3",
+    "otologic-multi-accent04-1.mp3",
+    "otologic-multi-accent03-2.mp3",
   ]) {
-    assert.ok(fs.statSync(path.join(root, "public", "sounds", filename)).size > 0);
+    assert.ok(
+      fs.statSync(path.join(root, "public", "sounds", filename)).size > 0,
+    );
   }
 });
 
@@ -483,8 +562,8 @@ test("常設の戻る操作を置かず、回答パネルから終了確認を�
   assert.match(answerSheet, /inert=\{blocked\}/);
   assert.match(leaveConfirmationSheet, /role="dialog"/);
   assert.ok(
-    leaveConfirmationSheet.indexOf('id="confirm-leave"')
-      < leaveConfirmationSheet.indexOf('id="continue-quiz"'),
+    leaveConfirmationSheet.indexOf('id="confirm-leave"') <
+      leaveConfirmationSheet.indexOf('id="continue-quiz"'),
   );
   assert.match(leaveConfirmationSheet, /label="トップページに戻る"/);
   assert.match(leaveConfirmationSheet, /label="問題を続ける"/);
@@ -496,7 +575,7 @@ test("結果画面は正答数・回答時間・時間切れ数を表示し、�
   assert.match(app, /let sessionTimeLimitMs = \$state\(0\)/);
   assert.match(
     app,
-    /const question = currentQuestion;[\s\S]*getQuestionTimeLimitMs\(question\)/,
+    /const question = session\[questionIndex\];[\s\S]*getQuestionTimeLimitMs\(question\)/,
   );
   assert.match(app, /elapsedMs=\{sessionElapsedMs\}/);
   assert.match(app, /outcome === "timeout"/);
@@ -527,10 +606,21 @@ test("10問の進捗と残り時間を1つのセグメント表示へ統合す�
   assert.match(quizProgressTimer, /countdown\.elapsedProgress/);
   assert.doesNotMatch(quizProgressTimer, /class="timer-number/);
   assert.match(quizProgressTimer, /outcome === "correct"/);
-  assert.match(quizProgressTimer, /outcome === "wrong" \|\| outcome === "timeout"/);
+  assert.match(
+    quizProgressTimer,
+    /outcome === "wrong" \|\| outcome === "timeout"/,
+  );
   assert.match(quizProgressTimer, /class="screen-time-warning"/);
   assert.match(quizProgressTimer, /is-critical-screen/);
-  assert.match(questionTimer, /mode === "B" \|\| question\.difficulty === "hard"/);
+  assert.match(
+    quizProgressTimer,
+    /\.is-warning \.segment-fill \{[\s\S]*background: rgb\(255 255 255 \/ 94%\)/,
+  );
+  assert.match(quizProgressTimer, /rgb\(255 255 255 \/ 72%\)/);
+  assert.match(
+    questionTimer,
+    /mode === "B" \|\| question\.difficulty === "hard"/,
+  );
 });
 
 test("時間切れを一度だけ不正解として確定する", () => {
@@ -538,9 +628,11 @@ test("時間切れを一度だけ不正解として確定する", () => {
     app,
     /function handleTimeout\(questionIndex(?:: number)?, elapsedMs(?:: number)?\)/,
   );
-  assert.match(app, /questionIndex !== currentIndex/);
-  assert.match(app, /timedOut: true/);
-  assert.match(app, /outcomes\[currentIndex\]/);
+  assert.match(app, /type: "TIMEOUT"/);
+  assert.match(gameFlow, /state\.status === "answering"/);
+  assert.match(gameFlow, /state\.questionIndex === event\.questionIndex/);
+  assert.match(gameFlow, /timedOut: true/);
+  assert.match(app, /outcomes\[questionIndex\]/);
   assert.match(quiz, /onTimeout=\{handleQuestionTimeout\}/);
   assert.match(quiz, /timedOut=\{answerResult\.timedOut\}/);
   assert.match(answerSheet, /"時間切れ"/);

@@ -10,11 +10,7 @@
   let { cards = [], revealKey }: Props = $props();
 </script>
 
-<div
-  class="board"
-  role="group"
-  aria-label="コミュニティカード"
->
+<div class="board" role="group" aria-label="コミュニティカード">
   {#each cards as card, index (`${revealKey}-${card}-${index}`)}
     <div class="board-card">
       <PlayingCard {card} />
@@ -34,11 +30,8 @@
 
   .board-card {
     min-width: 0;
-    animation:
-      reveal-board-card
-      var(--card-reveal-duration)
-      var(--card-reveal-easing)
-      both;
+    animation: reveal-board-card var(--card-reveal-duration)
+      var(--card-reveal-easing) both;
   }
 
   @keyframes reveal-board-card {

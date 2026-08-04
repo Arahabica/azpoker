@@ -27,9 +27,7 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding:
-      max(2rem, env(safe-area-inset-top))
-      var(--gutter)
+    padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "Kosugi Maru Landing", sans-serif;
   }

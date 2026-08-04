@@ -11,6 +11,7 @@
     outcomes?: readonly (QuestionOutcome | null)[];
     durationMs: number;
     running?: boolean;
+    onWarning: (questionIndex: number) => void;
     onTimeout: (questionIndex: number) => void;
   }
 
@@ -20,6 +21,7 @@
     outcomes = [],
     durationMs,
     running = false,
+    onWarning,
     onTimeout,
   }: Props = $props();
 
@@ -41,6 +43,7 @@
       onUpdate: (nextRemainingMs) => {
         remainingMs = nextRemainingMs;
       },
+      onWarning: () => onWarning(questionIndex),
       onExpire: () => onTimeout(questionIndex),
     });
   });
@@ -56,15 +59,19 @@
     aria-valuenow={currentIndex + 1}
     aria-valuetext={`${currentIndex + 1}問目 / ${total}問`}
   >
-    {#each Array(total) as _, index}
+    {#each Array.from({ length: total }, (_, index) => index) as index (index)}
       {@const outcome = outcomes[index]}
       {@const isActive = index === currentIndex}
       <span
         class="progress-segment"
         class:is-active={isActive}
         class:is-running={isActive && running}
-        class:is-warning={isActive && running && countdown.warning === "warning"}
-        class:is-critical={isActive && running && countdown.warning === "critical"}
+        class:is-warning={isActive &&
+          running &&
+          countdown.warning === "warning"}
+        class:is-critical={isActive &&
+          running &&
+          countdown.warning === "critical"}
         class:is-correct={outcome === "correct"}
         class:is-wrong={outcome === "wrong" || outcome === "timeout"}
         style={isActive
@@ -153,10 +160,12 @@
   }
 
   .is-warning .segment-fill {
+    background: rgb(255 255 255 / 94%);
     box-shadow: 0 0 0.7rem rgb(255 255 255 / 50%);
   }
 
   .is-critical .segment-fill {
+    background: rgb(255 255 255 / 94%);
     box-shadow: 0 0 0.85rem rgb(255 255 255 / 66%);
   }
 

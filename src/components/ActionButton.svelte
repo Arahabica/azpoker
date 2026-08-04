@@ -24,8 +24,8 @@
   class:danger={variant === "danger"}
   type="button"
   onclick={onClick}
-  {disabled}
->{label}</button>
+  {disabled}>{label}</button
+>
 
 <style>
   .action-button {

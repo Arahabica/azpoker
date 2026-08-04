@@ -35,10 +35,16 @@ test("10問を固定ステージ比率で重複なく選ぶ", () => {
     );
   }
   for (const [mode, count] of Object.entries(SESSION_MODE_COUNTS)) {
-    assert.equal(session.filter((question) => question.mode === mode).length, count);
+    assert.equal(
+      session.filter((question) => question.mode === mode).length,
+      count,
+    );
   }
   for (const [difficulty, count] of Object.entries(SESSION_DIFFICULTY_COUNTS)) {
-    assert.equal(session.filter((question) => question.difficulty === difficulty).length, count);
+    assert.equal(
+      session.filter((question) => question.difficulty === difficulty).length,
+      count,
+    );
   }
   assert.ok(session.filter((question) => question.trueP === 0).length <= 1);
 });
@@ -58,7 +64,9 @@ test("モードAのフロップとターンはカテゴリを重複させない"
 test("モードAの5問はカテゴリを重複させない", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
-    const categories = session.filter((question) => question.mode === "A").map((question) => question.category);
+    const categories = session
+      .filter((question) => question.mode === "A")
+      .map((question) => question.category);
     assert.equal(new Set(categories).size, 5);
   }
 });
@@ -68,8 +76,15 @@ test("Bを手札型・数値型1問ずつ、Cを1問、Dを別系統から2問�
     const session = createSession(bank, seededRandom(seed));
     const comparisons = session.filter((question) => question.mode === "B");
     assert.equal(comparisons.length, 2);
-    assert.equal(comparisons.filter((question) => question.answerType === "hand").length, 1);
-    assert.equal(comparisons.filter((question) => question.answerType === "percent").length, 1);
+    assert.equal(
+      comparisons.filter((question) => question.answerType === "hand").length,
+      1,
+    );
+    assert.equal(
+      comparisons.filter((question) => question.answerType === "percent")
+        .length,
+      1,
+    );
     assert.equal(session.filter((question) => question.mode === "C").length, 1);
     assert.equal(session.filter((question) => question.mode === "D").length, 2);
   }
