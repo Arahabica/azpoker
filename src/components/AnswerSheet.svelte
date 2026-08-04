@@ -49,9 +49,13 @@
     onclick={onRequestLeave}
   >
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M11 4H5.5v16H11"></path>
-      <path d="m11 5 4 1.5v11L11 19Z"></path>
-      <path d="M13.5 12H21m-3-3 3 3-3 3"></path>
+      <path d="M11 20H2"></path>
+      <path
+        d="M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.561z"
+      ></path>
+      <path d="M11 4H8a2 2 0 0 0-2 2v14"></path>
+      <path d="M14 12h.01"></path>
+      <path d="M22 20h-3"></path>
     </svg>
   </button>
   <div

@@ -554,8 +554,8 @@ test("常設の戻る操作を置かず、回答パネルから終了確認を�
   assert.doesNotMatch(quiz, /class="icon-button"/);
   assert.match(answerSheet, /id="leave-quiz"/);
   assert.match(answerSheet, /aria-label="問題を終了する"/);
-  assert.match(answerSheet, /m11 5 4 1\.5v11L11 19Z/);
-  assert.match(answerSheet, /M13\.5 12H21/);
+  assert.match(answerSheet, /M11 20H2/);
+  assert.match(answerSheet, /M14 12h\.01/);
   assert.match(quiz, /import LeaveConfirmationSheet/);
   assert.match(quiz, /leaveConfirmationOpen/);
   assert.match(quiz, /blocked=\{leaveConfirmationOpen\}/);
