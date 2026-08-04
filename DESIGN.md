@@ -220,7 +220,8 @@
 
 ## 10. 実装・確認ルール
 
-- 画面は `LandingScreen.svelte`、`PrepareScreen.svelte`、`QuizScreen.svelte`、`ResultScreen.svelte` に分ける。
+- 画面は `LandingScreen.svelte`、`PreparationLoadingScreen.svelte`、`PrepareScreen.svelte`、`QuizScreen.svelte`、`ResultScreen.svelte` に分ける。
+- ゲーム進行は `game-flow.ts` の純粋なTypeScript状態機械で管理する。問題番号と回答結果は進行状態に含め、Svelte側に重複した状態を作らない。問題取得、フォーカス、効果音などの副作用だけを `App.svelte` から実行する。
 - ボード、手札、ロゴカード、カード枠、カード面、操作ボタン、選択肢、回答パネルはそれぞれ共通コンポーネントを使い、画面ごとの複製を作らない。
 - コンポーネント固有のレイアウト、装飾、モーションは各 `.svelte` のスコープ付き `<style>` に置く。
 - `styles.css` にはフォント定義、デザイントークン、リセット、全体のアクセシビリティ設定だけを置く。

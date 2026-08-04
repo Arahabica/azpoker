@@ -14,6 +14,7 @@ function read(relativePath) {
 
 const html = read("index.html");
 const app = read("src/App.svelte");
+const gameFlow = read("src/game-flow.ts");
 const main = read("src/main.ts");
 const serverEntry = read("src/entry-server.ts");
 const prerender = read("scripts/prerender.mjs");
@@ -140,15 +141,39 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
 });
 
 test("トップ・準備・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
-  assert.match(app, /view === "landing"/);
-  assert.match(app, /view === "prepare"/);
-  assert.match(app, /view === "game"/);
+  assert.match(app, /flow\.status === "top"/);
+  assert.match(app, /flow\.status === "ready"/);
+  assert.match(app, /flow\.status === "answering"/);
+  assert.match(app, /flow\.status === "result"/);
   assert.match(app, /<LandingScreen/);
   assert.match(app, /<PrepareScreen/);
   assert.match(app, /<QuizScreen/);
   assert.match(app, /<ResultScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+});
+
+test("ゲーム進行を純粋なTypeScript状態機械で管理する", () => {
+  for (const status of [
+    "top",
+    "preparing",
+    "ready",
+    "preparation-error",
+    "answering",
+    "answered",
+    "result",
+  ]) {
+    assert.match(gameFlow, new RegExp(`status: "${status}"`));
+  }
+
+  assert.match(app, /let flow = \$state\(createInitialGameFlow\(\)\)/);
+  assert.match(app, /transitionGameFlow\(flow,/);
+  assert.match(app, /getQuestionIndex\(flow\)/);
+  assert.match(app, /getAnswerResult\(flow\)/);
+  assert.doesNotMatch(
+    app,
+    /let (?:view|starting|preparationReady|currentIndex|answerResult) = \$state/,
+  );
 });
 
 test("アクセントカラーに黄色を使う", () => {
@@ -472,8 +497,8 @@ test("背景上で先読みし、完了後に準備画面をフェードイン�
   assert.match(prepare, /M19\.364 18\.364a9 9/);
   assert.match(prepare, /<line x1="22" x2="16" y1="9" y2="15"/);
   assert.match(app, /function showPreparation\(\)/);
-  assert.match(app, /type View = [^;]*"preparing"/);
-  assert.match(app, /view = "preparing";/);
+  assert.match(app, /type: "START_PREPARATION"/);
+  assert.match(app, /flow = preparingFlow;/);
   assert.match(app, /<PreparationLoadingScreen/);
   assert.match(
     app,
@@ -550,7 +575,7 @@ test("結果画面は正答数・回答時間・時間切れ数を表示し、�
   assert.match(app, /let sessionTimeLimitMs = \$state\(0\)/);
   assert.match(
     app,
-    /const question = currentQuestion;[\s\S]*getQuestionTimeLimitMs\(question\)/,
+    /const question = session\[questionIndex\];[\s\S]*getQuestionTimeLimitMs\(question\)/,
   );
   assert.match(app, /elapsedMs=\{sessionElapsedMs\}/);
   assert.match(app, /outcome === "timeout"/);
@@ -603,9 +628,11 @@ test("時間切れを一度だけ不正解として確定する", () => {
     app,
     /function handleTimeout\(questionIndex(?:: number)?, elapsedMs(?:: number)?\)/,
   );
-  assert.match(app, /questionIndex !== currentIndex/);
-  assert.match(app, /timedOut: true/);
-  assert.match(app, /outcomes\[currentIndex\]/);
+  assert.match(app, /type: "TIMEOUT"/);
+  assert.match(gameFlow, /state\.status === "answering"/);
+  assert.match(gameFlow, /state\.questionIndex === event\.questionIndex/);
+  assert.match(gameFlow, /timedOut: true/);
+  assert.match(app, /outcomes\[questionIndex\]/);
   assert.match(quiz, /onTimeout=\{handleQuestionTimeout\}/);
   assert.match(quiz, /timedOut=\{answerResult\.timedOut\}/);
   assert.match(answerSheet, /"時間切れ"/);

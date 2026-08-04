@@ -58,7 +58,8 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 
 ## コード構成
 
-- `src/App.svelte`: セッション、準備、画面遷移、効果音の呼び分け
+- `src/App.svelte`: 問題データの準備と、フォーカス・効果音など画面遷移に伴う副作用
+- `src/game-flow.ts`: トップ、準備、出題、回答済み、結果を遷移させる純粋なTypeScript状態機械
 - `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
 - `src/entry-server.ts`: トップ画面を静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
