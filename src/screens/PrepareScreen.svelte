@@ -3,7 +3,6 @@
 
   interface Props {
     soundEnabled: boolean;
-    loading?: boolean;
     ready?: boolean;
     error?: string;
     onSoundChange: (enabled: boolean) => void;
@@ -13,7 +12,6 @@
 
   let {
     soundEnabled,
-    loading = false,
     ready = false,
     error = "",
     onSoundChange,
@@ -57,15 +55,9 @@
       <span class="sound-label">{soundEnabled ? "音あり" : "音なし"}</span>
     </button>
 
-    <div class="prepare-status-slot">
-      {#if error}
-        <p class="prepare-status is-error" role="alert">{error}</p>
-      {:else if loading}
-        <p class="prepare-status" role="status" aria-live="polite">
-          問題を読み込んでいます
-        </p>
-      {/if}
-    </div>
+    {#if error}
+      <p class="prepare-status is-error" role="alert">{error}</p>
+    {/if}
   </div>
 
   <div class="prepare-action">
@@ -78,7 +70,7 @@
     {:else}
       <ActionButton
         id="start-quiz"
-        label={loading ? "準備中…" : "スタート"}
+        label="スタート"
         onClick={onStart}
         disabled={!ready}
       />
@@ -97,6 +89,7 @@
     padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
+    animation: prepare-screen-fade-in 200ms ease-out both;
   }
 
   .prepare-screen h1 {
@@ -192,10 +185,6 @@
     font-weight: 800;
   }
 
-  .prepare-status-slot {
-    min-height: 1.5em;
-  }
-
   .prepare-status {
     color: var(--muted);
     font-size: 0.82rem;
@@ -219,6 +208,22 @@
 
     .sound-toggle.is-enabled:hover .sound-icon {
       background: linear-gradient(180deg, #8c9c96, #72867f);
+    }
+  }
+
+  @keyframes prepare-screen-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .prepare-screen {
+      animation: none;
     }
   }
 </style>

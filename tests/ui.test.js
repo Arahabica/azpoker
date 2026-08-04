@@ -20,6 +20,7 @@ const prerender = read("scripts/prerender.mjs");
 const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
 const prepare = read("src/screens/PrepareScreen.svelte");
+const preparationLoading = read("src/screens/PreparationLoadingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
 const actionButton = read("src/components/ActionButton.svelte");
@@ -42,6 +43,7 @@ const soundEffects = read("src/sound-effects.ts");
 const fontBuildScript = read("scripts/build_font_subsets.mjs");
 const styles = read("styles.css");
 const uiTiming = read("src/ui-timing.ts");
+const loadingTiming = read("src/loading-timing.ts");
 const viteConfig = read("vite.config.ts");
 const tsconfig = read("tsconfig.json");
 const types = read("src/types.ts");
@@ -409,6 +411,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "app-shell",
     "landing-screen",
     "prepare-screen",
+    "preparation-loading-screen",
     "game-screen",
     "board",
     "hand-cards",
@@ -428,6 +431,7 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     app,
     landing,
     prepare,
+    preparationLoading,
     quiz,
     result,
     actionButton,
@@ -444,14 +448,19 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
   }
 });
 
-test("準備画面で問題・フォント・効果音を先読みしてから開始する", () => {
+test("背景上で先読みし、完了後に準備画面をフェードインする", () => {
   assert.match(prepare, /問題を開始します/);
   assert.doesNotMatch(prepare, /準備できました/);
+  assert.doesNotMatch(prepare, /問題を読み込んでいます|準備中…/);
   assert.match(prepare, /id="sound-toggle"/);
   assert.match(prepare, /aria-pressed=\{soundEnabled\}/);
   assert.match(prepare, /"音あり" : "音なし"/);
   assert.match(prepare, /id="start-quiz"/);
   assert.match(prepare, /disabled=\{!ready\}/);
+  assert.match(
+    prepare,
+    /animation: prepare-screen-fade-in 200ms ease-out both;/,
+  );
   assert.match(prepare, /\.prepare-controls \{[\s\S]*margin-top: auto;/);
   const soundIconRule =
     prepare.match(/\.sound-icon \{([\s\S]*?)\n {2}\}/)?.[1] ?? "";
@@ -463,10 +472,23 @@ test("準備画面で問題・フォント・効果音を先読みしてから�
   assert.match(prepare, /M19\.364 18\.364a9 9/);
   assert.match(prepare, /<line x1="22" x2="16" y1="9" y2="15"/);
   assert.match(app, /function showPreparation\(\)/);
-  assert.match(app, /view = "prepare";[\s\S]*prepareSession\(\);/);
+  assert.match(app, /type View = [^;]*"preparing"/);
+  assert.match(app, /view = "preparing";/);
+  assert.match(app, /<PreparationLoadingScreen/);
+  assert.match(
+    app,
+    /<PreparationLoadingScreen delayMs=\{LOADING_INDICATOR_DELAY_MS\}/,
+  );
+  assert.match(app, /waitLoadingAnimation\(\(\) =>/);
   assert.match(
     app,
     /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/,
+  );
+  assert.match(loadingTiming, /LOADING_INDICATOR_DELAY_MS = 350/);
+  assert.match(loadingTiming, /LOADING_INDICATOR_MIN_VISIBLE_MS = 600/);
+  assert.match(
+    preparationLoading,
+    /animation:[\s\S]*loading-spinner-appear[\s\S]*loading-spinner-rotate/,
   );
   assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
   assert.match(app, /onStart=\{startSession\}/);
@@ -565,6 +587,11 @@ test("10問の進捗と残り時間を1つのセグメント表示へ統合す�
   );
   assert.match(quizProgressTimer, /class="screen-time-warning"/);
   assert.match(quizProgressTimer, /is-critical-screen/);
+  assert.match(
+    quizProgressTimer,
+    /\.is-warning \.segment-fill \{[\s\S]*background: rgb\(255 255 255 \/ 94%\)/,
+  );
+  assert.match(quizProgressTimer, /rgb\(255 255 255 \/ 72%\)/);
   assert.match(
     questionTimer,
     /mode === "B" \|\| question\.difficulty === "hard"/,

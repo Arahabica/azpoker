@@ -156,7 +156,7 @@ test("回答時に停止すると期限を過ぎても時間切れにしない",
   assert.equal(fake.pendingCount(), 0);
 });
 
-test("残り2秒に入ったときだけ音声警告を一度通知する", () => {
+test("残り2.2秒に入ったときだけ音声警告を一度通知する", () => {
   const fake = createFakeScheduler();
   let warningCount = 0;
   const stop = startQuestionCountdown({
@@ -169,11 +169,11 @@ test("残り2秒に入ったときだけ音声警告を一度通知する", () =
     scheduler: fake.scheduler,
   });
 
-  fake.setNow(5_999);
+  fake.setNow(5_799);
   fake.runFrame();
   assert.equal(warningCount, 0);
 
-  fake.setNow(6_000);
+  fake.setNow(5_800);
   fake.runFrame();
   assert.equal(warningCount, 1);
 

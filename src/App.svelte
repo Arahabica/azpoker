@@ -3,6 +3,10 @@
 
   import { createSession, shuffle } from "./game.ts";
   import { loadQuestionPool, rememberQuestions } from "./question-loader.ts";
+  import {
+    LOADING_INDICATOR_DELAY_MS,
+    waitLoadingAnimation,
+  } from "./loading-timing.ts";
   import { getQuestionTimeLimitMs } from "./question-timer.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
@@ -16,10 +20,11 @@
   } from "./types.ts";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import PrepareScreen from "./screens/PrepareScreen.svelte";
+  import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
 
-  type View = "landing" | "prepare" | "game" | "result";
+  type View = "landing" | "preparing" | "prepare" | "game" | "result";
 
   interface SettleQuestionOptions {
     correct: boolean;
@@ -157,12 +162,15 @@
     starting = true;
     preparationReady = false;
     startupError = "";
+    view = "preparing";
     try {
-      const [nextSession] = await Promise.all([
-        selectSession(),
-        preloadGameFonts(),
-        preloadSoundEffects(),
-      ]);
+      const [nextSession] = await waitLoadingAnimation(() =>
+        Promise.all([
+          selectSession(),
+          preloadGameFonts(),
+          preloadSoundEffects(),
+        ]),
+      );
       session = nextSession;
       rememberQuestions(session);
       currentIndex = 0;
@@ -174,11 +182,12 @@
         0,
       );
       preparationReady = true;
-      focusElement("#start-quiz");
     } catch (error) {
       showStartupError(error);
     } finally {
       starting = false;
+      view = "prepare";
+      focusElement(startupError ? "#retry-load" : "#start-quiz");
     }
   }
 
@@ -189,8 +198,6 @@
     outcomes = [];
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
-    view = "prepare";
-    focusElement("#prepare-title");
     void prepareSession();
   }
 
@@ -305,10 +312,11 @@
 <main class="app-shell">
   {#if view === "landing"}
     <LandingScreen onStart={showPreparation} />
+  {:else if view === "preparing"}
+    <PreparationLoadingScreen delayMs={LOADING_INDICATOR_DELAY_MS} />
   {:else if view === "prepare"}
     <PrepareScreen
       {soundEnabled}
-      loading={starting}
       ready={preparationReady}
       error={startupError}
       onSoundChange={setSoundEnabled}

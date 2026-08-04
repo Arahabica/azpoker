@@ -160,10 +160,12 @@
   }
 
   .is-warning .segment-fill {
+    background: rgb(255 255 255 / 94%);
     box-shadow: 0 0 0.7rem rgb(255 255 255 / 50%);
   }
 
   .is-critical .segment-fill {
+    background: rgb(255 255 255 / 94%);
     box-shadow: 0 0 0.85rem rgb(255 255 255 / 66%);
   }
 

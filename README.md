@@ -62,7 +62,7 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
 - `src/entry-server.ts`: トップ画面を静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
-- `src/screens/`: トップ、開始準備、問題、結果の各画面
+- `src/screens/`: トップ、読み込み、開始準備、問題、結果の各画面
 - `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
 - `src/components/HoleCards.svelte`: 手札2枚のサイズ、重なり、角度、モーション
 - `src/components/HandComparison.svelte`: 2つの手札を直接選ぶ比較問題
@@ -77,6 +77,7 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/game.ts`: 問題選択と表示用の純粋関数
 - `src/probability-engine.ts`: 確率計算の純粋関数
 - `src/question-loader.ts`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
+- `src/loading-timing.ts`: 短い読み込みでは表示せず、表示したローディングは最低時間を保つ遷移制御
 - `src/result-summary.ts`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
 - `src/sound-effects.ts`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止
 - `public/sounds/`: 開始、正解、不正解、時間警告、通常結果、満点の効果音
