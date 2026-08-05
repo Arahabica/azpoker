@@ -54,6 +54,7 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 
 - [`PLAN.md`](PLAN.md): ゲーム仕様、確率、問題データ、実装フェーズ
 - [`DESIGN.md`](DESIGN.md): 現在の画面構成、ビジュアル、カード、表示文言
+- [`RELEASE_PLAN.md`](RELEASE_PLAN.md): LP、履歴、利用規約、OGP、ドメインなどの公開準備
 - [`assets/fonts/README.md`](assets/fonts/README.md): UIフォントの収録文字とサブセット再生成
 
 ## コード構成
