@@ -149,6 +149,7 @@
           selectable={question.answerType === "hand"}
           {answerResult}
           answer={question.answer}
+          targetHand={question.targetHand}
           onSelect={handleAnswer}
         />
       {:else}

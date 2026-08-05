@@ -13,6 +13,7 @@
     selectable?: boolean;
     answerResult?: AnswerResult | null;
     answer: QuestionAnswer;
+    targetHand?: HandIndex | undefined;
     onSelect: (index: HandIndex) => void;
   }
 
@@ -22,6 +23,7 @@
     selectable = true,
     answerResult = null,
     answer,
+    targetHand,
     onSelect,
   }: Props = $props();
 
@@ -38,7 +40,8 @@
         class="hand-option"
         class:is-correct={Boolean(answerResult) && index === answer}
         class:is-wrong={answerResult?.selected === index && index !== answer}
-        aria-label={`${index + 1}つ目の手札`}
+        class:is-target={index === targetHand}
+        aria-label={`${index + 1}つ目の手札${index === targetHand ? "、問題の対象" : ""}`}
         {disabled}
         onclick={() => selectHand(index)}
       >
@@ -47,7 +50,8 @@
     {:else}
       <div
         class="hand-option static-hand"
-        aria-label={`${index + 1}つ目の手札`}
+        class:is-target={index === targetHand}
+        aria-label={`${index + 1}つ目の手札${index === targetHand ? "、問題の対象" : ""}`}
       >
         <HoleCards cards={hand} />
       </div>
@@ -78,6 +82,11 @@
 
   .static-hand {
     cursor: default;
+  }
+
+  .hand-option.is-target {
+    border-color: var(--accent-emphasis);
+    background: rgb(241 196 15 / 8%);
   }
 
   .hand-option.is-correct {

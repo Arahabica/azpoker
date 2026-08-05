@@ -32,6 +32,7 @@ const leaveConfirmationSheet = read(
 const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
+const handComparison = read("src/components/HandComparison.svelte");
 const holeCards = read("src/components/HoleCards.svelte");
 const logoCards = read("src/components/LogoCards.svelte");
 const cardSuits = read("src/components/card-suits.ts");
@@ -547,6 +548,15 @@ test("問題画面は回答パネルをコンポーネントで表示する", ()
   assert.match(quiz, /<AnswerSheet/);
   assert.match(answerSheet, /@keyframes raise-sheet/);
   assert.match(styles, /prefers-reduced-motion/);
+});
+
+test("右の手札の勝率問題は対象の手札枠を強調する", () => {
+  assert.match(quiz, /targetHand=\{question\.targetHand\}/);
+  assert.match(handComparison, /class:is-target=\{index === targetHand\}/);
+  assert.match(
+    handComparison,
+    /\.hand-option\.is-target[\s\S]*border-color: var\(--accent-emphasis\)/,
+  );
 });
 
 test("常設の戻る操作を置かず、回答パネルから終了確認を開く", () => {
