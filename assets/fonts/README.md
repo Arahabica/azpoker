@@ -4,8 +4,8 @@
 
 | ファイル                                    | 用途                               | 収録内容                                 |       サイズ |
 | ------------------------------------------- | ---------------------------------- | ---------------------------------------- | -----------: |
-| `kosugi-maru/KosugiMaru-Landing.woff2`      | 初期トップ                         | `暗算ポーカー`と`はじめる`の固有9文字    |  2,176 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 51,872 bytes |
+| `kosugi-maru/KosugiMaru-Landing.woff2`      | 初期トップ                         | タイトル、サブタイトル、開始操作         |  5,984 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 54,092 bytes |
 | `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字                         | `A-Z`、`a-z`、`0-9`、`.`、`%`            |  4,712 bytes |
 
 トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。開始準備画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
@@ -41,7 +41,7 @@ MPLUSRounded1c-Regular.ttf
 pnpm fonts:build -- --source-dir /path/to/font-sources
 ```
 
-問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`、`src/**/*.svelte`、`public/questions/**/*.json`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
+問題画面用の文字は、システムフォントを使うトップ、履歴、利用規約、素材・開発者の画面と部品を除く`src/**/*.ts`、`src/**/*.svelte`、`public/questions/**/*.json`から、日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
 
 生成後は、スクリプトが表示する文字数、Unicode range、容量、SHA-256を確認し、次を実行する。
 
@@ -53,7 +53,7 @@ pnpm build
 ## 現在のSHA-256
 
 ```text
-10df416b9d33d7739b4e08441a18fa2690ee763e6d0e782e64bbff67a7314afd  KosugiMaru-Landing.woff2
-1ce0f7dad5c3979be11513258340152b5f3ccf19dfd806688d1e09efb6e828b3  KosugiMaru-Game.woff2
+99231369113529c802ae49bfc77417b0ce9a4d25420fd465bf5de9487e605053  KosugiMaru-Landing.woff2
+05f5978401efe1532e2a067568fc328a7c4a57a5ea7c4aa09f3a5f2786fc7749  KosugiMaru-Game.woff2
 e797fe3ac0bf30e4431d9feb4e5ce75564f59b0721842e524c5f339a24c260e3  MPLUSRounded1c-UI.woff2
 ```

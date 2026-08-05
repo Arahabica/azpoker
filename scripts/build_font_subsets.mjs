@@ -32,7 +32,22 @@ const sources = {
   },
 };
 
-const landingText = "暗算ポーカーはじめる";
+const landingText =
+  "暗算ポーカー確率を瞬時に判断して、もっと強くなろう！クイズをはじめる";
+const systemFontSourcePaths = new Set(
+  [
+    "src/app-route.ts",
+    "src/screens/LandingScreen.svelte",
+    "src/screens/HistoryScreen.svelte",
+    "src/screens/TermsScreen.svelte",
+    "src/screens/CreditsScreen.svelte",
+    "src/components/LandingQuizPreview.svelte",
+    "src/components/HoldemOverview.svelte",
+    "src/components/HistoryList.svelte",
+    "src/components/PublicPageShell.svelte",
+    "src/components/SiteFooter.svelte",
+  ].map((filename) => path.join(root, filename)),
+);
 const mplusText =
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.%";
 const gameText = collectGameText();
@@ -63,10 +78,9 @@ function collectSourceFiles(directory) {
 }
 
 function collectGameText() {
-  const landingPath = path.join(root, "src", "screens", "LandingScreen.svelte");
   const source =
     collectSourceFiles(path.join(root, "src"))
-      .filter((filename) => filename !== landingPath)
+      .filter((filename) => !systemFontSourcePaths.has(filename))
       .map((filename) => readFileSync(filename, "utf8"))
       .join("") + collectQuestionText();
   const punctuation = new Set([..." 、。？！・ー./:_-"]);

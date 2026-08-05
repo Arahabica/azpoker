@@ -11,7 +11,11 @@ let manifestPromise: Promise<QuestionManifest> | undefined;
 let activeBatches = new Map<QuestionGroup, Question[]>();
 
 function storage(): Storage | null {
-  return typeof localStorage === "undefined" ? null : localStorage;
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
+  }
 }
 
 function readList(key: string): string[] {
@@ -26,7 +30,11 @@ function readList(key: string): string[] {
 }
 
 function writeList(key: string, values: readonly string[]): void {
-  storage()?.setItem(key, JSON.stringify(values));
+  try {
+    storage()?.setItem(key, JSON.stringify(values));
+  } catch {
+    // 保存できない環境でも、問題の取得とクイズ進行は継続する。
+  }
 }
 
 async function fetchJson<T>(url: string, fetchImpl: typeof fetch): Promise<T> {
