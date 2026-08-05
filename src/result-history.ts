@@ -94,6 +94,22 @@ function createQuizHistoryId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+function formatRelativeHistoryTime(
+  completedAt: number,
+  now = Date.now(),
+): string {
+  const elapsedMinutes = Math.floor(
+    Math.max(0, now - completedAt) / (60 * 1000),
+  );
+  if (elapsedMinutes < 1) return "たった今";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}分前`;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours}時間前`;
+
+  return `${Math.floor(elapsedHours / 24)}日前`;
+}
+
 function createQuizHistoryEntry(
   result: QuizHistoryResult,
   completedAt = Date.now(),
@@ -140,6 +156,7 @@ export {
   RESULT_HISTORY_VERSION,
   createQuizHistoryEntry,
   createQuizHistoryId,
+  formatRelativeHistoryTime,
   isQuizHistoryEntry,
   parseQuizHistory,
   readQuizHistory,

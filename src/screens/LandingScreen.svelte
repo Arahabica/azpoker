@@ -16,7 +16,9 @@
 
   let { history, onStart, onNavigate }: Props = $props();
 
-  const recentHistory = $derived(history.slice(0, 2));
+  const recentHistory = $derived(
+    history.length >= 3 ? history.slice(0, 2) : [],
+  );
 
   function showHistory(event: MouseEvent): void {
     if (!shouldHandleAppNavigation(event)) return;
@@ -40,11 +42,10 @@
 
     {#if recentHistory.length > 0}
       <section class="history-panel" aria-labelledby="recent-history-title">
-        <div class="section-heading">
-          <h2 id="recent-history-title">最近の履歴</h2>
-          <a href="/history" onclick={showHistory}>もっと見る</a>
-        </div>
+        <h2 id="recent-history-title">最近の履歴</h2>
         <HistoryList entries={recentHistory} compact />
+        <a class="more-link" href="/history" onclick={showHistory}>もっと見る</a
+        >
       </section>
     {/if}
 
@@ -61,16 +62,26 @@
     <div class="landing-content">
       <LandingQuizPreview />
 
-      <section class="training-value" aria-labelledby="training-value-title">
-        <h2 id="training-value-title">
-          カードを見た瞬間に<wbr />確率が浮かぶように。
-        </h2>
-        <p>
-          フラッシュやストレートの確率、相手がカードを持っている可能性、2つの手札の勝率。クイズを繰り返して、実戦で迷わない判断力を鍛えます。
+      <div class="training-value">
+        <div class="training-copy">
+        <p class="training-lead">
+          カードを見た瞬間に確率が浮かぶようになればプレーはもっと楽しくなります。
         </p>
-      </section>
+          <p>
+            このアプリはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。
+          </p>
+          <p>
+            ちょっとしたスキマ時間にプレイして、ポーカーの基礎体力を上げていきましょう。
+          </p>
+          <p>
+            テキサスホールデムって何？<wbr />という方はこちら ↓
+          </p>
+        </div>
+      </div>
 
-      <HoldemOverview />
+      <div class="holdem-section">
+        <HoldemOverview />
+      </div>
 
       <div class="closing-action">
         <ActionButton
@@ -95,15 +106,10 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    min-height: calc(100vh - 90px);
-    min-height: calc(100svh - 90px);
-    padding: max(1.5rem, env(safe-area-inset-top)) var(--gutter)
-      max(1.5rem, env(safe-area-inset-bottom));
-    font-family: "Kosugi Maru Landing", sans-serif;
-  }
-
-  .landing h2 {
-    font-size: 24px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px var(--lp-padding-horizontal) 60px var(--lp-padding-horizontal);
+    font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Landing", sans-serif;
   }
 
   .brand-lockup {
@@ -149,44 +155,34 @@
 
   .landing-body {
     width: 100%;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI",
-      "Meiryo UI", sans-serif;
+    font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Landing Body", sans-serif;
   }
 
   .history-panel {
     display: grid;
-    gap: 1rem;
+    gap: 0.45rem;
     width: 100%;
-    padding-bottom: 1.5rem;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI",
-      "Meiryo UI", sans-serif;
+    padding-bottom: 1rem;
   }
 
-  .section-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
+  .history-panel h2 {
+    color: #dbeae4;
+    font-size: 0.875rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
   }
 
-  .section-heading h2 {
-    color: var(--text);
-    /* font-size: 1.15rem; */
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    line-height: 1.6;
-  }
-
-  .section-heading a {
-    flex: 0 0 auto;
-    color: #f7dd70;
-    font-size: 0.75rem;
+  .more-link {
+    justify-self: end;
+    color: rgb(255 255 255 / 58%);
+    font-size: 0.65rem;
+    line-height: 1.5;
+    text-decoration: none;
     text-underline-offset: 0.22em;
   }
 
-  .section-heading a:focus-visible {
+  .more-link:focus-visible {
     border-radius: 0.15rem;
     outline: 3px solid rgb(255 255 255 / 82%);
     outline-offset: 3px;
@@ -194,41 +190,47 @@
 
   .landing-content {
     display: grid;
-    gap: 5rem;
     width: 100%;
-    padding: 3.5rem 2.5rem;
+    min-height: 100dvh;
+    padding: 0 var(--lp-padding-horizontal) 3.5rem;
   }
 
   .training-value {
     display: grid;
-    gap: 1rem;
-    padding-inline: 0.2rem;
+    gap: 1.4rem;
+    /* padding: 2.5rem 0.2rem 0; */
+    padding: 24px 0 60px 0;
   }
 
-  .training-value h2 {
-    color: var(--text);
-    /* font-size: clamp(1.55rem, 7vw, 2rem); */
-    font-weight: 750;
-    letter-spacing: -0.04em;
-    line-height: 1.55;
-  }
-
-  .training-value p {
+  .training-lead,
+  .training-copy p {
     color: #c5d9d2;
     font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 0;
     line-height: 1.95;
+    text-align: left;
+  }
+
+  .training-copy {
+    display: grid;
+    gap: 1.1rem;
+  }
+
+  .holdem-section {
+    margin-top: 1.25rem;
   }
 
   .closing-action {
     justify-self: center;
     width: min(100%, 18rem);
-    padding-block: 0.5rem 1rem;
-    font-family: "Kosugi Maru Landing", sans-serif;
+    margin-block: 5rem 2.5rem;
   }
 
   @media (hover: hover) {
-    .section-heading a:hover {
-      color: #fff0aa;
+    .more-link:hover {
+      color: rgb(255 255 255 / 78%);
+      text-decoration: underline;
     }
   }
 </style>

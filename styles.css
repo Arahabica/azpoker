@@ -8,6 +8,15 @@
 }
 
 @font-face {
+  font-family: "Kosugi Maru Landing Body";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/kosugi-maru/KosugiMaru-LandingBody.woff2")
+    format("woff2");
+}
+
+@font-face {
   font-family: "Kosugi Maru Game";
   font-style: normal;
   font-weight: 400;
@@ -60,6 +69,7 @@
   --card-reveal-easing: ease-in-out;
   --card-reveal-start-opacity: 0.4;
   --card-reveal-start-y: 4px;
+  --lp-padding-horizontal: 24px;
   font-family: sans-serif;
 }
 
@@ -114,4 +124,12 @@ p {
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
 }

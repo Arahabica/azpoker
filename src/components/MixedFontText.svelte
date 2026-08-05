@@ -13,11 +13,11 @@
   );
 
   function fontParts(phrase: string): string[] {
-    return phrase.split(/([A-Za-z0-9%]+)/).filter(Boolean);
+    return phrase.split(/([A-Za-z0-9.]+)/).filter(Boolean);
   }
 
   function usesMPlus(part: string): boolean {
-    return /^[A-Za-z0-9%]+$/.test(part);
+    return /^[A-Za-z0-9.]+$/.test(part);
   }
 </script>
 

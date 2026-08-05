@@ -2,11 +2,7 @@
   import Board from "./Board.svelte";
   import ChoiceButton from "./ChoiceButton.svelte";
   import HoleCards from "./HoleCards.svelte";
-  import type { Card, PercentChoice } from "../types.ts";
-
-  const EXAMPLE_BOARD: readonly Card[] = ["8d", "Ad", "2s"];
-  const EXAMPLE_HOLE: readonly Card[] = ["6d", "9d"];
-  const EXAMPLE_CHOICES: readonly PercentChoice[] = ["35%", "20%"];
+  import { LANDING_QUIZ_EXAMPLE } from "../landing-quiz-example.ts";
 
   function ignorePreviewChoice(): void {
     return;
@@ -14,35 +10,52 @@
 </script>
 
 <section class="quiz-example" aria-labelledby="quiz-example-title">
-  <h2 id="quiz-example-title">
-    この問題<wbr />すぐ答えられますか？
-  </h2>
+  <div class="quiz-challenge">
+    <h2 id="quiz-example-title">
+      この問題<wbr />すぐ答えられますか？
+    </h2>
 
-  <div class="quiz-preview">
-    <p class="preview-prompt">フラッシュの確率は？</p>
-    <div class="preview-cards">
-      <Board cards={EXAMPLE_BOARD} revealKey="landing-example" />
-      <HoleCards cards={EXAMPLE_HOLE} />
-    </div>
-    <div class="preview-choices" aria-label="選択肢の例">
-      {#each EXAMPLE_CHOICES as choice (choice)}
-        <ChoiceButton value={choice} disabled onSelect={ignorePreviewChoice} />
-      {/each}
+    <div class="quiz-preview">
+      <p class="preview-prompt">{LANDING_QUIZ_EXAMPLE.prompt}</p>
+      <div class="preview-cards">
+        <Board cards={LANDING_QUIZ_EXAMPLE.board} revealKey="landing-example" />
+        <HoleCards cards={LANDING_QUIZ_EXAMPLE.hole} />
+      </div>
+      <div class="preview-choices" aria-label="選択肢の例">
+        {#each LANDING_QUIZ_EXAMPLE.choices as choice (choice)}
+          <ChoiceButton
+            value={choice}
+            disabled
+            onSelect={ignorePreviewChoice}
+          />
+        {/each}
+      </div>
     </div>
   </div>
 
-  <p class="question-count">収録問題数 <strong>2万問！</strong></p>
+  <h2 class="preview-answer">
+    答えは<strong>約{LANDING_QUIZ_EXAMPLE.answer}</strong><span
+      >（{LANDING_QUIZ_EXAMPLE.actualPercent.toFixed(1)}%）</span
+    >です
+  </h2>
 </section>
 
 <style>
   .quiz-example {
     display: grid;
+  }
+
+  .quiz-challenge {
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-block: 3rem;
   }
 
   h2 {
     color: var(--text);
-    font-size: 28px;
     font-weight: 750;
     letter-spacing: -0.04em;
     line-height: 1.55;
@@ -78,29 +91,36 @@
   .preview-cards {
     --card-reveal-duration: 0.01ms;
     display: grid;
-    gap: 0.15rem;
+    gap: 0.85rem;
   }
 
   .preview-choices {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65rem;
+    margin-top: 0.35rem;
     pointer-events: none;
   }
 
-  .question-count {
+  .preview-answer {
+    padding: 32px 0 240px 0;
     color: #dcebe5;
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    line-height: 1.4;
+    font-weight: 650;
+    line-height: 1.65;
     text-align: center;
   }
 
-  .question-count strong {
+  .preview-answer strong {
+    margin-inline: 0.3rem 0.15rem;
     color: var(--accent);
-    font-size: 1.65rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
+    font-size: clamp(1.55rem, 7vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .preview-answer span {
+    color: var(--muted);
+    font-size: 0.82em;
+    white-space: nowrap;
   }
 </style>

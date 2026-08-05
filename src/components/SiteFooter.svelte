@@ -15,7 +15,7 @@
 </script>
 
 <footer class="site-footer">
-  <p class="invitation">ご感想・ご要望お待ちしております！</p>
+  <p class="invitation">ご意見・ご感想お待ちしております！</p>
   <a
     class="contact-link"
     href="https://x.com/Arahabica1"
@@ -40,9 +40,6 @@
     padding-block: 1.8rem max(1.5rem, env(safe-area-inset-bottom));
     border-top: 1px solid rgb(255 255 255 / 11%);
     color: var(--muted);
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI",
-      "Meiryo UI", sans-serif;
     font-size: 0.78rem;
     line-height: 1.7;
     text-align: center;

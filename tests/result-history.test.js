@@ -5,6 +5,7 @@ import {
   RESULT_HISTORY_KEY,
   RESULT_HISTORY_LIMIT,
   createQuizHistoryEntry,
+  formatRelativeHistoryTime,
   parseQuizHistory,
   readQuizHistory,
   saveQuizHistory,
@@ -50,6 +51,26 @@ test("保存値がない場合や壊れている場合は空の履歴として�
     parseQuizHistory(JSON.stringify([valid, { ...valid, id: "" }, null])),
     [valid],
   );
+});
+
+test("完了日時を現在からの経過時間で簡潔に表示する", () => {
+  const now = 1_800_000_000_000;
+
+  assert.equal(formatRelativeHistoryTime(now - 30_000, now), "たった今");
+  assert.equal(formatRelativeHistoryTime(now - 5 * 60_000, now), "5分前");
+  assert.equal(
+    formatRelativeHistoryTime(now - 5 * 60 * 60_000, now),
+    "5時間前",
+  );
+  assert.equal(
+    formatRelativeHistoryTime(now - 5 * 24 * 60 * 60_000, now),
+    "5日前",
+  );
+  assert.equal(
+    formatRelativeHistoryTime(now - 31 * 24 * 60 * 60_000, now),
+    "31日前",
+  );
+  assert.equal(formatRelativeHistoryTime(now + 60_000, now), "たった今");
 });
 
 test("結果を新しい順で最大50件保存する", () => {

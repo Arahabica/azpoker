@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { CARD_SUITS } from "../src/components/card-suits.ts";
+import { LANDING_QUIZ_EXAMPLE } from "../src/landing-quiz-example.ts";
+import { calculateProbability } from "../src/probability-engine.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -70,6 +72,13 @@ const landingFontPath = path.join(
   "fonts",
   "kosugi-maru",
   "KosugiMaru-Landing.woff2",
+);
+const landingBodyFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "kosugi-maru",
+  "KosugiMaru-LandingBody.woff2",
 );
 const gameFontPath = path.join(
   root,
@@ -181,15 +190,28 @@ test("公開ページとゲーム画面を独立したSvelteコンポーネン�
   assert.match(result, /id="back-home"/);
 });
 
-test("トップLPはクイズの目的と実物を見せ、履歴を開始操作の直前へ置く", () => {
+test("トップLPは問題、答え、アプリ説明、ルール説明の順で見せる", () => {
   assert.match(landing, /確率を瞬時に判断して、/);
   assert.match(landing, /もっと強くなろう！/);
   assert.equal(landing.match(/label="クイズをはじめる"/g)?.length, 2);
   assert.match(landing, /{#if recentHistory\.length > 0}/);
-  assert.match(landing, /min-height: calc\(100svh - 90px\)/);
+  assert.match(
+    landing,
+    /history\.length >= 3 \? history\.slice\(0, 2\) : \[\]/,
+  );
+  assert.match(landing, /min-height: 100dvh/);
   assert.ok(
     landing.indexOf("{#if recentHistory.length > 0}") <
       landing.indexOf('id="start-game"'),
+  );
+  assert.ok(
+    landing.indexOf("<HistoryList") < landing.indexOf('class="more-link"'),
+  );
+  assert.match(historyList, /formatRelativeHistoryTime/);
+  assert.match(historyList, /class="compact-row"/);
+  assert.match(
+    historyList,
+    /grid-template-columns: minmax\(0, 1fr\) auto auto/,
   );
   assert.doesNotMatch(
     landing.match(/\.landing-body \{([^}]*)\}/)?.[1] ?? "",
@@ -197,17 +219,69 @@ test("トップLPはクイズの目的と実物を見せ、履歴を開始操作
   );
   assert.match(landing, /<LandingQuizPreview \/>/);
   assert.match(landing, /<HoldemOverview \/>/);
+  assert.ok(
+    landing.indexOf("<LandingQuizPreview") <
+      landing.indexOf('class="training-value"'),
+  );
+  assert.ok(
+    landing.indexOf('class="training-value"') <
+      landing.indexOf("<HoldemOverview"),
+  );
   assert.doesNotMatch(landing, /section-number|feature-list/);
   assert.doesNotMatch(landing, /10問で、すばやく反復/);
+  assert.match(
+    landing,
+    /このゲームはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。/,
+  );
+  assert.match(landing, /<p class="training-lead">/);
+  assert.doesNotMatch(landing, /<h2[^>]*id="training-value-title"/);
+  assert.match(landing, /ポーカーの基礎体力を上げていきましょう。/);
+  assert.match(landing, /テキサスホールデムって何？/);
+  assert.match(
+    landing,
+    /\.landing-content \{[\s\S]*?padding: 0 var\(--lp-padding-horizontal\) 3\.5rem;/,
+  );
+  assert.match(
+    landing,
+    /\.training-lead,\s*\.training-copy p,\s*\.holdem-introduction \{[\s\S]*?text-align: left;/,
+  );
 
-  assert.match(landingQuizPreview, /フラッシュの確率は？/);
-  assert.match(landingQuizPreview, /<Board cards={EXAMPLE_BOARD}/);
-  assert.match(landingQuizPreview, /<HoleCards cards={EXAMPLE_HOLE}/);
-  assert.match(landingQuizPreview, /収録問題数 <strong>2万問！<\/strong>/);
+  assert.equal(LANDING_QUIZ_EXAMPLE.prompt, "フラッシュの確率は？");
+  assert.match(
+    landingQuizPreview,
+    /<Board[\s\S]*cards={LANDING_QUIZ_EXAMPLE\.board}/,
+  );
+  assert.match(
+    landingQuizPreview,
+    /<HoleCards cards={LANDING_QUIZ_EXAMPLE\.hole}/,
+  );
+  assert.match(landingQuizPreview, /class="quiz-challenge"/);
+  assert.match(
+    landingQuizPreview,
+    /\.quiz-challenge \{[\s\S]*min-height: 100dvh/,
+  );
+  assert.match(landingQuizPreview, /答えは<strong>約/);
+  assert.doesNotMatch(landingQuizPreview, /question-count|収録問題数/);
+  assert.match(landingQuizPreview, /\.preview-cards \{[\s\S]*gap: 0\.85rem/);
+  assert.match(
+    landingQuizPreview,
+    /\.preview-choices \{[\s\S]*margin-top: 0\.35rem/,
+  );
+
+  const exampleProbability = calculateProbability({
+    hole: LANDING_QUIZ_EXAMPLE.hole,
+    board: LANDING_QUIZ_EXAMPLE.board,
+    target: LANDING_QUIZ_EXAMPLE.target,
+  });
+  assert.equal(
+    exampleProbability.percent.toFixed(1),
+    LANDING_QUIZ_EXAMPLE.actualPercent.toFixed(1),
+  );
+  assert.equal(LANDING_QUIZ_EXAMPLE.answer, "35%");
 
   assert.match(
     holdemOverview,
-    /<h2 id="holdem-title">テキサスホールデム<\/h2>/,
+    /<h3 id="holdem-title">テキサスホールデム<\/h3>/,
   );
   assert.match(holdemOverview, /テーブルのカード 5枚/);
   assert.match(holdemOverview, /手札 2枚/);
@@ -215,6 +289,7 @@ test("トップLPはクイズの目的と実物を見せ、履歴を開始操作
   assert.match(holdemOverview, /href="https:\/\/www\.ajpc\.jp\/about-poker\/"/);
   assert.match(holdemOverview, /target="_blank"/);
   assert.match(holdemOverview, /rel="external noopener"/);
+  assert.doesNotMatch(holdemOverview, /このアプリで取り扱うポーカーです/);
 });
 
 test("共通フッターは感想の案内、Xへの連絡、3つのサイト情報だけを表示する", () => {
@@ -258,7 +333,7 @@ test("アクセントカラーに黄色を使う", () => {
   assert.match(rootBlock, /--accent-emphasis: rgb\(241 196 15\);/);
 });
 
-test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
+test("UIフォントを自己配信し、ヒーローとLP本文のKosugiを分ける", () => {
   assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/);
   assert.doesNotMatch(html, /<link[^>]+rel="preconnect"/);
   const landingPreload =
@@ -267,9 +342,14 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(landingPreload, /as="font"/);
   assert.match(landingPreload, /type="font\/woff2"/);
   assert.match(landingPreload, /crossorigin/);
+  assert.doesNotMatch(html, /KosugiMaru-LandingBody\.woff2/);
   assert.match(
     styles,
     /font-family: "Kosugi Maru Landing"[\s\S]*KosugiMaru-Landing\.woff2/,
+  );
+  assert.match(
+    styles,
+    /font-family: "Kosugi Maru Landing Body"[\s\S]*KosugiMaru-LandingBody\.woff2/,
   );
   assert.match(
     styles,
@@ -281,7 +361,11 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(
     landing,
-    /\.landing-screen \{[\s\S]*font-family: "Kosugi Maru Landing", sans-serif;/,
+    /\.landing-hero \{[\s\S]*"M PLUS Rounded 1c UI", "Kosugi Maru Landing", sans-serif;/,
+  );
+  assert.match(
+    landing,
+    /\.landing-body \{[\s\S]*"M PLUS Rounded 1c UI", "Kosugi Maru Landing Body", sans-serif;/,
   );
   assert.match(
     prepare,
@@ -297,14 +381,16 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
   assert.doesNotMatch(styles, /fonts\.googleapis/);
-  const landingRule = landing.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
-  assert.doesNotMatch(landingRule, /Kosugi Maru Game|M PLUS Rounded/);
 
   const landingFontSize = fs.statSync(landingFontPath).size;
+  const landingBodyFontSize = fs.statSync(landingBodyFontPath).size;
   const gameFontSize = fs.statSync(gameFontPath).size;
   const mplusFontSize = fs.statSync(mplusFontPath).size;
   assert.ok(landingFontSize > 0 && landingFontSize < 12_000);
-  assert.ok(gameFontSize > landingFontSize && gameFontSize < 60_000);
+  assert.ok(
+    landingBodyFontSize > landingFontSize && landingBodyFontSize < 35_000,
+  );
+  assert.ok(gameFontSize > landingBodyFontSize && gameFontSize < 60_000);
   assert.ok(mplusFontSize > 0 && mplusFontSize < 10_000);
   assert.match(
     fontBuildScript,
@@ -314,7 +400,7 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(fontBuildScript, /HoldemOverview\.svelte/);
   assert.match(
     fontBuildScript,
-    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\.%/,
+    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\./,
   );
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
   assert.match(fontBuildScript, /\(\?:ts\|svelte\)/);
@@ -322,7 +408,8 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
 
   assert.match(quiz, /MixedFontText text=\{question\.prompt\} phraseWrap/);
-  assert.match(mixedFontText, /\[A-Za-z0-9%\]/);
+  assert.match(mixedFontText, /\[A-Za-z0-9\.\]/);
+  assert.doesNotMatch(mixedFontText, /A-Za-z0-9%/);
   assert.match(mixedFontText, /splitAtNaturalBreaks/);
   assert.match(mixedFontText, /<wbr \/>/);
   assert.match(mixedFontText, /<\/span>\{#if phraseWrap/);

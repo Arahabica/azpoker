@@ -8,10 +8,10 @@
 
 <section class="holdem-overview" aria-labelledby="holdem-title">
   <div class="holdem-copy">
-    <h2 id="holdem-title">テキサスホールデム</h2>
-    <p>このアプリで取り扱うポーカーです。</p>
+    <h3 id="holdem-title">テキサスホールデム</h3>
     <p>
-      手札2枚と、テーブルに開く5枚の共通カード。<br/>この7枚から最も強い5枚を選んで役を作る、世界で広く遊ばれているポーカーです。
+      手札2枚と、テーブルに開く5枚の共通カード。<br
+      />この7枚から最も強い5枚を選んで役を作る、世界で広く遊ばれているポーカーです。
     </p>
   </div>
 
@@ -71,10 +71,11 @@
     gap: 0.75rem;
   }
 
-  h2 {
+  h3 {
     color: var(--text);
-    font-size: clamp(1.35rem, 6vw, 1.7rem);
     font-weight: 750;
+    padding: 0;
+    margin: 0;
     letter-spacing: -0.035em;
     line-height: 1.5;
   }
