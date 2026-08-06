@@ -42,6 +42,14 @@ TypeScript 7.0はまだSvelteが利用するコンパイラAPIを提供してい
 pnpm questions:build
 ```
 
+OGP画像を現在のトップページから再生成する場合:
+
+```sh
+pnpm ogp:capture
+```
+
+Chromeを使って撮影専用状態のトップページを1200×630pxで描画し、`public/ogp.png`を更新します。Chromeを標準以外の場所へインストールしている場合は`CHROME_PATH`で実行ファイルを指定します。
+
 ## 公開
 
 Cloudflare Pages: <https://anzan-poker.pages.dev/>
@@ -65,6 +73,7 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
 - `src/entry-server.ts`: 公開ページを静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を各URLの `index.html` へ埋め込むビルド処理
+- `scripts/capture-ogp.mjs`: トップの撮影専用状態から1200×630pxのOGP画像を再生成
 - `src/screens/`: トップ、履歴、規約、素材、読み込み、開始準備、問題、結果の各画面
 - `src/result-history.ts`: クイズ結果の検証、LocalStorage保存、50件上限と重複防止
 - `src/components/HistoryList.svelte`: トップと履歴ページで共有する結果一覧

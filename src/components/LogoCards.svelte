@@ -28,7 +28,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 8.5rem;
+    height: var(--logo-cards-height, 8.5rem);
   }
 
   .logo-card {
@@ -36,7 +36,7 @@
     --card-reveal-start-opacity: 0.8;
     --card-context-shadow:
       0 0.8rem 1.4rem rgb(0 30 22 / 32%), inset 0 0 0 1px rgb(255 255 255 / 72%);
-    width: clamp(4.7rem, 22vw, 5.6rem);
+    width: var(--logo-card-width, clamp(4.7rem, 22vw, 5.6rem));
     transform: rotate(var(--card-end-angle));
     transform-origin: 50% 88%;
     animation: reveal-logo-card var(--card-reveal-duration)
@@ -44,7 +44,7 @@
   }
 
   .logo-card + .logo-card {
-    margin-left: -1.15rem;
+    margin-left: var(--logo-card-overlap, -1.15rem);
   }
 
   @keyframes reveal-logo-card {

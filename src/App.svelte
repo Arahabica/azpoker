@@ -2,6 +2,8 @@
   import { onDestroy, onMount, tick, untrack } from "svelte";
 
   import {
+    OGP_IMAGE_URL,
+    getCanonicalUrl,
     getPageMetadata,
     normalizeAppPath,
     type AppPath,
@@ -84,6 +86,7 @@
   let soundEffects: SoundEffects | undefined;
 
   const pageMetadata = $derived(getPageMetadata(currentPath));
+  const canonicalUrl = $derived(getCanonicalUrl(currentPath));
   const currentIndex = $derived(getQuestionIndex(flow) ?? 0);
   const currentQuestion = $derived(session[currentIndex]);
   const answerResult = $derived(getAnswerResult(flow));
@@ -415,6 +418,24 @@
 <svelte:head>
   <title>{pageMetadata.title}</title>
   <meta name="description" content={pageMetadata.description} />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta property="og:title" content={pageMetadata.title} />
+  <meta property="og:description" content={pageMetadata.description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={OGP_IMAGE_URL} />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta
+    property="og:image:alt"
+    content="緑のポーカーテーブルにスペードのAとハートの10を配した暗算ポーカーのタイトル画像"
+  />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={pageMetadata.title} />
+  <meta name="twitter:description" content={pageMetadata.description} />
+  <meta name="twitter:image" content={OGP_IMAGE_URL} />
 </svelte:head>
 
 <main class="app-shell">
@@ -526,5 +547,14 @@
       border-left: 1px solid rgb(255 255 255 / 8%);
       box-shadow: 0 0 4rem rgb(0 0 0 / 46%);
     }
+  }
+
+  :global(html[data-ogp-capture]) .app-shell {
+    width: 1200px;
+    max-width: none;
+    height: 630px;
+    min-height: 630px;
+    border: 0;
+    box-shadow: none;
   }
 </style>

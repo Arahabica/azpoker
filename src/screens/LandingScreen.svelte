@@ -191,4 +191,57 @@
     width: min(100%, 18rem);
     margin-block: 5rem 2.5rem;
   }
+
+  :global(html[data-ogp-capture]) .landing-screen,
+  :global(html[data-ogp-capture]) .landing-hero {
+    height: 630px;
+    min-height: 630px;
+  }
+
+  :global(html[data-ogp-capture]) .landing-screen {
+    overflow: hidden;
+  }
+
+  :global(html[data-ogp-capture]) .landing-hero {
+    padding: 0;
+  }
+
+  :global(html[data-ogp-capture]) .brand-lockup {
+    --logo-cards-height: 15rem;
+    --logo-card-width: 9.5rem;
+    --logo-card-overlap: -2.1rem;
+    --card-reveal-duration: 0.01ms;
+    flex: none;
+    align-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 1.75rem;
+    padding: 0 4rem;
+  }
+
+  :global(html[data-ogp-capture]) .brand-lockup h1 {
+    font-size: 5.25rem;
+    letter-spacing: -0.045em;
+    text-shadow: 0 0.3rem 0.9rem rgb(0 0 0 / 22%);
+  }
+
+  :global(html[data-ogp-capture]) .brand-copy {
+    gap: 1.1rem;
+  }
+
+  :global(html[data-ogp-capture]) .tagline {
+    display: block;
+    font-size: 1.65rem;
+    letter-spacing: 0.025em;
+  }
+
+  :global(html[data-ogp-capture]) .tagline span + span::before {
+    content: " ";
+  }
+
+  :global(html[data-ogp-capture]) .start-action,
+  :global(html[data-ogp-capture] .history-panel),
+  :global(html[data-ogp-capture]) .landing-body {
+    display: none;
+  }
 </style>

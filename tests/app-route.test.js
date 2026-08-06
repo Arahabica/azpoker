@@ -3,6 +3,9 @@ import test from "node:test";
 
 import {
   APP_PATHS,
+  OGP_IMAGE_URL,
+  SITE_ORIGIN,
+  getCanonicalUrl,
   getPageMetadata,
   normalizeAppPath,
 } from "../src/app-route.ts";
@@ -28,4 +31,11 @@ test("各ページに固有のタイトルと説明を持たせる", () => {
   }
   assert.match(getPageMetadata("/history").title, /^履歴/);
   assert.match(getPageMetadata("/terms").title, /^利用規約/);
+});
+
+test("公開URLとOGP画像はazpoker.meの絶対URLに統一する", () => {
+  assert.equal(SITE_ORIGIN, "https://azpoker.me");
+  assert.equal(getCanonicalUrl("/"), "https://azpoker.me/");
+  assert.equal(getCanonicalUrl("/history"), "https://azpoker.me/history");
+  assert.equal(OGP_IMAGE_URL, "https://azpoker.me/ogp.png");
 });

@@ -174,6 +174,9 @@ test("公開ページをビルド時に描画し、ブラウザでhydrateする"
     /vite build --ssr src\/entry-server\.ts --outDir \.prerender/,
   );
   assert.match(packageJson.scripts.build, /node scripts\/prerender\.mjs/);
+  assert.match(app, /rel="canonical" href={canonicalUrl}/);
+  assert.match(app, /property="og:image" content={OGP_IMAGE_URL}/);
+  assert.match(app, /name="twitter:card" content="summary_large_image"/);
 });
 
 test("公開ページとゲーム画面を独立したSvelteコンポーネントで切り替える", () => {
@@ -417,7 +420,10 @@ test("UIフォントを自己配信し、ヒーローとLP本文のKosugiを分�
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
   assert.match(fontBuildScript, /\(\?:ts\|svelte\)/);
   assert.match(landing, /\.brand-lockup h1 \{[\s\S]*line-height: 1;/);
-  assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
+  assert.match(
+    logoCards,
+    /\.logo-cards \{[\s\S]*height: var\(--logo-cards-height, 8\.5rem\);/,
+  );
 
   assert.match(quiz, /MixedFontText text=\{question\.prompt\} phraseWrap/);
   assert.match(mixedFontText, /\[A-Za-z0-9\.\]/);

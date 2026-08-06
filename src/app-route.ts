@@ -1,4 +1,6 @@
 const APP_PATHS = ["/", "/history", "/terms", "/credits"] as const;
+const SITE_ORIGIN = "https://azpoker.me";
+const OGP_IMAGE_URL = `${SITE_ORIGIN}/ogp.png`;
 
 type AppPath = (typeof APP_PATHS)[number];
 
@@ -40,6 +42,10 @@ function getPageMetadata(path: AppPath): PageMetadata {
   return PAGE_METADATA[path];
 }
 
+function getCanonicalUrl(path: AppPath): string {
+  return new URL(path, SITE_ORIGIN).href;
+}
+
 function shouldHandleAppNavigation(event: MouseEvent): boolean {
   return (
     !event.defaultPrevented &&
@@ -53,6 +59,9 @@ function shouldHandleAppNavigation(event: MouseEvent): boolean {
 
 export {
   APP_PATHS,
+  OGP_IMAGE_URL,
+  SITE_ORIGIN,
+  getCanonicalUrl,
   getPageMetadata,
   normalizeAppPath,
   shouldHandleAppNavigation,
