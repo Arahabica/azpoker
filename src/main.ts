@@ -3,6 +3,10 @@ import { hydrate, mount } from "svelte";
 import "../styles.css";
 import App from "./App.svelte";
 
+const isOgpCapture =
+  new URLSearchParams(window.location.search).get("capture") === "ogp";
+document.documentElement.toggleAttribute("data-ogp-capture", isOgpCapture);
+
 const target = document.querySelector("#app");
 
 if (!target) {

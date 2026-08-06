@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --ssr src/entry-server.ts --outDir .prerender && node scripts/prerender.mjs",
+    "ogp:capture": "pnpm run build && node scripts/capture-ogp.mjs",
     "preview": "vite preview",
     "test": "node --import tsx --test",
     "typecheck:ts": "tsc --noEmit -p tsconfig.json",
