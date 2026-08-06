@@ -52,12 +52,10 @@ NEW_A_COUNTS = {
 }
 NEW_B_COUNTS = {
     "tie_probability": 300,
-    "trailing_hand_wins": 300,
-    "clean_out": 225,
-    "next_card_reversal": 225,
+    "trailing_hand_wins": 525,
     "board_straight_chop": 225,
     "board_flush_chop": 225,
-    "leading_hand_holds": 300,
+    "leading_hand_holds": 525,
 }
 NEW_D_COUNTS = {
     "opponent_pocket_pair": 209,
@@ -937,24 +935,8 @@ def outcome_percent(hands, board, predicate) -> float:
     return hits / total * 100
 
 
-def next_card_reversal_percent(hands, board, leader, trailer) -> float:
-    known = {card for hand in hands for card in hand} | set(board)
-    remaining = tuple(card for card in DECK if card not in known)
-    hits = sum(
-        evaluate((*hands[trailer], *board, card))
-        > evaluate((*hands[leader], *board, card))
-        for card in remaining
-    )
-    return hits / len(remaining) * 100
-
-
 NEW_B_COPY = {
     "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
-    "clean_out": ("最後の1枚で逆転する確率は？", "負けている側を逆転勝ちさせるカードを、クリーンアウトと呼びます。"),
-    "next_card_reversal": (
-        "次のカードで役の強さが逆転する確率は？",
-        "現在負けている側が、次のカード直後に相手より強い役になる可能性です。",
-    ),
     "board_straight_chop": (
         "ボードの5枚だけでストレートになり、引き分ける確率は？",
         "最後にボードの5枚だけでストレートができ、左右の手札が同じ役になる可能性です。",
@@ -971,11 +953,12 @@ def mode_b_copy(category: str, leader: int | None = None) -> tuple[str, str, int
         if leader not in {0, 1}:
             raise ValueError(f"左右を特定できません: {category}")
         target_hand = leader if category == "leading_hand_holds" else 1 - leader
-        side = "左" if target_hand == 0 else "右"
+        if target_hand != 1:
+            raise ValueError(f"勝率問題の対象が右に配置されていません: {category}")
         current_state = "強く、そのまま最後まで勝つ" if category == "leading_hand_holds" else "弱く、最後に逆転して勝つ"
         return (
-            f"{side}の手札の勝率は？",
-            f"今は{side}の手札が{current_state}可能性です。",
+            "右の手札の勝率は？",
+            f"今は右の手札が{current_state}可能性です。",
             target_hand,
         )
     prompt, explain = NEW_B_COPY[category]
@@ -992,7 +975,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
             attempts += 1
             if attempts > count * 4000:
                 raise RuntimeError(f"B/{category} の生成候補が不足")
-            stage = "turn" if category == "clean_out" else "flop" if category == "next_card_reversal" else rng.choice(("flop", "turn"))
+            stage = rng.choice(("flop", "turn"))
             board_size = 3 if stage == "flop" else 4
             if category == "board_straight_chop":
                 stage = "flop"
@@ -1015,14 +998,20 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                 board = cards[4:]
             current = [evaluate((*hand, *board)) for hand in hands]
             leader = 0 if current[0] > current[1] else 1 if current[1] > current[0] else None
-            trailer = None if leader is None else 1 - leader
-            if category in {"trailing_hand_wins", "clean_out", "next_card_reversal", "leading_hand_holds"} and leader is None:
+            if category in {"trailing_hand_wins", "leading_hand_holds"} and leader is None:
                 continue
+            if category in {"trailing_hand_wins", "leading_hand_holds"}:
+                target_hand = leader if category == "leading_hand_holds" else 1 - leader
+                if target_hand == 0:
+                    hands = (hands[1], hands[0])
+                    current = [current[1], current[0]]
+                    leader = 1 - leader
+            trailer = None if leader is None else 1 - leader
 
             def predicate(scores, final_board, runout):
                 if category == "tie_probability":
                     return scores[0] == scores[1]
-                if category in {"trailing_hand_wins", "clean_out"}:
+                if category == "trailing_hand_wins":
                     return scores[trailer] > scores[leader]
                 if category == "leading_hand_holds":
                     return scores[leader] > scores[trailer]
@@ -1031,10 +1020,7 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                     return False
                 return board_score[0] == (4 if category == "board_straight_chop" else 5)
 
-            if category == "next_card_reversal":
-                value = next_card_reversal_percent(hands, board, leader, trailer)
-            else:
-                value = outcome_percent(hands, board, predicate)
+            value = outcome_percent(hands, board, predicate)
             if not 0.5 <= value <= 99.5:
                 continue
             key = f"{category}:{stage}:{canonical_cards([list(hands[0]), list(hands[1]), list(board)])}"
@@ -1358,7 +1344,12 @@ def validate(bank: list[dict]) -> None:
     if len({question["conceptKey"] for question in bank}) != len(bank):
         raise RuntimeError("スート同型を含む問題構造が重複しています")
     for question in bank:
-        if question.get("category") in {"nut_flush", "same_final_category"}:
+        if question.get("category") in {
+            "nut_flush",
+            "same_final_category",
+            "clean_out",
+            "next_card_reversal",
+        }:
             raise RuntimeError(f"廃止した問題カテゴリです: {question['id']}")
         cards = question.get("hole", []) + question.get("board", [])
         cards += [card for hand in question.get("hands", []) for card in hand]
@@ -1389,22 +1380,10 @@ def validate(bank: list[dict]) -> None:
                 raise RuntimeError(f"左右を特定できない勝率問題です: {question['id']}")
             leader = 0 if current[0] > current[1] else 1
             expected_target = leader if question["category"] == "leading_hand_holds" else 1 - leader
-            if question.get("targetHand") != expected_target:
+            if expected_target != 1 or question.get("targetHand") != 1:
                 raise RuntimeError(f"勝率の対象手札が不正です: {question['id']}")
-            side = "左" if expected_target == 0 else "右"
-            if question["prompt"] != f"{side}の手札の勝率は？":
+            if question["prompt"] != "右の手札の勝率は？":
                 raise RuntimeError(f"勝率の対象が問題文と不一致です: {question['id']}")
-        if question.get("category") == "next_card_reversal":
-            hands = tuple(tuple(hand) for hand in question["hands"])
-            board = tuple(question["board"])
-            current = [evaluate((*hand, *board)) for hand in hands]
-            if current[0] == current[1]:
-                raise RuntimeError(f"次カード逆転問題の開始時点が同点です: {question['id']}")
-            leader = 0 if current[0] > current[1] else 1
-            trailer = 1 - leader
-            expected = round(next_card_reversal_percent(hands, board, leader, trailer), 2)
-            if question["stage"] != "flop" or question["trueP"] != expected:
-                raise RuntimeError(f"次カード逆転率が不正です: {question['id']}")
         if question.get("category") == "four_flush_board":
             target_suit = question.get("targetSuit")
             if target_suit not in SUITS:
@@ -1605,7 +1584,7 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v5", "B": "-v6", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v5", "B": "-v8", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         if cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))

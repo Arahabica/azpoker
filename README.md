@@ -4,7 +4,7 @@
 
 ポーカーのドロー確率、2ハンドの強さ、プリフロップ勝率を2択で答える、10問1セットのブラウザドリルです。
 
-UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。トップ画面はビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
+UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。トップ、履歴、利用規約、素材・開発者ページはビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
 
 ## 起動
 
@@ -54,16 +54,22 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 
 - [`PLAN.md`](PLAN.md): ゲーム仕様、確率、問題データ、実装フェーズ
 - [`DESIGN.md`](DESIGN.md): 現在の画面構成、ビジュアル、カード、表示文言
+- [`RELEASE_PLAN.md`](RELEASE_PLAN.md): LP、履歴、利用規約、OGP、ドメインなどの公開準備
 - [`assets/fonts/README.md`](assets/fonts/README.md): UIフォントの収録文字とサブセット再生成
 
 ## コード構成
 
-- `src/App.svelte`: 問題データの準備と、フォーカス・効果音など画面遷移に伴う副作用
+- `src/App.svelte`: 公開ページの遷移、問題データの準備、フォーカス・効果音など画面遷移に伴う副作用
+- `src/app-route.ts`: `/`、`/history`、`/terms`、`/credits`の解決とページメタ情報
 - `src/game-flow.ts`: トップ、準備、出題、回答済み、結果を遷移させる純粋なTypeScript状態機械
 - `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
-- `src/entry-server.ts`: トップ画面を静的HTMLへ描画するSSRエントリ
-- `scripts/prerender.mjs`: SSR出力を `dist/index.html` へ埋め込むビルド処理
-- `src/screens/`: トップ、読み込み、開始準備、問題、結果の各画面
+- `src/entry-server.ts`: 公開ページを静的HTMLへ描画するSSRエントリ
+- `scripts/prerender.mjs`: SSR出力を各URLの `index.html` へ埋め込むビルド処理
+- `src/screens/`: トップ、履歴、規約、素材、読み込み、開始準備、問題、結果の各画面
+- `src/result-history.ts`: クイズ結果の検証、LocalStorage保存、50件上限と重複防止
+- `src/components/HistoryList.svelte`: トップと履歴ページで共有する結果一覧
+- `src/components/PublicPageShell.svelte`: 履歴、利用規約、素材ページの共通レイアウト
+- `src/components/SiteFooter.svelte`: 利用規約、素材、開発者、お問い合わせへの共通リンク
 - `src/components/Board.svelte`: ボードの5列配置、サイズ、同時モーション
 - `src/components/HoleCards.svelte`: 手札2枚のサイズ、重なり、角度、モーション
 - `src/components/HandComparison.svelte`: 2つの手札を直接選ぶ比較問題

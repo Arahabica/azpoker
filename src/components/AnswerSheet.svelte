@@ -123,13 +123,14 @@
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: rgb(255 255 255 / 42%);
+    color: #fff;
     cursor: pointer;
   }
 
   .leave-button svg {
     width: 1.4rem;
     fill: none;
+    opacity: 0.42;
     stroke: currentcolor;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -201,7 +202,10 @@
   @media (hover: hover) {
     .leave-button:hover {
       background: rgb(255 255 255 / 6%);
-      color: rgb(255 255 255 / 68%);
+    }
+
+    .leave-button:hover svg {
+      opacity: 0.68;
     }
   }
 

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   loadQuestionPool,
+  rememberQuestions,
   resetQuestionLoaderForTest,
 } from "../src/question-loader.ts";
 
@@ -82,4 +83,27 @@ test("JSON取得失敗をユーザー向けエラーへ変換する", async () =
     ),
     /問題を読み込めませんでした/,
   );
+});
+
+test("LocalStorageが利用できなくても問題の記録で停止しない", () => {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "localStorage",
+  );
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    get() {
+      throw new Error("unavailable");
+    },
+  });
+
+  try {
+    assert.doesNotThrow(() => rememberQuestions([{ id: "A-1" }]));
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(globalThis, "localStorage", originalDescriptor);
+    } else {
+      delete globalThis.localStorage;
+    }
+  }
 });

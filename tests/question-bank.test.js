@@ -209,7 +209,6 @@ test("A5sの2人勝率は捨て選択肢を使わない", () => {
 
 test("初心者向け文言を使い、内部表記を画面へ出さない", () => {
   const explanationOnlyTerms = [
-    "クリーンアウト",
     "ポケットペア",
     "オーバーペア",
     "セット",
@@ -256,10 +255,6 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
   );
   assert.match(runner?.explain ?? "", /残り2枚が両方/);
 
-  const cleanOut = bank.find((question) => question.category === "clean_out");
-  assert.match(cleanOut?.prompt ?? "", /最後の1枚で逆転する/);
-  assert.match(cleanOut?.explain ?? "", /クリーンアウト/);
-
   const opponentSet = bank.find(
     (question) => question.category === "opponent_set",
   );
@@ -301,15 +296,13 @@ test("ボード4枚問題は対象のマークを具体的に示す", () => {
   }
 });
 
-test("モードBの数値問題を勝敗に関係する7形式へ振り分ける", () => {
+test("モードBの数値問題を認知負荷の低い5形式へ振り分ける", () => {
   const expected = {
     tie_probability: 300,
-    trailing_hand_wins: 300,
-    clean_out: 225,
-    next_card_reversal: 225,
+    trailing_hand_wins: 525,
     board_straight_chop: 225,
     board_flush_chop: 225,
-    leading_hand_holds: 300,
+    leading_hand_holds: 525,
   };
   const numericModeB = bank.filter(
     (question) => question.mode === "B" && question.answerType === "percent",
@@ -326,17 +319,22 @@ test("モードBの数値問題を勝敗に関係する7形式へ振り分ける
     expected,
   );
 
-  const nextCardReversals = numericModeB.filter(
-    (question) => question.category === "next_card_reversal",
-  );
-  for (const question of nextCardReversals) {
-    assert.equal(question.stage, "flop");
-    assert.equal(question.prompt, "次のカードで役の強さが逆転する確率は？");
+  for (const removedCategory of [
+    "clean_out",
+    "next_card_reversal",
+    "same_final_category",
+  ]) {
+    assert.equal(
+      numericModeB.some((question) => question.category === removedCategory),
+      false,
+    );
   }
-
   assert.equal(
-    numericModeB.some(
-      (question) => question.category === "same_final_category",
+    numericModeB.some((question) =>
+      [
+        "最後の1枚で逆転する確率は？",
+        "次のカードで役の強さが逆転する確率は？",
+      ].includes(question.prompt),
     ),
     false,
   );
@@ -350,13 +348,17 @@ test("モードBの数値問題を勝敗に関係する7形式へ振り分ける
     );
   }
 
-  for (const question of numericModeB.filter((candidate) =>
+  const targetedWinRates = numericModeB.filter((candidate) =>
     ["trailing_hand_wins", "leading_hand_holds"].includes(candidate.category),
-  )) {
-    assert.ok([0, 1].includes(question.targetHand), `${question.id}: 対象手札`);
-    const side = question.targetHand === 0 ? "左" : "右";
-    assert.equal(question.prompt, `${side}の手札の勝率は？`);
+  );
+  for (const question of targetedWinRates) {
+    assert.equal(question.targetHand, 1, `${question.id}: 対象手札`);
+    assert.equal(question.prompt, "右の手札の勝率は？");
   }
+  assert.equal(
+    numericModeB.some((question) => question.prompt === "左の手札の勝率は？"),
+    false,
+  );
 });
 
 test("手札比較は現在の役ではなく最終的な勝率を尋ねる", () => {

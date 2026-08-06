@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy, onMount, tick, untrack } from "svelte";
 
+  import {
+    getPageMetadata,
+    normalizeAppPath,
+    type AppPath,
+  } from "./app-route.ts";
   import {
     createInitialGameFlow,
     getAnswerResult,
@@ -15,6 +20,14 @@
     waitLoadingAnimation,
   } from "./loading-timing.ts";
   import { getQuestionTimeLimitMs } from "./question-timer.ts";
+  import {
+    RESULT_HISTORY_KEY,
+    createQuizHistoryEntry,
+    createQuizHistoryId,
+    readQuizHistory,
+    saveQuizHistory,
+    type QuizHistoryEntry,
+  } from "./result-history.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
   import type {
@@ -24,11 +37,18 @@
     QuestionOutcome,
     SoundName,
   } from "./types.ts";
+  import CreditsScreen from "./screens/CreditsScreen.svelte";
+  import HistoryScreen from "./screens/HistoryScreen.svelte";
   import LandingScreen from "./screens/LandingScreen.svelte";
   import PrepareScreen from "./screens/PrepareScreen.svelte";
   import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
+  import TermsScreen from "./screens/TermsScreen.svelte";
+
+  interface Props {
+    initialPath?: string;
+  }
 
   type SettleQuestionOptions =
     | {
@@ -46,7 +66,12 @@
         elapsedMs: number;
       };
 
+  let { initialPath = "/" }: Props = $props();
+
   let flow = $state(createInitialGameFlow());
+  let currentPath = $state<AppPath>(
+    untrack(() => normalizeAppPath(initialPath)),
+  );
   let session = $state<Question[]>([]);
   let score = $state(0);
   let choices = $state<PercentChoice[]>([]);
@@ -54,8 +79,11 @@
   let soundEnabled = $state(true);
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
+  let sessionHistoryId = $state("");
+  let resultHistory = $state<QuizHistoryEntry[]>([]);
   let soundEffects: SoundEffects | undefined;
 
+  const pageMetadata = $derived(getPageMetadata(currentPath));
   const currentIndex = $derived(getQuestionIndex(flow) ?? 0);
   const currentQuestion = $derived(session[currentIndex]);
   const answerResult = $derived(getAnswerResult(flow));
@@ -63,6 +91,10 @@
   const timeoutCount = $derived(
     outcomes.filter((outcome) => outcome === "timeout").length,
   );
+
+  function refreshResultHistory(): void {
+    resultHistory = readQuizHistory();
+  }
 
   function focusElement(selector: string): void {
     void tick().then(() => {
@@ -192,6 +224,7 @@
         (total, question) => total + getQuestionTimeLimitMs(question),
         0,
       );
+      sessionHistoryId = createQuizHistoryId();
       flow = readyFlow;
       focusElement("#start-quiz");
     } catch (error) {
@@ -297,6 +330,15 @@
     flow = nextFlow;
 
     if (nextFlow.status === "result") {
+      const historyEntry = createQuizHistoryEntry({
+        id: sessionHistoryId || createQuizHistoryId(),
+        score,
+        total: session.length,
+        elapsedMs: sessionElapsedMs,
+        timeLimitMs: sessionTimeLimitMs,
+        timeoutCount,
+      });
+      resultHistory = saveQuizHistory(historyEntry);
       playSound(score === session.length ? "perfect" : "complete");
       focusElement("#retry");
       return;
@@ -314,19 +356,80 @@
     outcomes = [];
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
+    sessionHistoryId = "";
     soundEffects?.stopAll();
     flow = transitionGameFlow(flow, { type: "LEAVE" });
+    refreshResultHistory();
     if (shouldFocus) {
       focusElement("#start-game");
     }
   }
 
+  function moveToPath(path: AppPath, replace = false): void {
+    if (typeof window !== "undefined" && window.location.pathname !== path) {
+      if (replace) {
+        window.history.replaceState(null, "", path);
+      } else {
+        window.history.pushState(null, "", path);
+      }
+    }
+
+    currentPath = path;
+    showLanding(path === "/");
+    if (path !== "/") {
+      focusElement("#public-page-title");
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
+
+  onMount(() => {
+    refreshResultHistory();
+
+    const handlePopState = (): void => {
+      currentPath = normalizeAppPath(window.location.pathname);
+      showLanding(currentPath === "/");
+      if (currentPath !== "/") {
+        focusElement("#public-page-title");
+      }
+      window.scrollTo({ top: 0, behavior: "auto" });
+    };
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key === RESULT_HISTORY_KEY || event.key === null) {
+        refreshResultHistory();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("storage", handleStorage);
+    };
+  });
+
   onDestroy(() => soundEffects?.destroy());
 </script>
 
+<svelte:head>
+  <title>{pageMetadata.title}</title>
+  <meta name="description" content={pageMetadata.description} />
+</svelte:head>
+
 <main class="app-shell">
-  {#if flow.status === "top"}
-    <LandingScreen onStart={showPreparation} />
+  {#if currentPath === "/history"}
+    <HistoryScreen history={resultHistory} onNavigate={moveToPath} />
+  {:else if currentPath === "/terms"}
+    <TermsScreen onNavigate={moveToPath} />
+  {:else if currentPath === "/credits"}
+    <CreditsScreen onNavigate={moveToPath} />
+  {:else if flow.status === "top"}
+    <LandingScreen
+      history={resultHistory}
+      onStart={showPreparation}
+      onNavigate={moveToPath}
+    />
   {:else if flow.status === "preparing"}
     <PreparationLoadingScreen delayMs={LOADING_INDICATOR_DELAY_MS} />
   {:else if flow.status === "ready" || flow.status === "preparation-error"}

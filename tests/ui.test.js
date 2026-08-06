@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { CARD_SUITS } from "../src/components/card-suits.ts";
+import { LANDING_QUIZ_EXAMPLE } from "../src/landing-quiz-example.ts";
+import { calculateProbability } from "../src/probability-engine.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -20,6 +22,9 @@ const serverEntry = read("src/entry-server.ts");
 const prerender = read("scripts/prerender.mjs");
 const packageJson = JSON.parse(read("package.json"));
 const landing = read("src/screens/LandingScreen.svelte");
+const historyScreen = read("src/screens/HistoryScreen.svelte");
+const termsScreen = read("src/screens/TermsScreen.svelte");
+const creditsScreen = read("src/screens/CreditsScreen.svelte");
 const prepare = read("src/screens/PrepareScreen.svelte");
 const preparationLoading = read("src/screens/PreparationLoadingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
@@ -32,12 +37,19 @@ const leaveConfirmationSheet = read(
 const board = read("src/components/Board.svelte");
 const card = read("src/components/PlayingCard.svelte");
 const choiceButton = read("src/components/ChoiceButton.svelte");
+const handComparison = read("src/components/HandComparison.svelte");
 const holeCards = read("src/components/HoleCards.svelte");
 const logoCards = read("src/components/LogoCards.svelte");
 const cardSuits = read("src/components/card-suits.ts");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
+const historyPanel = read("src/components/HistoryPanel.svelte");
+const historyList = read("src/components/HistoryList.svelte");
+const holdemOverview = read("src/components/HoldemOverview.svelte");
+const landingQuizPreview = read("src/components/LandingQuizPreview.svelte");
+const publicPageShell = read("src/components/PublicPageShell.svelte");
+const siteFooter = read("src/components/SiteFooter.svelte");
 const questionTimer = read("src/question-timer.ts");
 const resultSummary = read("src/result-summary.ts");
 const soundEffects = read("src/sound-effects.ts");
@@ -61,6 +73,13 @@ const landingFontPath = path.join(
   "fonts",
   "kosugi-maru",
   "KosugiMaru-Landing.woff2",
+);
+const landingBodyFontPath = path.join(
+  root,
+  "assets",
+  "fonts",
+  "kosugi-maru",
+  "KosugiMaru-LandingBody.woff2",
 );
 const gameFontPath = path.join(
   root,
@@ -102,6 +121,9 @@ test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用�
   for (const component of [
     app,
     landing,
+    historyScreen,
+    termsScreen,
+    creditsScreen,
     prepare,
     quiz,
     result,
@@ -116,23 +138,37 @@ test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用�
     cardFace,
     choiceButton,
     mixedFontText,
+    historyPanel,
+    historyList,
+    holdemOverview,
+    landingQuizPreview,
+    publicPageShell,
+    siteFooter,
   ]) {
     assert.match(component, /<script lang="ts">/);
   }
 });
 
-test("トップ画面をビルド時に描画し、ブラウザでhydrateする", () => {
+test("公開ページをビルド時に描画し、ブラウザでhydrateする", () => {
   assert.match(serverEntry, /import \{ render \} from "svelte\/server"/);
-  assert.match(serverEntry, /return render\(App\)/);
+  assert.match(serverEntry, /return render\(App, \{/);
+  assert.match(serverEntry, /initialPath: normalizeAppPath\(pathname\)/);
   assert.match(prerender, /import\(serverOutput\)/);
-  assert.match(prerender, /\.replace\(outlet, body\)/);
-  assert.match(prerender, /body\.includes\('id="landing"'\)/);
+  assert.match(prerender, /for \(const page of pages\)/);
+  assert.match(prerender, /history\/index\.html/);
+  assert.match(prerender, /terms\/index\.html/);
+  assert.match(prerender, /credits\/index\.html/);
+  assert.match(
+    prerender,
+    /replace\(headOutlet, head\)\.replace\(outlet, body\)/,
+  );
   assert.match(prerender, /rm\(serverOutputDirectory/);
   assert.match(main, /import \{ hydrate, mount \} from "svelte"/);
   assert.match(
     main,
     /target\.querySelector\("\.app-shell"\) \? hydrate : mount/,
   );
+  assert.match(main, /initialPath: window\.location\.pathname/);
   assert.match(
     packageJson.scripts.build,
     /vite build --ssr src\/entry-server\.ts --outDir \.prerender/,
@@ -140,7 +176,7 @@ test("トップ画面をビルド時に描画し、ブラウザでhydrateする"
   assert.match(packageJson.scripts.build, /node scripts\/prerender\.mjs/);
 });
 
-test("トップ・準備・問題・結果を独立したSvelteコンポーネントで切り替える", () => {
+test("公開ページとゲーム画面を独立したSvelteコンポーネントで切り替える", () => {
   assert.match(app, /flow\.status === "top"/);
   assert.match(app, /flow\.status === "ready"/);
   assert.match(app, /flow\.status === "answering"/);
@@ -149,8 +185,135 @@ test("トップ・準備・問題・結果を独立したSvelteコンポーネ�
   assert.match(app, /<PrepareScreen/);
   assert.match(app, /<QuizScreen/);
   assert.match(app, /<ResultScreen/);
+  assert.match(app, /<HistoryScreen/);
+  assert.match(app, /<TermsScreen/);
+  assert.match(app, /<CreditsScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+  assert.match(historyScreen, /showHeading={false}/);
+  assert.doesNotMatch(historyScreen, /直近50回の結果/);
+  assert.match(historyScreen, /<HistoryPanel entries={history} \/>/);
+  assert.match(publicPageShell, /class="visually-hidden"/);
+});
+
+test("トップLPは問題、答え、アプリ説明、ルール説明の順で見せる", () => {
+  assert.match(landing, /確率を瞬時に判断して、/);
+  assert.match(landing, /もっと強くなろう！/);
+  assert.equal(landing.match(/label="クイズをはじめる"/g)?.length, 2);
+  assert.match(landing, /{#if recentHistory\.length > 0}/);
+  assert.match(
+    landing,
+    /history\.length >= 3 \? history\.slice\(0, 2\) : \[\]/,
+  );
+  assert.match(landing, /min-height: 100dvh/);
+  assert.ok(
+    landing.indexOf("{#if recentHistory.length > 0}") <
+      landing.indexOf('id="start-game"'),
+  );
+  assert.ok(
+    landing.indexOf("<HistoryPanel") < landing.indexOf('id="start-game"'),
+  );
+  assert.match(historyPanel, />最近の履歴<\/h2>/);
+  assert.match(historyPanel, /<HistoryList {entries} \/>/);
+  assert.match(historyPanel, /font-family:[\s\S]*"Kosugi Maru Landing"/);
+  assert.match(historyPanel, /{#if showMore}/);
+  assert.match(historyList, /formatRelativeHistoryTime/);
+  assert.match(historyList, /class="history-row"/);
+  assert.match(
+    historyList,
+    /grid-template-columns: minmax\(0, 1fr\) auto auto/,
+  );
+  assert.doesNotMatch(historyList, /compact\?:|{#if compact}/);
+  assert.match(landing, /<HistoryPanel[\s\S]*entries={recentHistory}/);
+  assert.doesNotMatch(
+    landing.match(/\.landing-body \{([^}]*)\}/)?.[1] ?? "",
+    /border-top/,
+  );
+  assert.match(landing, /<LandingQuizPreview \/>/);
+  assert.match(landing, /<HoldemOverview \/>/);
+  assert.ok(
+    landing.indexOf("<LandingQuizPreview") <
+      landing.indexOf('class="training-value"'),
+  );
+  assert.ok(
+    landing.indexOf('class="training-value"') <
+      landing.indexOf("<HoldemOverview"),
+  );
+  assert.doesNotMatch(landing, /section-number|feature-list/);
+  assert.doesNotMatch(landing, /10問で、すばやく反復/);
+  assert.match(
+    landing,
+    /このアプリはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。/,
+  );
+  assert.match(landing, /<p class="training-lead">/);
+  assert.doesNotMatch(landing, /<h2[^>]*id="training-value-title"/);
+  assert.match(landing, /ポーカーの基礎体力を上げていきましょう。/);
+  assert.match(landing, /テキサスホールデムって何？/);
+  assert.match(
+    landing,
+    /\.landing-content \{[\s\S]*?padding: 0 var\(--lp-padding-horizontal\) 3\.5rem;/,
+  );
+  assert.match(
+    landing,
+    /\.training-lead,\s*\.training-copy p \{[\s\S]*?text-align: left;/,
+  );
+
+  assert.equal(LANDING_QUIZ_EXAMPLE.prompt, "フラッシュの確率は？");
+  assert.match(
+    landingQuizPreview,
+    /<Board[\s\S]*cards={LANDING_QUIZ_EXAMPLE\.board}/,
+  );
+  assert.match(
+    landingQuizPreview,
+    /<HoleCards cards={LANDING_QUIZ_EXAMPLE\.hole}/,
+  );
+  assert.match(landingQuizPreview, /class="quiz-challenge"/);
+  assert.match(
+    landingQuizPreview,
+    /\.quiz-challenge \{[\s\S]*min-height: 100dvh/,
+  );
+  assert.match(landingQuizPreview, /答えは<strong>約/);
+  assert.doesNotMatch(landingQuizPreview, /question-count|収録問題数/);
+  assert.match(landingQuizPreview, /\.preview-cards \{[\s\S]*gap: 0\.85rem/);
+  assert.match(
+    landingQuizPreview,
+    /\.preview-choices \{[\s\S]*margin-top: 0\.35rem/,
+  );
+
+  const exampleProbability = calculateProbability({
+    hole: LANDING_QUIZ_EXAMPLE.hole,
+    board: LANDING_QUIZ_EXAMPLE.board,
+    target: LANDING_QUIZ_EXAMPLE.target,
+  });
+  assert.equal(
+    exampleProbability.percent.toFixed(1),
+    LANDING_QUIZ_EXAMPLE.actualPercent.toFixed(1),
+  );
+  assert.equal(LANDING_QUIZ_EXAMPLE.answer, "35%");
+
+  assert.match(
+    holdemOverview,
+    /<h3 id="holdem-title">テキサスホールデム<\/h3>/,
+  );
+  assert.match(holdemOverview, /テーブルのカード 5枚/);
+  assert.match(holdemOverview, /手札 2枚/);
+  assert.match(holdemOverview, /PlayingCard/);
+  assert.match(holdemOverview, /href="https:\/\/www\.ajpc\.jp\/about-poker\/"/);
+  assert.match(holdemOverview, /target="_blank"/);
+  assert.match(holdemOverview, /rel="external noopener"/);
+  assert.doesNotMatch(holdemOverview, /このアプリで取り扱うポーカーです/);
+});
+
+test("共通フッターは感想の案内、Xへの連絡、3つのサイト情報だけを表示する", () => {
+  assert.match(siteFooter, /ご意見・ご感想お待ちしております！/);
+  assert.match(siteFooter, /Xで開発者に連絡する/);
+  assert.match(siteFooter, />利用規約<\/a/);
+  assert.match(siteFooter, />素材<\/a>/);
+  assert.match(siteFooter, />開発者<\/a>/);
+  assert.match(siteFooter, /href="\/credits#materials"/);
+  assert.match(siteFooter, /href="\/credits#developer"/);
+  assert.match(creditsScreen, /<section id="materials">/);
+  assert.match(creditsScreen, /<section id="developer">/);
 });
 
 test("ゲーム進行を純粋なTypeScript状態機械で管理する", () => {
@@ -182,7 +345,7 @@ test("アクセントカラーに黄色を使う", () => {
   assert.match(rootBlock, /--accent-emphasis: rgb\(241 196 15\);/);
 });
 
-test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイルにする", () => {
+test("UIフォントを自己配信し、ヒーローとLP本文のKosugiを分ける", () => {
   assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/);
   assert.doesNotMatch(html, /<link[^>]+rel="preconnect"/);
   const landingPreload =
@@ -191,9 +354,14 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(landingPreload, /as="font"/);
   assert.match(landingPreload, /type="font\/woff2"/);
   assert.match(landingPreload, /crossorigin/);
+  assert.doesNotMatch(html, /KosugiMaru-LandingBody\.woff2/);
   assert.match(
     styles,
     /font-family: "Kosugi Maru Landing"[\s\S]*KosugiMaru-Landing\.woff2/,
+  );
+  assert.match(
+    styles,
+    /font-family: "Kosugi Maru Landing Body"[\s\S]*KosugiMaru-LandingBody\.woff2/,
   );
   assert.match(
     styles,
@@ -205,7 +373,11 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(
     landing,
-    /\.landing-screen \{[\s\S]*font-family: "Kosugi Maru Landing", sans-serif;/,
+    /\.landing-hero \{[\s\S]*"M PLUS Rounded 1c UI", "Kosugi Maru Landing", sans-serif;/,
+  );
+  assert.match(
+    landing,
+    /\.landing-body \{[\s\S]*"M PLUS Rounded 1c UI", "Kosugi Maru Landing Body", sans-serif;/,
   );
   assert.match(
     prepare,
@@ -221,19 +393,26 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   );
   assert.match(styles, /--card-rank-font: "Arbutus Slab", serif/);
   assert.doesNotMatch(styles, /fonts\.googleapis/);
-  const landingRule = landing.match(/\.landing-screen \{([^}]*)\}/)?.[1] ?? "";
-  assert.doesNotMatch(landingRule, /Kosugi Maru Game|M PLUS Rounded/);
 
   const landingFontSize = fs.statSync(landingFontPath).size;
+  const landingBodyFontSize = fs.statSync(landingBodyFontPath).size;
   const gameFontSize = fs.statSync(gameFontPath).size;
   const mplusFontSize = fs.statSync(mplusFontPath).size;
-  assert.ok(landingFontSize > 0 && landingFontSize < 3_000);
-  assert.ok(gameFontSize > landingFontSize && gameFontSize < 60_000);
+  assert.ok(landingFontSize > 0 && landingFontSize < 12_000);
+  assert.ok(
+    landingBodyFontSize > landingFontSize && landingBodyFontSize < 35_000,
+  );
+  assert.ok(gameFontSize > landingBodyFontSize && gameFontSize < 60_000);
   assert.ok(mplusFontSize > 0 && mplusFontSize < 10_000);
-  assert.match(fontBuildScript, /const landingText = "暗算ポーカーはじめる"/);
   assert.match(
     fontBuildScript,
-    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\.%/,
+    /暗算ポーカー確率を瞬時に判断して、もっと強くなろう！クイズをはじめる/,
+  );
+  assert.match(fontBuildScript, /LandingQuizPreview\.svelte/);
+  assert.match(fontBuildScript, /HoldemOverview\.svelte/);
+  assert.match(
+    fontBuildScript,
+    /0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\./,
   );
   assert.match(fontBuildScript, /LandingScreen\.svelte/);
   assert.match(fontBuildScript, /\(\?:ts\|svelte\)/);
@@ -241,7 +420,8 @@ test("UIフォントを自己配信し、初期トップ用Kosugiを別ファイ
   assert.match(logoCards, /\.logo-cards \{[\s\S]*height: 8\.5rem;/);
 
   assert.match(quiz, /MixedFontText text=\{question\.prompt\} phraseWrap/);
-  assert.match(mixedFontText, /\[A-Za-z0-9%\]/);
+  assert.match(mixedFontText, /\[A-Za-z0-9\.\]/);
+  assert.doesNotMatch(mixedFontText, /A-Za-z0-9%/);
   assert.match(mixedFontText, /splitAtNaturalBreaks/);
   assert.match(mixedFontText, /<wbr \/>/);
   assert.match(mixedFontText, /<\/span>\{#if phraseWrap/);
@@ -448,6 +628,8 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     "result-screen",
     "action-button",
     "playing-card",
+    "quiz-example",
+    "holdem-overview",
   ]) {
     assert.doesNotMatch(styles, new RegExp(`\\.${selector}\\b`));
   }
@@ -468,6 +650,8 @@ test("コンポーネント固有のスタイルをグローバルCSSに漏ら�
     logoCards,
     card,
     choiceButton,
+    landingQuizPreview,
+    holdemOverview,
   ]) {
     assert.match(component, /<style>/);
   }
@@ -515,7 +699,7 @@ test("背景上で先読みし、完了後に準備画面をフェードイン�
     preparationLoading,
     /animation:[\s\S]*loading-spinner-appear[\s\S]*loading-spinner-rotate/,
   );
-  assert.match(app, /<LandingScreen onStart=\{showPreparation\}/);
+  assert.match(app, /<LandingScreen[\s\S]*onStart=\{showPreparation\}/);
   assert.match(app, /onStart=\{startSession\}/);
   assert.match(app, /playSound\("start"\)/);
   assert.match(app, /playSound\("warning"\)/);
@@ -547,6 +731,15 @@ test("問題画面は回答パネルをコンポーネントで表示する", ()
   assert.match(quiz, /<AnswerSheet/);
   assert.match(answerSheet, /@keyframes raise-sheet/);
   assert.match(styles, /prefers-reduced-motion/);
+});
+
+test("右の手札の勝率問題は対象の手札枠を強調する", () => {
+  assert.match(quiz, /targetHand=\{question\.targetHand\}/);
+  assert.match(handComparison, /class:is-target=\{index === targetHand\}/);
+  assert.match(
+    handComparison,
+    /\.hand-option\.is-target[\s\S]*border-color: var\(--accent-emphasis\)/,
+  );
 });
 
 test("常設の戻る操作を置かず、回答パネルから終了確認を開く", () => {

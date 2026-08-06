@@ -32,9 +32,39 @@ const sources = {
   },
 };
 
-const landingText = "暗算ポーカーはじめる";
+const landingHeroText =
+  "暗算ポーカー確率を瞬時に判断して、もっと強くなろう！クイズをはじめる最近の履歴もっと見るたった今分前時間日前問秒/";
+const landingBodySourcePaths = [
+  "src/landing-quiz-example.ts",
+  "src/screens/LandingScreen.svelte",
+  "src/components/LandingQuizPreview.svelte",
+  "src/components/HoldemOverview.svelte",
+  "src/components/ChoiceButton.svelte",
+  "src/components/SiteFooter.svelte",
+].map((filename) => path.join(root, filename));
+const gameFontExcludedSourcePaths = new Set(
+  [
+    "src/app-route.ts",
+    "src/landing-quiz-example.ts",
+    "src/screens/LandingScreen.svelte",
+    "src/screens/HistoryScreen.svelte",
+    "src/screens/TermsScreen.svelte",
+    "src/screens/CreditsScreen.svelte",
+    "src/components/LandingQuizPreview.svelte",
+    "src/components/HoldemOverview.svelte",
+    "src/components/HistoryPanel.svelte",
+    "src/components/HistoryList.svelte",
+    "src/components/PublicPageShell.svelte",
+    "src/components/SiteFooter.svelte",
+  ].map((filename) => path.join(root, filename)),
+);
+const landingBodyText = collectJapaneseText(
+  landingBodySourcePaths
+    .map((filename) => readFileSync(filename, "utf8"))
+    .join(""),
+);
 const mplusText =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.%";
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.";
 const gameText = collectGameText();
 
 function optionValue(name) {
@@ -63,13 +93,16 @@ function collectSourceFiles(directory) {
 }
 
 function collectGameText() {
-  const landingPath = path.join(root, "src", "screens", "LandingScreen.svelte");
   const source =
     collectSourceFiles(path.join(root, "src"))
-      .filter((filename) => filename !== landingPath)
+      .filter((filename) => !gameFontExcludedSourcePaths.has(filename))
       .map((filename) => readFileSync(filename, "utf8"))
       .join("") + collectQuestionText();
-  const punctuation = new Set([..." 、。？！・ー./:_-"]);
+  return collectJapaneseText(source);
+}
+
+function collectJapaneseText(source) {
+  const punctuation = new Set([..." 、。？！・ー./:_-%"]);
   const characters = [...source].filter(
     (character) =>
       /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}々]/u.test(
@@ -166,11 +199,21 @@ async function main() {
       {
         label: "Kosugi Maru / landing",
         sourcePath: kosugiSource,
-        text: landingText,
+        text: landingHeroText,
         outputName: "kosugi-landing",
         targetPath: path.join(
           root,
           "assets/fonts/kosugi-maru/KosugiMaru-Landing.woff2",
+        ),
+      },
+      {
+        label: "Kosugi Maru / landing body",
+        sourcePath: kosugiSource,
+        text: landingBodyText,
+        outputName: "kosugi-landing-body",
+        targetPath: path.join(
+          root,
+          "assets/fonts/kosugi-maru/KosugiMaru-LandingBody.woff2",
         ),
       },
       {

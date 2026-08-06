@@ -1,14 +1,15 @@
 # UIフォントサブセットの再生成
 
-カードランク用Arbutus Slabを含め、アプリが使うフォントはすべて`assets/fonts/`から自己配信する。UI用フォントは初期転送量を抑えるため、次の3ファイルに分けている。
+カードランク用Arbutus Slabを含め、アプリが使うフォントはすべて`assets/fonts/`から自己配信する。UI用フォントは初期転送量を抑えるため、次の4ファイルに分けている。
 
 | ファイル                                    | 用途                               | 収録内容                                 |       サイズ |
 | ------------------------------------------- | ---------------------------------- | ---------------------------------------- | -----------: |
-| `kosugi-maru/KosugiMaru-Landing.woff2`      | 初期トップ                         | `暗算ポーカー`と`はじめる`の固有9文字    |  2,176 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 51,872 bytes |
-| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | UIの英数字                         | `A-Z`、`a-z`、`0-9`、`.`、`%`            |  4,712 bytes |
+| `kosugi-maru/KosugiMaru-Landing.woff2`      | ヒーロー                           | タイトル、開始操作、最近の履歴           |  8,892 bytes |
+| `kosugi-maru/KosugiMaru-LandingBody.woff2`  | LP本文                             | LP本文とフッターで使う日本語、UI用句読点 | 24,956 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 54,332 bytes |
+| `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | LP・ゲームの英数字                 | `A-Z`、`a-z`、`0-9`、`.`                 |  4,624 bytes |
 
-トップ画面はCSSで`Kosugi Maru Landing`だけを指定する。開始準備画面になって初めて`Kosugi Maru Game`と`M PLUS Rounded 1c UI`を指定するため、`@font-face`がCSSに存在していても後者2ファイルは初期画面では読み込まれない。
+ヒーローは`Kosugi Maru Landing`、その下のLP本文は`Kosugi Maru Landing Body`を指定し、HTMLから先読みするのはヒーロー用だけとする。英数字は共通の`M PLUS Rounded 1c UI`、開始準備以降の日本語は`Kosugi Maru Game`を使う。`%`はM PLUSへ収録せず、各画面のKosugi Maruで表示する。
 
 ## 生成
 
@@ -41,7 +42,7 @@ MPLUSRounded1c-Regular.ttf
 pnpm fonts:build -- --source-dir /path/to/font-sources
 ```
 
-問題画面用の文字は、`LandingScreen.svelte`を除く`src/**/*.js`、`src/**/*.svelte`、`public/questions/**/*.json`から日本語とUI用句読点を自動収集する。トップ文言か英数字の対象を変える場合は、`scripts/build_font_subsets.mjs`冒頭の`landingText`または`mplusText`を更新する。
+LP本文用の文字は、`scripts/build_font_subsets.mjs`の`landingBodySourcePaths`に列挙したコンポーネントから自動収集する。問題画面用の文字は、LP、履歴、利用規約、素材・開発者の画面と部品を除く`src/**/*.ts`、`src/**/*.svelte`、`public/questions/**/*.json`から、日本語とUI用句読点を自動収集する。ヒーロー文言か英数字の対象を変える場合は、同スクリプト冒頭の`landingHeroText`または`mplusText`を更新する。
 
 生成後は、スクリプトが表示する文字数、Unicode range、容量、SHA-256を確認し、次を実行する。
 
@@ -53,7 +54,8 @@ pnpm build
 ## 現在のSHA-256
 
 ```text
-10df416b9d33d7739b4e08441a18fa2690ee763e6d0e782e64bbff67a7314afd  KosugiMaru-Landing.woff2
-1ce0f7dad5c3979be11513258340152b5f3ccf19dfd806688d1e09efb6e828b3  KosugiMaru-Game.woff2
-e797fe3ac0bf30e4431d9feb4e5ce75564f59b0721842e524c5f339a24c260e3  MPLUSRounded1c-UI.woff2
+07517882c553b247fc17ef2520ebc1ee427e85768faec8993bd0ceb6336101d7  KosugiMaru-Landing.woff2
+8a9ca135db3829173e66205138b9a806756e5729e9f007cb8f3981dba09f4410  KosugiMaru-LandingBody.woff2
+2745393b1de8e8dcb95354d3552e85ab58952d09d98fe7236e5f6a98215687cf  KosugiMaru-Game.woff2
+3c143b9b496af6c579ea01a6cd4509f8b94d18b61364b1415cdf79e70a4823e2  MPLUSRounded1c-UI.woff2
 ```

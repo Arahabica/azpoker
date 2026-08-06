@@ -11,4 +11,7 @@ if (!target) {
 
 const renderApp = target.querySelector(".app-shell") ? hydrate : mount;
 
-renderApp(App, { target });
+renderApp(App, {
+  target,
+  props: { initialPath: window.location.pathname },
+});
