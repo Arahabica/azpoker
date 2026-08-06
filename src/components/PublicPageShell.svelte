@@ -8,6 +8,7 @@
     title: string;
     lead?: string;
     updatedAt?: string;
+    showHeading?: boolean;
     onNavigate: (path: AppPath) => void;
     children: Snippet;
   }
@@ -16,6 +17,7 @@
     title,
     lead = "",
     updatedAt = "",
+    showHeading = true,
     onNavigate,
     children,
   }: Props = $props();
@@ -42,15 +44,21 @@
     </a>
   </header>
 
-  <div class="heading">
-    <h1 id="public-page-title" tabindex="-1">{title}</h1>
-    {#if lead}
-      <p>{lead}</p>
-    {/if}
-    {#if updatedAt}
-      <p class="updated-at">最終更新: {updatedAt}</p>
-    {/if}
-  </div>
+  {#if showHeading}
+    <div class="heading">
+      <h1 id="public-page-title" tabindex="-1">{title}</h1>
+      {#if lead}
+        <p>{lead}</p>
+      {/if}
+      {#if updatedAt}
+        <p class="updated-at">最終更新: {updatedAt}</p>
+      {/if}
+    </div>
+  {:else}
+    <h1 id="public-page-title" class="visually-hidden" tabindex="-1">
+      {title}
+    </h1>
+  {/if}
 
   <div class="page-body">
     {@render children()}
@@ -127,6 +135,15 @@
     font-size: 0.76rem;
   }
 
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .page-body {
     display: grid;
     flex: 1;
@@ -144,7 +161,7 @@
     box-shadow: inset 0 1px rgb(255 255 255 / 4%);
   }
 
-  .page-body :global(h2) {
+  .page-body :global(h2:not(.history-panel-title)) {
     margin: 0 0 0.75rem;
     color: var(--text);
     font-size: 1.08rem;
@@ -172,7 +189,7 @@
   }
 
   .page-body :global(ul),
-  .page-body :global(ol) {
+  .page-body :global(ol:not(.history-list)) {
     margin: 0;
     padding-left: 1.4rem;
   }

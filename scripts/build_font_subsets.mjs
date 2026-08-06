@@ -52,6 +52,7 @@ const gameFontExcludedSourcePaths = new Set(
     "src/screens/CreditsScreen.svelte",
     "src/components/LandingQuizPreview.svelte",
     "src/components/HoldemOverview.svelte",
+    "src/components/HistoryPanel.svelte",
     "src/components/HistoryList.svelte",
     "src/components/PublicPageShell.svelte",
     "src/components/SiteFooter.svelte",

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { shouldHandleAppNavigation, type AppPath } from "../app-route.ts";
   import ActionButton from "../components/ActionButton.svelte";
-  import HistoryList from "../components/HistoryList.svelte";
+  import HistoryPanel from "../components/HistoryPanel.svelte";
   import HoldemOverview from "../components/HoldemOverview.svelte";
   import LandingQuizPreview from "../components/LandingQuizPreview.svelte";
   import LogoCards from "../components/LogoCards.svelte";
@@ -41,12 +41,7 @@
     </div>
 
     {#if recentHistory.length > 0}
-      <section class="history-panel" aria-labelledby="recent-history-title">
-        <h2 id="recent-history-title">最近の履歴</h2>
-        <HistoryList entries={recentHistory} compact />
-        <a class="more-link" href="/history" onclick={showHistory}>もっと見る</a
-        >
-      </section>
+      <HistoryPanel entries={recentHistory} showMore onShowMore={showHistory} />
     {/if}
 
     <div class="start-action">
@@ -64,9 +59,9 @@
 
       <div class="training-value">
         <div class="training-copy">
-        <p class="training-lead">
-          カードを見た瞬間に確率が浮かぶようになればプレーはもっと楽しくなります。
-        </p>
+          <p class="training-lead">
+            カードを見た瞬間に確率が浮かぶようになればプレーはもっと楽しくなります。
+          </p>
           <p>
             このアプリはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。
           </p>
@@ -158,36 +153,6 @@
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Landing Body", sans-serif;
   }
 
-  .history-panel {
-    display: grid;
-    gap: 0.45rem;
-    width: 100%;
-    padding-bottom: 1rem;
-  }
-
-  .history-panel h2 {
-    color: #dbeae4;
-    font-size: 0.875rem;
-    font-weight: 650;
-    letter-spacing: 0.01em;
-    line-height: 1.4;
-  }
-
-  .more-link {
-    justify-self: end;
-    color: rgb(255 255 255 / 58%);
-    font-size: 0.65rem;
-    line-height: 1.5;
-    text-decoration: none;
-    text-underline-offset: 0.22em;
-  }
-
-  .more-link:focus-visible {
-    border-radius: 0.15rem;
-    outline: 3px solid rgb(255 255 255 / 82%);
-    outline-offset: 3px;
-  }
-
   .landing-content {
     display: grid;
     width: 100%;
@@ -225,12 +190,5 @@
     justify-self: center;
     width: min(100%, 18rem);
     margin-block: 5rem 2.5rem;
-  }
-
-  @media (hover: hover) {
-    .more-link:hover {
-      color: rgb(255 255 255 / 78%);
-      text-decoration: underline;
-    }
   }
 </style>

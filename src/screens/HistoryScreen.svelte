@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AppPath } from "../app-route.ts";
-  import HistoryList from "../components/HistoryList.svelte";
+  import HistoryPanel from "../components/HistoryPanel.svelte";
   import PublicPageShell from "../components/PublicPageShell.svelte";
   import type { QuizHistoryEntry } from "../result-history.ts";
 
@@ -12,16 +12,9 @@
   let { history, onNavigate }: Props = $props();
 </script>
 
-<PublicPageShell
-  title="履歴"
-  lead="この端末で完了した、直近50回の結果です。"
-  {onNavigate}
->
+<PublicPageShell title="履歴" showHeading={false} {onNavigate}>
   {#if history.length > 0}
-    <section aria-labelledby="history-list-title">
-      <h2 id="history-list-title">クイズ結果</h2>
-      <HistoryList entries={history} />
-    </section>
+    <HistoryPanel entries={history} />
   {:else}
     <section class="empty-history" aria-labelledby="empty-history-title">
       <h2 id="empty-history-title">まだ履歴がありません</h2>

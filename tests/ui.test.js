@@ -44,6 +44,7 @@ const cardSuits = read("src/components/card-suits.ts");
 const cardFace = read("src/components/card-faces/CardFace.svelte");
 const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
+const historyPanel = read("src/components/HistoryPanel.svelte");
 const historyList = read("src/components/HistoryList.svelte");
 const holdemOverview = read("src/components/HoldemOverview.svelte");
 const landingQuizPreview = read("src/components/LandingQuizPreview.svelte");
@@ -137,6 +138,7 @@ test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用�
     cardFace,
     choiceButton,
     mixedFontText,
+    historyPanel,
     historyList,
     holdemOverview,
     landingQuizPreview,
@@ -188,6 +190,10 @@ test("公開ページとゲーム画面を独立したSvelteコンポーネン�
   assert.match(app, /<CreditsScreen/);
   assert.match(landing, /id="start-game"/);
   assert.match(result, /id="back-home"/);
+  assert.match(historyScreen, /showHeading={false}/);
+  assert.doesNotMatch(historyScreen, /直近50回の結果/);
+  assert.match(historyScreen, /<HistoryPanel entries={history} \/>/);
+  assert.match(publicPageShell, /class="visually-hidden"/);
 });
 
 test("トップLPは問題、答え、アプリ説明、ルール説明の順で見せる", () => {
@@ -205,14 +211,20 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
       landing.indexOf('id="start-game"'),
   );
   assert.ok(
-    landing.indexOf("<HistoryList") < landing.indexOf('class="more-link"'),
+    landing.indexOf("<HistoryPanel") < landing.indexOf('id="start-game"'),
   );
+  assert.match(historyPanel, />最近の履歴<\/h2>/);
+  assert.match(historyPanel, /<HistoryList {entries} \/>/);
+  assert.match(historyPanel, /font-family:[\s\S]*"Kosugi Maru Landing"/);
+  assert.match(historyPanel, /{#if showMore}/);
   assert.match(historyList, /formatRelativeHistoryTime/);
-  assert.match(historyList, /class="compact-row"/);
+  assert.match(historyList, /class="history-row"/);
   assert.match(
     historyList,
     /grid-template-columns: minmax\(0, 1fr\) auto auto/,
   );
+  assert.doesNotMatch(historyList, /compact\?:|{#if compact}/);
+  assert.match(landing, /<HistoryPanel[\s\S]*entries={recentHistory}/);
   assert.doesNotMatch(
     landing.match(/\.landing-body \{([^}]*)\}/)?.[1] ?? "",
     /border-top/,
@@ -231,7 +243,7 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
   assert.doesNotMatch(landing, /10問で、すばやく反復/);
   assert.match(
     landing,
-    /このゲームはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。/,
+    /このアプリはテキサスホールデムの10問の確率問題を制限時間付きで解いていくクイズアプリです。/,
   );
   assert.match(landing, /<p class="training-lead">/);
   assert.doesNotMatch(landing, /<h2[^>]*id="training-value-title"/);
@@ -243,7 +255,7 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
   );
   assert.match(
     landing,
-    /\.training-lead,\s*\.training-copy p,\s*\.holdem-introduction \{[\s\S]*?text-align: left;/,
+    /\.training-lead,\s*\.training-copy p \{[\s\S]*?text-align: left;/,
   );
 
   assert.equal(LANDING_QUIZ_EXAMPLE.prompt, "フラッシュの確率は？");
@@ -293,7 +305,7 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
 });
 
 test("共通フッターは感想の案内、Xへの連絡、3つのサイト情報だけを表示する", () => {
-  assert.match(siteFooter, /ご感想・ご要望お待ちしております！/);
+  assert.match(siteFooter, /ご意見・ご感想お待ちしております！/);
   assert.match(siteFooter, /Xで開発者に連絡する/);
   assert.match(siteFooter, />利用規約<\/a/);
   assert.match(siteFooter, />素材<\/a>/);
