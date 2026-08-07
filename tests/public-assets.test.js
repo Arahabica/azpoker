@@ -6,6 +6,21 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+test("2枚のトランプカードをfaviconとして配信する", () => {
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const favicon = fs.readFileSync(
+    path.join(root, "public", "favicon.svg"),
+    "utf8",
+  );
+
+  assert.match(
+    html,
+    /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/,
+  );
+  assert.match(favicon, /<svg[^>]+viewBox="0 0 64 64"/);
+  assert.equal((favicon.match(/<rect/g) ?? []).length, 3);
+});
+
 test("OGP画像を1200×630pxで配信する", () => {
   const image = fs.readFileSync(path.join(root, "public", "ogp.png"));
   assert.equal(image.subarray(1, 4).toString("ascii"), "PNG");
