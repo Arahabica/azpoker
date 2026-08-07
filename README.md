@@ -52,9 +52,9 @@ Chromeを使って撮影専用状態のトップページを1200×630pxで描画
 
 ## 公開
 
-Cloudflare Pages: <https://anzan-poker.pages.dev/>
+公開URL: <https://azpoker.me/>
 
-Cloudflare PagesはGitHubリポジトリ `Arahabica/azpoker` と連携しています。production branchは `main` です。pull requestを `main` へマージすると、Cloudflareが `pnpm check` を実行し、成功した `dist/` を本番へデプロイします。
+Cloudflare Pagesプロジェクト `anzan-poker` はGitHubリポジトリ `Arahabica/azpoker` と連携しています。production branchは `main` です。pull requestを `main` へマージすると、Cloudflareが `pnpm check` を実行し、成功した `dist/` を本番へデプロイします。
 
 Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変数 `PNPM_VERSION=10.30.1` で固定しています。公開対象は生成済みの `dist/` だけです。
 
