@@ -16,9 +16,8 @@
 
   let { history, onStart, onNavigate }: Props = $props();
 
-  const recentHistory = $derived(
-    history.length >= 3 ? history.slice(0, 2) : [],
-  );
+  const recentHistory = $derived(history.slice(0, 2));
+  const showMoreHistory = $derived(history.length > 2);
 
   function showHistory(event: MouseEvent): void {
     if (!shouldHandleAppNavigation(event)) return;
@@ -41,7 +40,11 @@
     </div>
 
     {#if recentHistory.length > 0}
-      <HistoryPanel entries={recentHistory} showMore onShowMore={showHistory} />
+      <HistoryPanel
+        entries={recentHistory}
+        showMore={showMoreHistory}
+        onShowMore={showHistory}
+      />
     {/if}
 
     <div class="start-action">
