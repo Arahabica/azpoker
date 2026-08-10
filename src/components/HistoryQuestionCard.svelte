@@ -99,36 +99,15 @@
   .history-question {
     --card-reveal-duration: 0ms;
     display: grid;
+    min-width: 0;
     gap: 1.15rem;
-    padding: 1.1rem;
-    border: 1px solid rgb(255 255 255 / 12%);
-    border-radius: 1.25rem;
-    background:
-      radial-gradient(
-        circle at 50% 34%,
-        rgb(87 236 186 / 10%),
-        transparent 52%
-      ),
-      rgb(2 42 32 / 58%);
-    box-shadow:
-      inset 0 1px rgb(255 255 255 / 5%),
-      0 0.8rem 1.8rem rgb(0 35 26 / 14%);
-  }
-
-  .history-question[data-outcome="correct"] {
-    border-color: rgb(32 202 145 / 30%);
-  }
-
-  .history-question[data-outcome="wrong"],
-  .history-question[data-outcome="timeout"] {
-    border-color: rgb(255 107 111 / 30%);
   }
 
   .question-meta {
     display: grid;
     grid-template-columns: 1fr auto auto;
     align-items: center;
-    gap: 0.55rem;
+    gap: clamp(0.35rem, 2vw, 0.55rem);
   }
 
   .question-number {
@@ -230,8 +209,9 @@
     justify-items: center;
     gap: 0.45rem;
     padding: 1rem;
+    border: 1px solid rgb(255 255 255 / 10%);
     border-radius: 1rem;
-    background: #11211d;
+    background: rgb(0 31 24 / 34%);
     text-align: center;
   }
 
@@ -255,5 +235,11 @@
     font-size: 0.86rem;
     line-height: 1.7;
     text-wrap: balance;
+  }
+
+  @media (max-width: 319px) {
+    .history-table :global(.hand-option .hand-card) {
+      width: 3.5rem;
+    }
   }
 </style>

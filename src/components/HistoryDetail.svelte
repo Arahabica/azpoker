@@ -100,10 +100,27 @@
 
   .question-history {
     display: grid;
-    gap: 1.35rem;
+    gap: 0;
     margin: 0;
     padding: 0 0 2rem;
     list-style: none;
+  }
+
+  .question-history > li {
+    min-width: 0;
+    padding-block: 1.5rem;
+  }
+
+  .question-history > li:first-child {
+    padding-top: 0;
+  }
+
+  .question-history > li:last-child {
+    padding-bottom: 0;
+  }
+
+  .question-history > li + li {
+    border-top: 1px solid rgb(255 255 255 / 16%);
   }
 
   .legacy-history-notice {

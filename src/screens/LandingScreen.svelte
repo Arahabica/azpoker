@@ -44,14 +44,16 @@
       </div>
     </div>
 
-    {#if recentHistory.length > 0}
-      <HistoryPanel
-        entries={recentHistory}
-        showMore={showMoreHistory}
-        onShowMore={showHistory}
-        onSelect={openHistory}
-      />
-    {/if}
+    <div class="recent-history-slot" data-testid="recent-history-slot">
+      {#if recentHistory.length > 0}
+        <HistoryPanel
+          entries={recentHistory}
+          showMore={showMoreHistory}
+          onShowMore={showHistory}
+          onSelect={openHistory}
+        />
+      {/if}
+    </div>
 
     <div class="start-action">
       <ActionButton
@@ -155,6 +157,11 @@
   .start-action {
     width: min(100%, 18rem);
     flex: 0 0 auto;
+  }
+
+  .recent-history-slot {
+    width: 100%;
+    min-height: 11.5rem;
   }
 
   .landing-body {

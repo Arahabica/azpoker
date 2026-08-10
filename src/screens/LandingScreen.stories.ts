@@ -27,6 +27,9 @@ export const FirstVisit: Story = {
     await expect(
       canvas.getByRole("heading", { level: 1, name: "暗算ポーカー" }),
     ).toBeVisible();
+    const historySlot = canvas.getByTestId("recent-history-slot");
+    await expect(getComputedStyle(historySlot).minHeight).toBe("184px");
+    await expect(historySlot.getBoundingClientRect().height).toBe(184);
     const startButtons = canvas.getAllByRole("button", {
       name: "クイズをはじめる",
     });
@@ -36,6 +39,11 @@ export const FirstVisit: Story = {
   },
 };
 
+export const WithOneHistory: Story = {
+  name: "履歴1件",
+  args: { history: [historyDetailEntry] },
+};
+
 export const WithHistory: Story = {
   name: "最近の履歴あり",
   args: { history: landingHistoryEntries },
@@ -43,6 +51,9 @@ export const WithHistory: Story = {
     await expect(
       canvas.getByRole("heading", { level: 2, name: "最近の履歴" }),
     ).toBeVisible();
+    const historySlot = canvas.getByTestId("recent-history-slot");
+    await expect(getComputedStyle(historySlot).minHeight).toBe("184px");
+    await expect(historySlot.getBoundingClientRect().height).toBe(184);
 
     const historyRows = canvas.getAllByRole("button", { name: /詳細を見る/ });
     await expect(historyRows).toHaveLength(2);

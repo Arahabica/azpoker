@@ -104,4 +104,24 @@ export const MinimumWidthDetail: Story = {
   globals: {
     viewport: { value: "minimum", isRotated: false },
   },
+  play: async ({ canvasElement }) => {
+    const detail = canvasElement.querySelector<HTMLElement>(".history-detail");
+    const questions =
+      canvasElement.querySelectorAll<HTMLElement>(".history-question");
+    const questionItems = canvasElement.querySelectorAll<HTMLElement>(
+      ".question-history > li",
+    );
+
+    await expect(detail).not.toBeNull();
+    await expect(detail!.scrollWidth).toBeLessThanOrEqual(detail!.clientWidth);
+    await expect(questions).toHaveLength(2);
+    for (const question of questions) {
+      await expect(question.scrollWidth).toBeLessThanOrEqual(
+        question.clientWidth,
+      );
+    }
+    await expect(getComputedStyle(questionItems[1]!).borderTopWidth).toBe(
+      "1px",
+    );
+  },
 };
