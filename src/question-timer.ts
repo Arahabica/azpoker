@@ -94,9 +94,8 @@ function browserScheduler(): Scheduler {
     now: () => globalThis.performance.now(),
     requestFrame: (callback) => globalThis.requestAnimationFrame(callback),
     cancelFrame: (id) => globalThis.cancelAnimationFrame(id),
-    setExpiration: (callback, delayMs) =>
-      globalThis.setTimeout(callback, delayMs),
-    clearExpiration: (id) => globalThis.clearTimeout(id),
+    setExpiration: (callback, delayMs) => window.setTimeout(callback, delayMs),
+    clearExpiration: (id) => window.clearTimeout(id),
   };
 }
 

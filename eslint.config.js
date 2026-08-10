@@ -15,6 +15,7 @@ export default defineConfig(
       "dist/**",
       "node_modules/**",
       "public/questions/**",
+      "storybook-static/**",
     ],
   },
   js.configs.recommended,

@@ -1,6 +1,7 @@
 .pnpm-store/
 .prerender/
 dist/
+storybook-static/
 node_modules/
 public/questions/
 public/sounds/

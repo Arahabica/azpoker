@@ -24,25 +24,38 @@
     "format:check": "prettier . --check",
     "check:bank": "python3 scripts/generate_large_question_bank.py --check",
     "questions:build": "python3 scripts/generate_large_question_bank.py",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test && pnpm run check:bank && pnpm run build",
-    "fonts:build": "node scripts/build_font_subsets.mjs"
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test && pnpm run check:bank && pnpm run build && pnpm run check:storybook",
+    "fonts:build": "node scripts/build_font_subsets.mjs",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
+    "storybook:test": "vitest run --project=storybook",
+    "check:storybook": "pnpm run storybook:test && pnpm run storybook:build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@storybook/addon-a11y": "^10.5.7",
+    "@storybook/addon-docs": "^10.5.7",
+    "@storybook/addon-vitest": "^10.5.7",
+    "@storybook/svelte-vite": "^10.5.7",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@types/node": "^24.13.3",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/browser-playwright": "^4.0.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.22.0",
     "globals": "^17.9.0",
+    "playwright": "^1.58.0",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^4.1.1",
+    "storybook": "^10.5.7",
     "svelte": "^5.56.8",
     "svelte-check": "^4.7.4",
     "tsx": "^4.23.5",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.65.0",
-    "vite": "^6.4.3"
+    "vite": "^6.4.3",
+    "vitest": "^4.0.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
