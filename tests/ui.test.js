@@ -334,7 +334,25 @@ test("誤答を復習し、履歴では1セットの問題と解説を縦に振�
   assert.match(app, /type: "START_REVIEW"/);
   assert.match(app, /repeatCurrent/);
   assert.match(app, /session\.push\(repeatedQuestion\)/);
-  assert.match(reviewResult, /復習お疲れ様でした/);
+  assert.doesNotMatch(reviewResult, /message \|\|/);
+  assert.match(app, /reviewCompletionMessage = getReviewCompletionMessage\(\)/);
+  assert.match(reviewResult, /class="review-complete-icon"/);
+  assert.match(reviewResult, /viewBox="0 0 24 24"/);
+  assert.match(reviewResult, /M21\.801 10A10 10 0 1 1 17 3\.335/);
+  assert.match(reviewResult, /m9 11 3 3L22 4/);
+  assert.match(reviewResult, /{#each message as phrase/);
+  assert.match(reviewResult, /<MixedFontText text={phrase} \/>/);
+  assert.match(reviewResult, /class="review-message-phrase"/);
+  assert.match(reviewResult, /index < message\.length - 1}<wbr \/>/);
+  assert.match(
+    result,
+    /<MixedFontText text={summary\.headline} messageWrap \/>/,
+  );
+  const reviewIconStyle =
+    reviewResult.match(/\.review-complete-icon \{([\s\S]*?)\n {2}\}/)?.[1] ??
+    "";
+  assert.doesNotMatch(reviewIconStyle, /background|border|box-shadow/);
+  assert.match(reviewIconStyle, /color: #fff/);
   assert.doesNotMatch(reviewResult, /REVIEW COMPLETE/);
   assert.doesNotMatch(reviewResult, /間違えた問題をすべて解き直しました/);
   assert.match(reviewResult, /label="トップページに戻る"/);
@@ -475,7 +493,7 @@ test("UIフォントを自己配信し、ヒーローとLP本文のKosugiを分�
   assert.doesNotMatch(mixedFontText, /A-Za-z0-9%/);
   assert.match(mixedFontText, /splitAtNaturalBreaks/);
   assert.match(mixedFontText, /<wbr \/>/);
-  assert.match(mixedFontText, /<\/span>\{#if phraseWrap/);
+  assert.match(mixedFontText, /<\/span>\{#if wrapsPhrases/);
   assert.match(mixedFontText, /\.phrase \{[\s\S]*white-space: nowrap/);
   assert.match(
     mixedFontText,

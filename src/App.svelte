@@ -42,6 +42,7 @@
     addRecentMistakeToSession,
     createReviewSession,
     getReviewCompletionMessage,
+    type ReviewCompletionMessage,
   } from "./review.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
@@ -98,7 +99,7 @@
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
   let sessionHistoryId = $state("");
-  let reviewCompletionMessage = $state("");
+  let reviewCompletionMessage = $state<ReviewCompletionMessage | null>(null);
   let resultHistory = $state<QuizHistoryEntry[]>([]);
   let historyDetailOrigin = $state<HistoryDetailOrigin>("direct");
   let soundEffects: SoundEffects | undefined;
@@ -228,7 +229,7 @@
     if (preparingFlow === flow) return;
     flow = preparingFlow;
     sessionKind = "quiz";
-    reviewCompletionMessage = "";
+    reviewCompletionMessage = null;
 
     try {
       const [nextSession] = await waitLoadingAnimation(() =>
@@ -431,7 +432,7 @@
       0,
     );
     sessionHistoryId = "";
-    reviewCompletionMessage = "";
+    reviewCompletionMessage = null;
     flow = reviewFlow;
     playSound("start");
     prepareQuestion(nextSession[0]!);
@@ -444,7 +445,7 @@
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
     sessionHistoryId = "";
-    reviewCompletionMessage = "";
+    reviewCompletionMessage = null;
     soundEffects?.stopAll();
     flow = transitionGameFlow(flow, { type: "LEAVE" });
     refreshResultHistory();
@@ -615,11 +616,13 @@
     />
   {:else if flow.status === "result"}
     {#if sessionKind === "review"}
-      <ReviewResultScreen
-        message={reviewCompletionMessage}
-        onContinue={showPreparation}
-        onHome={showLanding}
-      />
+      {#if reviewCompletionMessage}
+        <ReviewResultScreen
+          message={reviewCompletionMessage}
+          onContinue={showPreparation}
+          onHome={showLanding}
+        />
+      {/if}
     {:else}
       <ResultScreen
         {score}

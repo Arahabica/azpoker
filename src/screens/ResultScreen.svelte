@@ -77,7 +77,9 @@
       </div>
     {/if}
 
-    <h2 id="result-title">{summary.headline}</h2>
+    <h2 id="result-title">
+      <MixedFontText text={summary.headline} messageWrap />
+    </h2>
 
     <div class="result-stats">
       <div class="result-stat">

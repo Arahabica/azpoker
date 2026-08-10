@@ -34,6 +34,11 @@ const NATURAL_BREAK_AFTER = Object.freeze([
   "ストレート",
 ]);
 
+const RESULT_MESSAGE_BREAK_AFTER = Object.freeze([
+  "パーフェクトまで",
+  "迷った問題を",
+]);
+
 function splitAtNaturalBreaks(value: string | number): string[] {
   const text = String(value);
   const boundaries = new Set([0, text.length]);
@@ -54,4 +59,34 @@ function splitAtNaturalBreaks(value: string | number): string[] {
     .filter(Boolean);
 }
 
-export { NATURAL_BREAK_AFTER, splitAtNaturalBreaks };
+function splitResultMessageAtNaturalBreaks(value: string | number): string[] {
+  const text = String(value);
+  const boundaries = new Set([0, text.length]);
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === "、" || (character === "！" && index < text.length - 1)) {
+      boundaries.add(index + 1);
+    }
+
+    const phrase = RESULT_MESSAGE_BREAK_AFTER.find((candidate) =>
+      text.startsWith(candidate, index),
+    );
+    if (!phrase) continue;
+    boundaries.add(index + phrase.length);
+    index += phrase.length - 1;
+  }
+
+  const positions = [...boundaries].sort((left, right) => left - right);
+  return positions
+    .slice(0, -1)
+    .map((start, index) => text.slice(start, positions[index + 1]))
+    .filter(Boolean);
+}
+
+export {
+  NATURAL_BREAK_AFTER,
+  RESULT_MESSAGE_BREAK_AFTER,
+  splitAtNaturalBreaks,
+  splitResultMessageAtNaturalBreaks,
+};

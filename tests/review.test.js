@@ -99,14 +99,19 @@ test("復習開始時は誤答と時間切れだけを問題IDごとに1件取�
 });
 
 test("復習完了メッセージを複数用意し、難易度を日本語表示する", () => {
-  assert.ok(REVIEW_COMPLETION_MESSAGES.length >= 10);
-  assert.equal(
+  assert.equal(REVIEW_COMPLETION_MESSAGES.length, 12);
+  assert.deepEqual(
     getReviewCompletionMessage(() => 0),
-    "復習お疲れ様でした！",
+    ["復習", "お疲れ様でした！"],
   );
-  assert.equal(
+  assert.deepEqual(REVIEW_COMPLETION_MESSAGES[1], [
+    "復習完了！",
+    "また一歩",
+    "強くなりました！",
+  ]);
+  assert.deepEqual(
     getReviewCompletionMessage(() => 0.999),
-    "迷った問題も、もう大丈夫！",
+    ["迷った問題も、", "もう大丈夫！"],
   );
   assert.equal(formatDifficulty("medium"), "ふつう");
   assert.equal(formatDifficulty("hard"), "むずかしい");
