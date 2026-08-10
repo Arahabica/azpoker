@@ -616,7 +616,10 @@ test("トップと問題画面で共通のカード面を使う", () => {
   assert.match(cardFace, /width: 19cqi/);
 });
 
-test("480pxのモバイル領域とPCの左右余白を持つ", () => {
+test("280px以上に対応し、480pxのモバイル領域とPCの左右余白を持つ", () => {
+  assert.match(styles, /html \{[\s\S]*?min-width: 280px/);
+  assert.match(styles, /body \{[\s\S]*?min-width: 280px/);
+  assert.doesNotMatch(styles, /min-width: 320px/);
   assert.match(styles, /--app-max-width: 480px/);
   assert.match(app, /max-width: var\(--app-max-width\)/);
   assert.match(app, /@media \(min-width: 481px\)/);

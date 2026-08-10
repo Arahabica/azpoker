@@ -77,7 +77,7 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
   for (const phrases of REVIEW_COMPLETION_MESSAGES) {
     assert.ok(phrases.length > 0);
     for (const phrase of phrases) {
-      assert.ok([...phrase].length <= 12, `長すぎるまとまり「${phrase}」`);
+      assert.ok([...phrase].length <= 10, `長すぎるまとまり「${phrase}」`);
     }
   }
 
@@ -85,7 +85,7 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
     const phrases = splitResultMessageAtNaturalBreaks(message);
     assert.equal(phrases.join(""), message);
     for (const phrase of phrases) {
-      assert.ok([...phrase].length <= 12, `長すぎるまとまり「${phrase}」`);
+      assert.ok([...phrase].length <= 10, `長すぎるまとまり「${phrase}」`);
     }
   }
 
@@ -96,5 +96,13 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
   assert.deepEqual(
     splitResultMessageAtNaturalBreaks("いい調子！迷った問題を振り返ろう！"),
     ["いい調子！", "迷った問題を", "振り返ろう！"],
+  );
+  assert.deepEqual(
+    splitResultMessageAtNaturalBreaks("惜しい！パーフェクトはもう目前！"),
+    ["惜しい！", "パーフェクトは", "もう目前！"],
+  );
+  assert.deepEqual(
+    splitResultMessageAtNaturalBreaks("天才！君こそポーカーキングだ！"),
+    ["天才！", "君こそ", "ポーカーキングだ！"],
   );
 });

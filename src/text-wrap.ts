@@ -36,7 +36,9 @@ const NATURAL_BREAK_AFTER = Object.freeze([
 
 const RESULT_MESSAGE_BREAK_AFTER = Object.freeze([
   "パーフェクトまで",
+  "パーフェクトは",
   "迷った問題を",
+  "君こそ",
 ]);
 
 function splitAtNaturalBreaks(value: string | number): string[] {
