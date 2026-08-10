@@ -71,8 +71,14 @@ function freshQuestions(batch?: readonly Question[]): Question[] {
   return (batch ?? []).filter((question) => !recent.has(question.id));
 }
 
+function defaultQuestions(batch?: readonly Question[]): Question[] {
+  return freshQuestions(batch).filter(
+    (question) => question.level !== "advanced",
+  );
+}
+
 function canSupply(group: QuestionGroup, batch?: readonly Question[]): boolean {
-  const questions = freshQuestions(batch);
+  const questions = defaultQuestions(batch);
   if (group === "A") {
     return (
       new Set(

@@ -39,9 +39,10 @@ A_COUNTS = {
     "straight_flush": 100,
 }
 NEW_A_COUNTS = {
-    "runner_straight": 700,
-    "runner_flush": 650,
-    "runner_flush_or_straight": 350,
+    "backdoor_flush": 200,
+    "flush_draw": 500,
+    "oesd": 500,
+    "gutshot": 500,
     "board_pair": 350,
     "board_two_pair": 300,
     "overcard": 400,
@@ -51,11 +52,8 @@ NEW_A_COUNTS = {
     "same_hand_category": 250,
 }
 NEW_B_COUNTS = {
-    "tie_probability": 300,
-    "trailing_hand_wins": 525,
-    "board_straight_chop": 225,
-    "board_flush_chop": 225,
-    "leading_hand_holds": 525,
+    "trailing_hand_wins": 900,
+    "leading_hand_holds": 900,
 }
 NEW_D_COUNTS = {
     "opponent_pocket_pair": 209,
@@ -287,7 +285,7 @@ def straight_sequence(rng: random.Random) -> tuple[str, ...]:
     return tuple(reverse[value] for value in values)
 
 
-def build_a_state(category: str, rng: random.Random, force_zero: bool):
+def build_a_state(category: str, rng: random.Random):
     stage = rng.choice(("flop", "flop", "turn"))
     board_size = 3 if stage == "flop" else 4
     target_rank = None
@@ -333,26 +331,18 @@ def build_a_state(category: str, rng: random.Random, force_zero: bool):
         return stage, hole, board, None
     if category == "flush":
         suit = rng.choice(SUITS)
-        suited = rng.sample([f"{rank}{suit}" for rank in RANKS], 4 if not force_zero else 3)
+        suited = rng.sample([f"{rank}{suit}" for rank in RANKS], 4)
         hole = tuple(suited[:2])
         board_start = tuple(suited[2:])
-        if force_zero:
-            stage = "turn"
-            board_size = 4
         board = (*board_start, *draw_cards(rng, board_size - len(board_start), set(suited)))
         return stage, hole, board, None
     if category == "straight":
         sequence = straight_sequence(rng)
-        present_count = 3 if (force_zero or stage == "flop" and rng.random() < 0.28) else 4
+        present_count = 4
         ranks = rng.sample(sequence, present_count)
         known = []
         for rank in ranks:
             known.append(f"{rank}{rng.choice(SUITS)}")
-        if force_zero:
-            stage = "turn"
-            board_size = 4
-            present_count = 3
-            known = known[:3]
         hole = tuple(known[:2])
         board_start = tuple(known[2:])
         board = (*board_start, *draw_cards(rng, board_size - len(board_start), set(known)))
@@ -383,8 +373,6 @@ def prompt_and_explanation(category: str, target_rank: str | None, stage: str, v
         "four_kind": ("フォーカードの確率は？", "同じ数字や文字が4枚そろう可能性です。"),
         "straight_flush": ("ストレートフラッシュの確率は？", "同じマークで、数字や文字が5つ連続してそろう可能性です。"),
     }[category]
-    if value == 0:
-        return copy[0], "残りのカード枚数では、必要なカードをすべてそろえられません。"
     if category == "flush_or_straight":
         return copy[0], "複数の役を同時に待つ形（コンボドロー）で、重なるカードは一度だけ数えます。"
     if category == "straight":
@@ -392,11 +380,7 @@ def prompt_and_explanation(category: str, target_rank: str | None, stage: str, v
             return copy[0], "両端を待つ形（OESD）や、内側の待ちが2種類ある形（ダブルガット）です。"
         if value >= 8:
             return copy[0], "内側の1種類だけを待つ形（ガットショット）です。"
-        return copy[0], "残り2枚が両方そろって完成する形（ランナーランナー）です。"
-    if category == "flush" and stage == "flop" and value < 10:
-        return copy[0], "残り2枚が両方同じマークになる形（バックドア）です。"
-    if category == "straight" and stage == "flop" and value < 10:
-        return copy[0], "残り2枚が両方そろって完成する形（ランナーランナー）です。"
+        raise ValueError(f"通常のストレートドローとして低すぎる確率です: {value}")
     return copy
 
 
@@ -437,7 +421,6 @@ def distractor(value: float, category: str, stage: str) -> tuple[str, str]:
 def build_mode_a(rng: random.Random) -> list[dict]:
     questions = []
     seen = set()
-    zero_budget = 100
     for category, count in A_COUNTS.items():
         category_questions = []
         attempts = 0
@@ -445,8 +428,7 @@ def build_mode_a(rng: random.Random) -> list[dict]:
             attempts += 1
             if attempts > count * 3000:
                 raise RuntimeError(f"A/{category} の生成候補が不足")
-            force_zero = category in {"flush", "straight"} and zero_budget > 0 and len(category_questions) < (60 if category == "flush" else 40)
-            stage, hole, board, target_rank = build_a_state(category, rng, force_zero)
+            stage, hole, board, target_rank = build_a_state(category, rng)
             if len(set((*hole, *board))) != len(hole) + len(board):
                 continue
             if target_complete(hole, board, category, target_rank):
@@ -455,9 +437,7 @@ def build_mode_a(rng: random.Random) -> list[dict]:
             if key in seen:
                 continue
             value = round(exact_target_percent(hole, board, category, target_rank), 2)
-            if force_zero and value != 0:
-                continue
-            if not force_zero and value == 0:
+            if value == 0:
                 continue
             answer = percent_label(nearest_bucket(value))
             wrong, model = distractor(value, category, stage)
@@ -467,15 +447,13 @@ def build_mode_a(rng: random.Random) -> list[dict]:
                 "mode": "A", "stage": stage, "hole": list(hole), "board": list(board),
                 "target": category, "trueP": value, "answer": answer, "distractor": wrong,
                 "category": category, "prompt": prompt, "explain": explain,
-                "difficulty": "hard" if value == 0 or rng.random() < 0.3 else "medium",
+                "difficulty": "hard" if rng.random() < 0.3 else "medium",
                 "distractorModel": model, "conceptKey": key,
             }
             if target_rank:
                 question["targetRank"] = target_rank
             category_questions.append(question)
             seen.add(key)
-            if value == 0:
-                zero_budget -= 1
         questions.extend(category_questions)
     for index, question in enumerate(questions, 1):
         question["id"] = f"a-{index:05d}"
@@ -502,28 +480,151 @@ def equity(hands: tuple[tuple[str, str], ...], board: tuple[str, ...], rng: rand
     return [round(win / total * 100, 2) for win in wins]
 
 
+def board_hand_category(board: tuple[str, ...]) -> int:
+    counts = Counter(card[0] for card in board)
+    groups = sorted(counts.values(), reverse=True)
+    if groups and groups[0] == 4:
+        return 7
+    if groups and groups[0] == 3:
+        return 3
+    if len([count for count in groups if count >= 2]) >= 2:
+        return 2
+    if groups and groups[0] == 2:
+        return 1
+    return 0
+
+
+def straight_draw_missing_ranks_using_hole(
+    hole: tuple[str, str], board: tuple[str, ...]
+) -> set[int]:
+    values = {RANK_VALUE[card[0]] for card in (*hole, *board)}
+    hole_values = {RANK_VALUE[card[0]] for card in hole}
+    if 14 in values:
+        values.add(1)
+    if 14 in hole_values:
+        hole_values.add(1)
+    missing = set()
+    sequences = (
+        {14, 2, 3, 4, 5},
+        *(set(range(low, low + 5)) for low in range(2, 11)),
+    )
+    for sequence in sequences:
+        absent = sequence - values
+        if len(absent) == 1 and sequence & hole_values:
+            missing.update(14 if value == 1 else value for value in absent)
+    return missing
+
+
+def preflop_continuation_reasons(hole: tuple[str, str]) -> tuple[str, ...]:
+    first = RANK_VALUE[hole[0][0]]
+    second = RANK_VALUE[hole[1][0]]
+    high, low = max(first, second), min(first, second)
+    suited = hole[0][1] == hole[1][1]
+    reasons = []
+    if first == second:
+        reasons.append("pocket_pair")
+    if low >= 10:
+        reasons.append("broadway")
+    if high == 14 and (low >= 9 or suited):
+        reasons.append("playable_ace")
+    if high == 13 and (low >= 10 or suited and low >= 8):
+        reasons.append("playable_king")
+    if suited and low >= 4 and high - low <= 2:
+        reasons.append("suited_connector")
+    return tuple(reasons)
+
+
+def postflop_continuation_reasons(
+    hole: tuple[str, str], board: tuple[str, ...]
+) -> tuple[str, ...]:
+    score = evaluate((*hole, *board))
+    top_board = max(RANK_VALUE[card[0]] for card in board)
+    board_values = {RANK_VALUE[card[0]] for card in board}
+    hole_values = [RANK_VALUE[card[0]] for card in hole]
+    reasons = []
+
+    if score[0] >= 2 and score[0] > board_hand_category(board):
+        reasons.append("two_pair_plus")
+    if hole[0][0] == hole[1][0] and hole_values[0] > top_board:
+        reasons.append("overpair")
+    if top_board in hole_values:
+        reasons.append("top_pair")
+
+    flush_draw = has_flush_draw_using_hole(hole, board)
+    missing = straight_draw_missing_ranks_using_hole(hole, board)
+    if flush_draw:
+        reasons.append("flush_draw")
+    if len(missing) >= 2:
+        reasons.append("oesd_or_double_gut")
+    elif len(missing) == 1:
+        reasons.append("gutshot")
+
+    paired_below_top = bool(set(hole_values) & (board_values - {top_board}))
+    if paired_below_top and flush_draw:
+        reasons.append("middle_pair+flush_draw")
+    if paired_below_top and missing:
+        reasons.append("middle_pair+straight_draw")
+    return tuple(reasons)
+
+
+def continuation_reasons(
+    hole: tuple[str, str], board: tuple[str, ...]
+) -> tuple[str, ...]:
+    return (
+        preflop_continuation_reasons(hole)
+        if not board
+        else postflop_continuation_reasons(hole, board)
+    )
+
+
+def comparison_archetype(
+    hands: tuple[tuple[str, str], tuple[str, str]],
+    board: tuple[str, ...],
+    reasons: tuple[tuple[str, ...], tuple[str, ...]],
+) -> str:
+    if not board:
+        pairs = ["pocket_pair" in hand_reasons for hand_reasons in reasons]
+        if pairs.count(True) == 1:
+            pair_index = pairs.index(True)
+            pair_rank = RANK_VALUE[hands[pair_index][0][0]]
+            other = hands[1 - pair_index]
+            if all(RANK_VALUE[card[0]] > pair_rank for card in other):
+                return "pair_vs_overcards"
+            return "pair_vs_high_cards"
+        if pairs.count(True) == 2:
+            return "pair_vs_pair"
+        if {card[0] for card in hands[0]} & {card[0] for card in hands[1]}:
+            return "domination"
+        return "playable_preflop"
+
+    reason_sets = [set(hand_reasons) for hand_reasons in reasons]
+    made_two_pair = ["two_pair_plus" in hand_reasons for hand_reasons in reason_sets]
+    strong_draw = [
+        bool({"flush_draw", "oesd_or_double_gut"} & hand_reasons)
+        for hand_reasons in reason_sets
+    ]
+    if any(made_two_pair[index] and strong_draw[1 - index] for index in (0, 1)):
+        return "draw_vs_two_pair_plus"
+    if any(
+        bool({"top_pair", "overpair"} & reason_sets[index])
+        and "flush_draw" in reason_sets[1 - index]
+        for index in (0, 1)
+    ):
+        return "top_pair_vs_flush_draw"
+    if all("top_pair" in hand_reasons for hand_reasons in reason_sets):
+        return "one_pair_kicker"
+    if any(any("+" in reason for reason in hand_reasons) for hand_reasons in reasons):
+        return "combo_hand"
+    return "continue_matchup"
+
+
 def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tuple[str, ...], equities: list[float]):
     current_scores = [evaluate((*hand, *board))[0] for hand in hands]
-    if not board:
-        first_ranks = {card[0] for card in hands[0]}
-        second_ranks = {card[0] for card in hands[1]}
-        factors = {
-            "pair_matchup" if any(hand[0][0] == hand[1][0] for hand in hands) else "high_cards",
-        }
-        if first_ranks & second_ranks:
-            factors.add("domination")
-        if any(hand[0][1] == hand[1][1] for hand in hands):
-            factors.add("suitedness")
-    else:
-        factors = {"made_hand" if current_scores[0] != current_scores[1] else "kicker"}
-        remaining = [card for card in DECK if card not in {*hands[0], *hands[1], *board}]
-        for hand in hands:
-            if any(has_flush_using_hole(hand, (*board, card)) for card in remaining):
-                factors.add("flush_draw")
-            if any(has_straight_using_hole(hand, (*board, card)) for card in remaining):
-                factors.add("straight_draw")
-        if len({card[0] for card in board}) < len(board):
-            factors.add("paired_board")
+    reasons = tuple(continuation_reasons(hand, board) for hand in hands)
+    if not all(reasons):
+        return True, "medium", "", "", "unplayable", reasons
+    archetype = comparison_archetype(hands, board, reasons)
+    factors = {reason for hand_reasons in reasons for reason in hand_reasons}
     best = max(equities)
     category_gap = abs(current_scores[0] - current_scores[1])
     obvious = (
@@ -531,34 +632,77 @@ def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tu
         or (bool(board) and best >= 95 and category_gap >= 1 and len(factors) == 1)
         or (bool(board) and best >= 90 and category_gap >= 2 and len(factors) <= 2)
     )
-    difficulty = "hard" if len(factors) >= 2 or best <= 60 else "medium"
+    difficulty = "hard" if len(factors) >= 3 or best <= 60 else "medium"
     explanation = (
         "手札のペア、高いカード、同じマークかを比べます。"
         if not board
         else f"現在は{HAND_NAMES[current_scores[0]]}と{HAND_NAMES[current_scores[1]]}。残りのドローとキッカーも比べます。"
     )
-    return obvious, difficulty, explanation, "+".join(sorted(factors))
+    return (
+        obvious,
+        difficulty,
+        explanation,
+        "+".join(sorted(factors)),
+        archetype,
+        reasons,
+    )
 
 
 def build_mode_b(rng: random.Random) -> list[dict]:
     questions = []
     seen = set()
-    stage_counts = {"preflop": 700, "flop": 1150, "turn": 1150}
-    for stage, count in stage_counts.items():
+    stage_targets = {
+        "preflop": {
+            "pair_vs_overcards": 250,
+            "pair_vs_high_cards": 100,
+            "pair_vs_pair": 100,
+            "domination": 150,
+            "playable_preflop": 100,
+        },
+        "flop": {
+            "draw_vs_two_pair_plus": 200,
+            "top_pair_vs_flush_draw": 250,
+            "one_pair_kicker": 150,
+            "combo_hand": 200,
+            "continue_matchup": 350,
+        },
+        "turn": {
+            "draw_vs_two_pair_plus": 200,
+            "top_pair_vs_flush_draw": 250,
+            "one_pair_kicker": 150,
+            "combo_hand": 200,
+            "continue_matchup": 350,
+        },
+    }
+    for stage, targets in stage_targets.items():
+        count = sum(targets.values())
+        archetype_counts = Counter()
+        attempts = 0
         board_size = {"preflop": 0, "flop": 3, "turn": 4}[stage]
         while sum(question["stage"] == stage for question in questions) < count:
+            attempts += 1
+            if attempts > count * 20_000:
+                raise RuntimeError(f"B/{stage} の実戦的な対決候補が不足")
             cards = tuple(rng.sample(DECK, 4 + board_size))
             hands = (cards[:2], cards[2:4])
             board = cards[4:]
             key = f"{stage}:{canonical_cards([list(hands[0]), list(hands[1]), list(board)])}"
             if key in seen:
                 continue
+            reasons = tuple(continuation_reasons(hand, board) for hand in hands)
+            if not all(reasons):
+                continue
+            archetype = comparison_archetype(hands, board, reasons)
+            if archetype not in targets or archetype_counts[archetype] >= targets[archetype]:
+                continue
             equities = equity(hands, board, rng, 12_000 if stage == "preflop" else None)
             winner = 0 if equities[0] > equities[1] else 1
             best = equities[winner]
             if best < 51:
                 continue
-            obvious, difficulty, explain, factors = comparison_profile(hands, board, equities)
+            obvious, difficulty, explain, factors, archetype, reasons = comparison_profile(
+                hands, board, equities
+            )
             if obvious:
                 continue
             questions.append({
@@ -567,9 +711,12 @@ def build_mode_b(rng: random.Random) -> list[dict]:
                 "equities": equities, "trueP": best, "answer": winner,
                 "category": "hand_comparison", "prompt": "勝率が高いのは？",
                 "explain": explain, "difficulty": difficulty,
+                "archetype": archetype,
+                "continuationReasons": [list(reason) for reason in reasons],
                 "distractorModel": f"比較要素の一部だけを過大評価する: {factors}", "conceptKey": key,
             })
             seen.add(key)
+            archetype_counts[archetype] += 1
     return questions
 
 
@@ -760,10 +907,9 @@ def new_a_event(
 ) -> bool:
     cards = (*hole, *final_board)
     board_counts = Counter(card[0] for card in final_board)
-    if category in {"runner_straight", "runner_flush_or_straight"}:
-        straight = has_straight_using_hole(hole, final_board)
-        return straight if category == "runner_straight" else straight or has_flush_using_hole(hole, final_board)
-    if category == "runner_flush":
+    if category in {"oesd", "gutshot"}:
+        return has_straight_using_hole(hole, final_board)
+    if category in {"backdoor_flush", "flush_draw"}:
         return has_flush_using_hole(hole, final_board)
     if category == "board_pair":
         return any(count >= 2 for count in board_counts.values())
@@ -800,25 +946,99 @@ def exact_new_a_percent(
     return hits / len(runouts) * 100
 
 
+def build_isolated_straight_draw_state(category: str, rng: random.Random):
+    while True:
+        stage = rng.choice(("flop", "turn"))
+        board_size = 3 if stage == "flop" else 4
+        if category == "oesd":
+            low = rng.randint(2, 10)
+            reverse = {value: rank for rank, value in RANK_VALUE.items()}
+            draw_ranks = [reverse[value] for value in range(low, low + 4)]
+        else:
+            sequence = list(straight_sequence(rng))
+            sequence.pop(rng.choice((1, 2, 3)))
+            draw_ranks = sequence
+
+        known = tuple(f"{rank}{rng.choice(SUITS)}" for rank in draw_ranks)
+        if len(set(known)) != 4:
+            continue
+        shuffled = list(known)
+        rng.shuffle(shuffled)
+        hole = tuple(shuffled[:2])
+        board_start = tuple(shuffled[2:])
+        board = (
+            *board_start,
+            *draw_cards(rng, board_size - len(board_start), set(known)),
+        )
+        cards = (*hole, *board)
+        if len({card[0] for card in cards}) != len(cards):
+            continue
+        if has_straight_using_hole(hole, board) or has_flush_draw_using_hole(hole, board):
+            continue
+        missing = straight_draw_missing_ranks_using_hole(hole, board)
+        if category == "oesd" and len(missing) >= 2:
+            return stage, hole, board
+        if category == "gutshot" and len(missing) == 1:
+            return stage, hole, board
+
+
 def build_new_a_state(category: str, rng: random.Random):
-    if category in {"runner_straight", "runner_flush_or_straight"}:
+    if category == "backdoor_flush":
         while True:
-            cards = tuple(rng.sample(DECK, 5))
-            hole, board = cards[:2], cards[2:]
-            if has_straight_using_hole(hole, board):
+            suit = rng.choice(SUITS)
+            suited = rng.sample([f"{rank}{suit}" for rank in RANKS], 3)
+            suited_hole_count = rng.choice((1, 2))
+            hole_suited = suited[:suited_hole_count]
+            board_suited = suited[suited_hole_count:]
+            hole_off = draw_cards(
+                rng,
+                2 - len(hole_suited),
+                set(suited),
+            )
+            if any(card[1] == suit for card in hole_off):
                 continue
-            remaining = [card for card in DECK if card not in cards]
-            has_one_card_straight = any(has_straight_using_hole(hole, (*board, card)) for card in remaining)
-            has_one_card_flush = any(has_flush_using_hole(hole, (*board, card)) for card in remaining)
-            if not has_one_card_straight and (category == "runner_straight" or not has_one_card_flush):
-                return "flop", hole, board
-    if category == "runner_flush":
-        suit = rng.choice(SUITS)
-        suited = rng.sample([f"{rank}{suit}" for rank in RANKS], 3)
-        hole = (suited[0], rng.choice([card for card in DECK if card not in suited and card[1] != suit]))
-        filler = rng.choice([card for card in DECK if card not in {*hole, *suited} and card[1] != suit])
-        board = (suited[1], suited[2], filler)
-        return "flop", hole, board
+            board_off = draw_cards(
+                rng,
+                3 - len(board_suited),
+                set(suited) | set(hole_off),
+            )
+            if any(card[1] == suit for card in board_off):
+                continue
+            hole = tuple((*hole_suited, *hole_off))
+            board = tuple((*board_suited, *board_off))
+            cards = (*hole, *board)
+            if len({card[0] for card in cards}) != len(cards):
+                continue
+            if straight_draw_missing_ranks_using_hole(hole, board):
+                continue
+            return "flop", hole, board
+    if category == "flush_draw":
+        while True:
+            stage = rng.choice(("flop", "turn"))
+            board_size = 3 if stage == "flop" else 4
+            suit = rng.choice(SUITS)
+            suited = rng.sample([f"{rank}{suit}" for rank in RANKS], 4)
+            hole = tuple(suited[:2])
+            board_start = tuple(suited[2:])
+            fillers = tuple(
+                card
+                for card in draw_cards(
+                    rng,
+                    board_size - len(board_start),
+                    set(suited),
+                )
+            )
+            if any(card[1] == suit for card in fillers):
+                continue
+            board = (*board_start, *fillers)
+            cards = (*hole, *board)
+            if len({card[0] for card in cards}) != len(cards):
+                continue
+            if straight_draw_missing_ranks_using_hole(hole, board):
+                continue
+            return stage, hole, board
+    if category in {"oesd", "gutshot"}:
+        return build_isolated_straight_draw_state(category, rng)
     if category in {"overcard", "pocket_pair_counterfeit"}:
         rank = rng.choice(RANKS[:-1])
         pair = tuple(f"{rank}{suit}" for suit in rng.sample(SUITS, 2))
@@ -839,9 +1059,22 @@ def build_new_a_state(category: str, rng: random.Random):
 
 
 NEW_A_COPY = {
-    "runner_straight": ("ストレートの確率は？", "残り2枚が両方必要な形（ランナーランナー）です。"),
-    "runner_flush": ("フラッシュの確率は？", "残り2枚が両方必要な形（ランナーランナー）です。"),
-    "runner_flush_or_straight": ("ストレートかフラッシュの確率は？", "どちらも残り2枚が必要で、重なる組合せは一度だけ数えます。"),
+    "backdoor_flush": (
+        "リバーまでにフラッシュができる確率は？",
+        "同じマークは今3枚です。残り2枚が両方そのマークなら完成するため、約4.2%です。",
+    ),
+    "flush_draw": (
+        "フラッシュの確率は？",
+        "同じマークが今4枚あり、あと1枚で完成するフラッシュドローです。",
+    ),
+    "oesd": (
+        "ストレートの確率は？",
+        "並びの両端どちらでも完成する形（OESD）です。",
+    ),
+    "gutshot": (
+        "ストレートの確率は？",
+        "並びの内側1種類で完成する形（ガットショット）です。",
+    ),
     "board_pair": ("ボードにペアができる確率は？", "ボード上で同じ数字や文字が2枚以上になる可能性です。"),
     "board_two_pair": ("ボードがツーペアになる確率は？", "ボード上で異なる2種類の数字や文字がペアになる可能性です。"),
     "pocket_pair_counterfeit": ("手札のペアが使われなくなる確率は？", "ボードの役が強くなり、ポケットペアがベスト5枚から外れる可能性です。"),
@@ -890,7 +1123,10 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
             if len(set((*hole, *board))) != len(hole) + len(board):
                 continue
             target_suit = None
-            if category == "four_flush_board":
+            if category in {"backdoor_flush", "flush_draw"}:
+                suit_counts = Counter(card[1] for card in (*hole, *board))
+                target_suit = max(suit_counts, key=suit_counts.get)
+            elif category == "four_flush_board":
                 suit_counts = Counter(card[1] for card in board)
                 most_visible = max(suit_counts.values())
                 target_suit = rng.choice([
@@ -906,12 +1142,24 @@ def build_new_mode_a(rng: random.Random) -> list[dict]:
             if key in seen:
                 continue
             prompt, explain = new_a_copy(category, stage, hole, target_suit)
-            fields = answer_fields(value, "残り枚数、重複する組合せ、ボードの変化のどれかを見落とす")
+            if category == "backdoor_flush":
+                fields = {
+                    "trueP": round(value, 2),
+                    "answer": percent_label(nearest_bucket(value)),
+                    "distractor": "35%",
+                    "distractorModel": "バックドアを通常のフラッシュドローとして数える",
+                    "answerType": "percent",
+                }
+            else:
+                fields = answer_fields(
+                    value,
+                    "残り枚数、重複する組合せ、ボードの変化のどれかを見落とす",
+                )
             question = {
                 "id": f"a-{LEGACY_MODE_COUNTS['A'] + len(questions) + 1:05d}",
                 "mode": "A", "stage": stage, "hole": list(hole), "board": list(board),
                 "target": category, "category": category, "prompt": prompt, "explain": explain,
-                "difficulty": "hard" if category in {"runner_flush_or_straight", "pocket_pair_counterfeit", "two_pair_counterfeit"} or rng.random() < .2 else "medium",
+                "difficulty": "hard" if category in {"pocket_pair_counterfeit", "two_pair_counterfeit"} or rng.random() < .2 else "medium",
                 "conceptKey": key, **fields,
             }
             if target_suit:
@@ -935,19 +1183,6 @@ def outcome_percent(hands, board, predicate) -> float:
     return hits / total * 100
 
 
-NEW_B_COPY = {
-    "tie_probability": ("引き分けになる確率は？", "両方のベスト5枚が同じになる組合せです。"),
-    "board_straight_chop": (
-        "ボードの5枚だけでストレートになり、引き分ける確率は？",
-        "最後にボードの5枚だけでストレートができ、左右の手札が同じ役になる可能性です。",
-    ),
-    "board_flush_chop": (
-        "ボードの5枚だけでフラッシュになり、引き分ける確率は？",
-        "最後にボードの5枚だけでフラッシュができ、左右の手札が同じ役になる可能性です。",
-    ),
-}
-
-
 def mode_b_copy(category: str, leader: int | None = None) -> tuple[str, str, int | None]:
     if category in {"trailing_hand_wins", "leading_hand_holds"}:
         if leader not in {0, 1}:
@@ -961,8 +1196,7 @@ def mode_b_copy(category: str, leader: int | None = None) -> tuple[str, str, int
             f"今は右の手札が{current_state}可能性です。",
             target_hand,
         )
-    prompt, explain = NEW_B_COPY[category]
-    return prompt, explain, None
+    raise ValueError(f"未対応のモードBカテゴリです: {category}")
 
 
 def build_new_mode_b(rng: random.Random) -> list[dict]:
@@ -977,25 +1211,13 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                 raise RuntimeError(f"B/{category} の生成候補が不足")
             stage = rng.choice(("flop", "turn"))
             board_size = 3 if stage == "flop" else 4
-            if category == "board_straight_chop":
-                stage = "flop"
-                sequence = straight_sequence(rng)
-                board_ranks = rng.sample(sequence, 3)
-                board = tuple(f"{rank}{rng.choice(SUITS)}" for rank in board_ranks)
-                while len(set(board)) != 3:
-                    board = tuple(f"{rank}{rng.choice(SUITS)}" for rank in board_ranks)
-                hand_cards = draw_cards(rng, 4, set(board))
-                hands = (hand_cards[:2], hand_cards[2:])
-            elif category == "board_flush_chop":
-                stage = "flop"
-                suit = rng.choice(SUITS)
-                board = tuple(rng.sample([f"{rank}{suit}" for rank in RANKS], 3))
-                hand_cards = tuple(rng.sample([card for card in DECK if card not in board and card[1] != suit], 4))
-                hands = (hand_cards[:2], hand_cards[2:])
-            else:
-                cards = tuple(rng.sample(DECK, 4 + board_size))
-                hands = (cards[:2], cards[2:4])
-                board = cards[4:]
+            cards = tuple(rng.sample(DECK, 4 + board_size))
+            hands = (cards[:2], cards[2:4])
+            board = cards[4:]
+            reasons = tuple(continuation_reasons(hand, board) for hand in hands)
+            if not all(reasons):
+                continue
+            archetype = comparison_archetype(hands, board, reasons)
             current = [evaluate((*hand, *board)) for hand in hands]
             leader = 0 if current[0] > current[1] else 1 if current[1] > current[0] else None
             if category in {"trailing_hand_wins", "leading_hand_holds"} and leader is None:
@@ -1005,23 +1227,20 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                 if target_hand == 0:
                     hands = (hands[1], hands[0])
                     current = [current[1], current[0]]
+                    reasons = (reasons[1], reasons[0])
+                    archetype = comparison_archetype(hands, board, reasons)
                     leader = 1 - leader
             trailer = None if leader is None else 1 - leader
 
             def predicate(scores, final_board, runout):
-                if category == "tie_probability":
-                    return scores[0] == scores[1]
                 if category == "trailing_hand_wins":
                     return scores[trailer] > scores[leader]
                 if category == "leading_hand_holds":
                     return scores[leader] > scores[trailer]
-                board_score = evaluate(tuple(final_board))
-                if scores[0] != scores[1] or scores[0] != board_score:
-                    return False
-                return board_score[0] == (4 if category == "board_straight_chop" else 5)
+                raise ValueError(category)
 
             value = outcome_percent(hands, board, predicate)
-            if not 0.5 <= value <= 99.5:
+            if not 5 <= value <= 95:
                 continue
             key = f"{category}:{stage}:{canonical_cards([list(hands[0]), list(hands[1]), list(board)])}"
             if key in seen:
@@ -1033,6 +1252,8 @@ def build_new_mode_b(rng: random.Random) -> list[dict]:
                 "mode": "B", "stage": stage, "hands": [list(hand) for hand in hands],
                 "board": list(board), "category": category, "prompt": prompt, "explain": explain,
                 "difficulty": "hard" if category not in {"leading_hand_holds", "trailing_hand_wins"} or rng.random() < .2 else "medium",
+                "archetype": archetype,
+                "continuationReasons": [list(reason) for reason in reasons],
                 "conceptKey": key, **fields,
             }
             if target_hand is not None:
@@ -1349,8 +1570,18 @@ def validate(bank: list[dict]) -> None:
             "same_final_category",
             "clean_out",
             "next_card_reversal",
+            "runner_straight",
+            "runner_flush",
+            "runner_flush_or_straight",
+            "tie_probability",
+            "board_straight_chop",
+            "board_flush_chop",
         }:
             raise RuntimeError(f"廃止した問題カテゴリです: {question['id']}")
+        if question.get("trueP") == 0:
+            raise RuntimeError(f"0%問題です: {question['id']}")
+        if question.get("level") not in {"beginner", "intermediate", "advanced"}:
+            raise RuntimeError(f"対象者レベルが不正です: {question['id']}")
         cards = question.get("hole", []) + question.get("board", [])
         cards += [card for hand in question.get("hands", []) for card in hand]
         if len(cards) != len(set(cards)):
@@ -1363,6 +1594,8 @@ def validate(bank: list[dict]) -> None:
             raise RuntimeError(f"初心者向けでない表示文言: {question['id']}")
         if "ランク" in f"{question['prompt']}{question['explain']}":
             raise RuntimeError(f"初心者向けでない表示文言: {question['id']}")
+        if "ランナーランナー" in f"{question['prompt']}{question['explain']}":
+            raise RuntimeError(f"廃止したバックドア表現です: {question['id']}")
         if question.get("answerType") == "percent":
             correct = float(question["answer"].removesuffix("%"))
             wrong = float(question["distractor"].removesuffix("%"))
@@ -1384,6 +1617,50 @@ def validate(bank: list[dict]) -> None:
                 raise RuntimeError(f"勝率の対象手札が不正です: {question['id']}")
             if question["prompt"] != "右の手札の勝率は？":
                 raise RuntimeError(f"勝率の対象が問題文と不一致です: {question['id']}")
+            if not 5 <= question["trueP"] <= 95:
+                raise RuntimeError(f"実戦価値の低い極端な勝率です: {question['id']}")
+        if question["mode"] == "B":
+            hands = tuple(tuple(hand) for hand in question["hands"])
+            board = tuple(question["board"])
+            reasons = tuple(continuation_reasons(hand, board) for hand in hands)
+            if not all(reasons):
+                raise RuntimeError(f"続行理由のない手札比較です: {question['id']}")
+            expected_reasons = [list(reason) for reason in reasons]
+            if question.get("continuationReasons") != expected_reasons:
+                raise RuntimeError(f"続行理由が不一致です: {question['id']}")
+            if question.get("archetype") != comparison_archetype(hands, board, reasons):
+                raise RuntimeError(f"対決類型が不一致です: {question['id']}")
+        if question.get("category") == "backdoor_flush":
+            hole = tuple(question["hole"])
+            board = tuple(question["board"])
+            target_suit = question.get("targetSuit")
+            if question["stage"] != "flop" or target_suit not in SUITS:
+                raise RuntimeError(f"バックドアフラッシュの状態が不正です: {question['id']}")
+            if sum(card[1] == target_suit for card in (*hole, *board)) != 3:
+                raise RuntimeError(f"同じマークが3枚ではありません: {question['id']}")
+            if not any(card[1] == target_suit for card in hole):
+                raise RuntimeError(f"手札のマークを使わないバックドアです: {question['id']}")
+            if straight_draw_missing_ranks_using_hole(hole, board):
+                raise RuntimeError(f"ストレート待ちを併設したバックドアです: {question['id']}")
+            remaining = tuple(card for card in DECK if card not in {*hole, *board})
+            if any(has_flush_using_hole(hole, (*board, card)) for card in remaining):
+                raise RuntimeError(f"1枚で完成する通常ドローです: {question['id']}")
+            if question["trueP"] != 4.16 or question["answer"] != "5%" or question["distractor"] != "35%":
+                raise RuntimeError(f"バックドアフラッシュの確率・選択肢が不正です: {question['id']}")
+        if question.get("category") in {"flush", "straight"}:
+            hole = tuple(question["hole"])
+            board = tuple(question["board"])
+            remaining = tuple(card for card in DECK if card not in {*hole, *board})
+            completes_with_one = any(
+                (
+                    has_flush_using_hole(hole, (*board, card))
+                    if question["category"] == "flush"
+                    else has_straight_using_hole(hole, (*board, card))
+                )
+                for card in remaining
+            )
+            if not completes_with_one:
+                raise RuntimeError(f"通常カテゴリにバックドアが混入しています: {question['id']}")
         if question.get("category") == "four_flush_board":
             target_suit = question.get("targetSuit")
             if target_suit not in SUITS:
@@ -1401,6 +1678,71 @@ def validate(bank: list[dict]) -> None:
                 raise RuntimeError(f"ボード4枚の確率が不正です: {question['id']}")
         if question["mode"] == "D" and not question["prompt"].startswith(f"{question['playerCount']}人卓で"):
             raise RuntimeError(f"卓人数なし: {question['id']}")
+
+
+A_BEGINNER_CATEGORIES = {
+    "flush",
+    "straight",
+    "rank_hit",
+    "rank_trips",
+    "two_pair",
+    "four_kind",
+    "backdoor_flush",
+    "flush_draw",
+    "oesd",
+    "gutshot",
+    "board_pair",
+    "overcard",
+}
+B_BEGINNER_ARCHETYPES = {
+    "pair_vs_overcards",
+    "pair_vs_pair",
+    "top_pair_vs_flush_draw",
+    "one_pair_kicker",
+}
+D_ADVANCED_CATEGORIES = {
+    "all_opponents_miss_board",
+    "exactly_one_opponent_target_rank",
+    "multiple_opponents_target_rank",
+}
+D_INTERMEDIATE_CATEGORIES = {
+    "opponent_combo_draw",
+    "opponent_higher_flush",
+    "opponent_same_pair_higher_kicker",
+}
+
+
+def normalize_question_level(question: dict) -> None:
+    if question["mode"] == "A":
+        question["level"] = (
+            "beginner"
+            if question["category"] in A_BEGINNER_CATEGORIES
+            else "intermediate"
+        )
+        return
+    if question["mode"] == "B":
+        question["level"] = (
+            "beginner"
+            if question["answerType"] == "hand"
+            and question.get("archetype") in B_BEGINNER_ARCHETYPES
+            else "intermediate"
+        )
+        return
+    if question["mode"] == "C":
+        question["level"] = (
+            "advanced"
+            if question["playerCount"] == 6
+            else "beginner" if question["stage"] == "preflop" else "intermediate"
+        )
+        return
+    question["level"] = (
+        "advanced"
+        if question["playerCount"] == 6
+        or question["category"] in D_ADVANCED_CATEGORIES
+        else "intermediate"
+        if question["category"] in D_INTERMEDIATE_CATEGORIES
+        else "beginner"
+    )
 
 
 def normalize_question_copy(question: dict) -> None:
@@ -1565,6 +1907,27 @@ def load_existing_legacy() -> dict[str, list[dict]] | None:
     return legacy
 
 
+def load_existing_additions() -> dict[str, list[dict]]:
+    additions = {mode: [] for mode in MODE_COUNTS}
+    if not OUTPUT.exists():
+        return additions
+    for directory in ("a", "bc", "d"):
+        path = OUTPUT / directory
+        if not path.exists():
+            continue
+        for source in sorted(path.glob("*.json")):
+            for question in json.loads(source.read_text(encoding="utf-8")):
+                mode = question.get("mode")
+                if mode not in additions:
+                    continue
+                number = int(question["id"].split("-")[1])
+                if number > LEGACY_MODE_COUNTS[mode]:
+                    additions[mode].append(question)
+    for items in additions.values():
+        items.sort(key=lambda question: int(question["id"].split("-")[1]))
+    return additions
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1577,6 +1940,23 @@ def main() -> int:
         legacy_by_mode = {}
         for mode, builder in (("A", build_mode_a), ("B", build_mode_b), ("C", build_mode_c), ("D", build_mode_d)):
             legacy_by_mode[mode] = builder(rng)
+    else:
+        if any(
+            question["trueP"] == 0
+            or "ランナーランナー" in question.get("explain", "")
+            or "バックドア" in question.get("explain", "")
+            for question in legacy_by_mode["A"]
+        ):
+            print("モードA従来分を品質基準に合わせて再生成します", flush=True)
+            legacy_by_mode["A"] = build_mode_a(random.Random(20260802))
+        if any(
+            not question.get("continuationReasons")
+            or not question.get("archetype")
+            for question in legacy_by_mode["B"]
+        ):
+            print("モードB従来分を実戦的な対決へ再生成します", flush=True)
+            legacy_by_mode["B"] = build_mode_b(random.Random(20260803))
+    existing_additions = load_existing_additions()
     additions = {}
     for mode, builder, seed in (
         ("A", build_new_mode_a, 2026081201),
@@ -1584,11 +1964,13 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v5", "B": "-v8", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v6", "B": "-v9", "D": "-v2"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
-        if cache_path.exists():
+        expected = MODE_COUNTS[mode] - LEGACY_MODE_COUNTS[mode]
+        if mode in {"C", "D"} and len(existing_additions[mode]) == expected:
+            additions[mode] = existing_additions[mode]
+        elif cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))
-            expected = MODE_COUNTS[mode] - LEGACY_MODE_COUNTS[mode]
             additions[mode] = cached if len(cached) == expected else builder(random.Random(seed))
         else:
             additions[mode] = builder(random.Random(seed))
@@ -1603,6 +1985,7 @@ def main() -> int:
             question.setdefault("answerType", "hand" if question["mode"] == "B" else "percent")
             normalize_question_copy(question)
             normalize_question_choices(question)
+            normalize_question_level(question)
     for mode, questions in bank_by_mode.items():
         print(f"モード{mode}: {len(questions):,}問", flush=True)
     bank = [question for questions in bank_by_mode.values() for question in questions]

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import { createSession } from "../src/game.ts";
 import { loadQuestionBank, root } from "./question-fixtures.js";
 
 const bank = loadQuestionBank();
@@ -21,6 +22,14 @@ function minimumChoiceGap(answer) {
   if (answer <= 3) return 2;
   if (answer < 20) return 5;
   return 10;
+}
+
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1_664_525 + 1_013_904_223) >>> 0;
+    return state / 2 ** 32;
+  };
 }
 
 test("問題バンクは20,000問で、計画どおりのモード構成を持つ", () => {
@@ -62,7 +71,7 @@ test("100問単位のJSONとmanifestを生成する", () => {
   }
 });
 
-test("モードAのカテゴリ数とストレートフラッシュ100問を固定する", () => {
+test("モードAを通常ドロー中心にし、バックドアフラッシュだけ200問残す", () => {
   const expected = {
     flush: 1400,
     straight: 1600,
@@ -73,9 +82,10 @@ test("モードAのカテゴリ数とストレートフラッシュ100問を固�
     full_house: 400,
     four_kind: 250,
     straight_flush: 100,
-    runner_straight: 700,
-    runner_flush: 650,
-    runner_flush_or_straight: 350,
+    backdoor_flush: 200,
+    flush_draw: 500,
+    oesd: 500,
+    gutshot: 500,
     board_pair: 350,
     board_two_pair: 300,
     overcard: 400,
@@ -117,7 +127,12 @@ test("全問のカード、選択肢、誤答理由が有効", () => {
     );
     assert.ok(question.distractorModel, `${question.id}: 誤答理由`);
     assert.ok(["medium", "hard"].includes(question.difficulty));
+    assert.ok(
+      ["beginner", "intermediate", "advanced"].includes(question.level),
+      `${question.id}: 対象者レベル`,
+    );
     assert.ok(["hand", "percent"].includes(question.answerType));
+    assert.notEqual(question.trueP, 0, `${question.id}: 0%問題`);
     if (question.answerType === "percent") {
       assert.notEqual(
         question.answer,
@@ -207,6 +222,20 @@ test("A5sの2人勝率は捨て選択肢を使わない", () => {
   assert.equal(question.distractor, "45%");
 });
 
+test("6人卓は上級者向けへ分離する", () => {
+  const multiway = bank.filter((question) => question.playerCount === 6);
+  assert.ok(multiway.length > 0);
+  assert.ok(multiway.every((question) => question.level === "advanced"));
+  assert.ok(
+    bank.some(
+      (question) =>
+        question.mode === "C" &&
+        question.playerCount === 2 &&
+        question.level !== "advanced",
+    ),
+  );
+});
+
 test("初心者向け文言を使い、内部表記を画面へ出さない", () => {
   const explanationOnlyTerms = [
     "ポケットペア",
@@ -250,10 +279,10 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
       );
     }
   }
-  const runner = bank.find((question) =>
-    question.explain.includes("ランナーランナー"),
+  assert.equal(
+    bank.some((question) => question.explain.includes("ランナーランナー")),
+    false,
   );
-  assert.match(runner?.explain ?? "", /残り2枚が両方/);
 
   const opponentSet = bank.find(
     (question) => question.category === "opponent_set",
@@ -266,6 +295,50 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
   );
   assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
   assert.match(opponentOesd?.explain ?? "", /OESD/);
+});
+
+test("バックドアフラッシュは単独ドローの約4.2%だけを問う", () => {
+  const questions = bank.filter(
+    (question) => question.category === "backdoor_flush",
+  );
+  assert.equal(questions.length, 200);
+
+  for (const question of questions) {
+    assert.equal(question.stage, "flop", question.id);
+    assert.equal(question.level, "beginner", question.id);
+    assert.equal(question.trueP, 4.16, question.id);
+    assert.equal(question.answer, "5%", question.id);
+    assert.equal(question.distractor, "35%", question.id);
+    assert.equal(
+      question.prompt,
+      "リバーまでにフラッシュができる確率は？",
+      question.id,
+    );
+    assert.match(question.explain, /今3枚/);
+    assert.match(question.explain, /約4\.2%/);
+    const cards = [...question.hole, ...question.board];
+    assert.equal(
+      cards.filter((card) => card[1] === question.targetSuit).length,
+      3,
+      question.id,
+    );
+    assert.ok(
+      question.hole.some((card) => card[1] === question.targetSuit),
+      question.id,
+    );
+  }
+
+  for (const category of [
+    "runner_straight",
+    "runner_flush",
+    "runner_flush_or_straight",
+  ]) {
+    assert.equal(
+      bank.some((question) => question.category === category),
+      false,
+      category,
+    );
+  }
 });
 
 test("ボード4枚問題は対象のマークを具体的に示す", () => {
@@ -296,13 +369,10 @@ test("ボード4枚問題は対象のマークを具体的に示す", () => {
   }
 });
 
-test("モードBの数値問題を認知負荷の低い5形式へ振り分ける", () => {
+test("モードBの数値問題は実戦的な右手札の勝率2形式に絞る", () => {
   const expected = {
-    tie_probability: 300,
-    trailing_hand_wins: 525,
-    board_straight_chop: 225,
-    board_flush_chop: 225,
-    leading_hand_holds: 525,
+    trailing_hand_wins: 900,
+    leading_hand_holds: 900,
   };
   const numericModeB = bank.filter(
     (question) => question.mode === "B" && question.answerType === "percent",
@@ -323,6 +393,9 @@ test("モードBの数値問題を認知負荷の低い5形式へ振り分ける
     "clean_out",
     "next_card_reversal",
     "same_final_category",
+    "tie_probability",
+    "board_straight_chop",
+    "board_flush_chop",
   ]) {
     assert.equal(
       numericModeB.some((question) => question.category === removedCategory),
@@ -339,21 +412,11 @@ test("モードBの数値問題を認知負荷の低い5形式へ振り分ける
     false,
   );
 
-  for (const question of numericModeB.filter(
-    (candidate) => candidate.category === "board_straight_chop",
-  )) {
-    assert.equal(
-      question.prompt,
-      "ボードの5枚だけでストレートになり、引き分ける確率は？",
-    );
-  }
-
-  const targetedWinRates = numericModeB.filter((candidate) =>
-    ["trailing_hand_wins", "leading_hand_holds"].includes(candidate.category),
-  );
-  for (const question of targetedWinRates) {
+  for (const question of numericModeB) {
     assert.equal(question.targetHand, 1, `${question.id}: 対象手札`);
     assert.equal(question.prompt, "右の手札の勝率は？");
+    assert.ok(question.trueP >= 5 && question.trueP <= 95, question.id);
+    assert.equal(question.level, "intermediate", question.id);
   }
   assert.equal(
     numericModeB.some((question) => question.prompt === "左の手札の勝率は？"),
@@ -361,13 +424,37 @@ test("モードBの数値問題を認知負荷の低い5形式へ振り分ける
   );
 });
 
-test("手札比較は現在の役ではなく最終的な勝率を尋ねる", () => {
+test("手札比較は両方に続行理由がある実戦的な類型へ寄せる", () => {
   const comparisons = bank.filter(
     (question) => question.category === "hand_comparison",
   );
   assert.equal(comparisons.length, 3000);
+  const expectedArchetypes = {
+    pair_vs_overcards: 250,
+    pair_vs_high_cards: 100,
+    pair_vs_pair: 100,
+    domination: 150,
+    playable_preflop: 100,
+    draw_vs_two_pair_plus: 400,
+    top_pair_vs_flush_draw: 500,
+    one_pair_kicker: 300,
+    combo_hand: 400,
+    continue_matchup: 700,
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.keys(expectedArchetypes).map((archetype) => [
+        archetype,
+        comparisons.filter((question) => question.archetype === archetype)
+          .length,
+      ]),
+    ),
+    expectedArchetypes,
+  );
   for (const question of comparisons) {
     assert.equal(question.prompt, "勝率が高いのは？");
+    assert.equal(question.continuationReasons.length, 2, question.id);
+    assert.ok(question.continuationReasons.every((reasons) => reasons.length));
   }
 });
 
@@ -427,6 +514,18 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
       `${question.playerCount}人卓で${subject}が${displayedRank}を持つ確率は？`,
     );
   }
+  for (const question of questions) {
+    if (
+      question.playerCount === 6 ||
+      [
+        "all_opponents_miss_board",
+        "exactly_one_opponent_target_rank",
+        "multiple_opponents_target_rank",
+      ].includes(question.category)
+    ) {
+      assert.equal(question.level, "advanced", question.id);
+    }
+  }
 });
 
 test("B+Cパックは従来B 50問・数値B 30問・C 20問", () => {
@@ -450,5 +549,43 @@ test("B+Cパックは従来B 50問・数値B 30問・C 20問", () => {
       30,
     );
     assert.equal(chunk.filter((question) => question.mode === "C").length, 20);
+  }
+});
+
+test("分割取得した各パックから初心者7問・中級者3問を選べる", () => {
+  const filenames = (group) =>
+    fs
+      .readdirSync(path.join(questionsRoot, group))
+      .filter((name) => name.endsWith(".json"))
+      .sort();
+  const files = {
+    a: filenames("a"),
+    bc: filenames("bc"),
+    d: filenames("d"),
+  };
+  const read = (group, filename) =>
+    JSON.parse(
+      fs.readFileSync(path.join(questionsRoot, group, filename), "utf8"),
+    );
+
+  for (let index = 0; index < 60; index += 1) {
+    const pool = [
+      ...read("a", files.a[index]),
+      ...read("bc", files.bc[index]),
+      ...read("d", files.d[index % files.d.length]),
+    ];
+    const session = createSession(pool, seededRandom(index));
+    assert.equal(
+      session.filter((question) => question.level === "beginner").length,
+      7,
+    );
+    assert.equal(
+      session.filter((question) => question.level === "intermediate").length,
+      3,
+    );
+    assert.equal(
+      session.some((question) => question.level === "advanced"),
+      false,
+    );
   }
 });
