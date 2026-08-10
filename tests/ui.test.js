@@ -204,10 +204,8 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
   assert.match(landing, /もっと強くなろう！/);
   assert.equal(landing.match(/label="クイズをはじめる"/g)?.length, 2);
   assert.match(landing, /{#if recentHistory\.length > 0}/);
-  assert.match(
-    landing,
-    /history\.length >= 3 \? history\.slice\(0, 2\) : \[\]/,
-  );
+  assert.match(landing, /\$derived\(history\.slice\(0, 2\)\)/);
+  assert.match(landing, /showMoreHistory = \$derived\(history\.length > 2\)/);
   assert.match(landing, /min-height: 100dvh/);
   assert.ok(
     landing.indexOf("{#if recentHistory.length > 0}") <
@@ -227,7 +225,10 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
     /grid-template-columns: minmax\(0, 1fr\) auto auto/,
   );
   assert.doesNotMatch(historyList, /compact\?:|{#if compact}/);
-  assert.match(landing, /<HistoryPanel[\s\S]*entries={recentHistory}/);
+  assert.match(
+    landing,
+    /<HistoryPanel[\s\S]*entries={recentHistory}[\s\S]*showMore={showMoreHistory}/,
+  );
   assert.doesNotMatch(
     landing.match(/\.landing-body \{([^}]*)\}/)?.[1] ?? "",
     /border-top/,
