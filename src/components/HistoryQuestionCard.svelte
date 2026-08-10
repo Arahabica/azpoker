@@ -121,16 +121,16 @@
     min-width: 3.7rem;
     padding: 0.28rem 0.55rem;
     border-radius: 999px;
-    background: rgb(255 107 111 / 14%);
-    color: #ffb9bb;
+    background: color-mix(in srgb, var(--wrong) 90%, transparent);
+    color: var(--text);
     font-size: 0.72rem;
     font-weight: 800;
     text-align: center;
   }
 
   [data-outcome="correct"] .outcome-badge {
-    background: rgb(32 202 145 / 14%);
-    color: #8ef0ca;
+    background: color-mix(in srgb, var(--correct) 90%, transparent);
+    color: var(--text);
   }
 
   .history-prompt {
