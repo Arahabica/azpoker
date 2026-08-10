@@ -139,23 +139,31 @@ export const ReviewHand: Story = {
 };
 
 export const MinimumWidthWrong: Story = {
-  name: "最小幅280px・不正解",
+  name: "最小幅280px・最後の問題で不正解",
   args: {
+    currentIndex: 9,
     answerResult: { correct: false, selected: "20%", timedOut: false },
     outcomes: [
       "correct",
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+      "correct",
       "wrong",
-      "wrong",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
     ],
   },
   globals: {
     viewport: { value: "minimum", isRotated: false },
+  },
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(
+        canvas.getByRole("button", { name: "次の問題へ" }),
+      ).toBeVisible();
+    });
   },
 };

@@ -58,6 +58,11 @@
   let leaveConfirmationOpen = $state(false);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
   const choicesConcealed = $derived(!choicesReady || Boolean(answerResult));
+  const showsResultNext = $derived(
+    currentIndex === total - 1 &&
+      answerResult?.correct === true &&
+      (reviewMode || outcomes.every((outcome) => outcome === "correct")),
+  );
 
   $effect(() => {
     const questionIndex = currentIndex;
@@ -189,7 +194,7 @@
       correct={answerResult.correct}
       timedOut={answerResult.timedOut}
       {question}
-      isLast={currentIndex === total - 1}
+      isLast={showsResultNext}
       blocked={leaveConfirmationOpen}
       {onNext}
       onRequestLeave={requestLeave}

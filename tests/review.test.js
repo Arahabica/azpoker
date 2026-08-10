@@ -6,6 +6,7 @@ import {
   RECENT_HISTORY_REVIEW_LIMIT,
   REVIEW_COMPLETION_MESSAGES,
   addRecentMistakeToSession,
+  completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
   getReviewCompletionMessage,
@@ -96,6 +97,26 @@ test("復習開始時は誤答と時間切れだけを問題IDごとに1件取�
     ),
     ["question-1", "question-2"],
   );
+});
+
+test("復習完了時は元の正誤を保ち、復習分の時間だけ履歴へ加える", () => {
+  const original = historyEntry(1);
+  const completedAt = 1_900_000_000_000;
+  const completed = completeReviewHistoryEntry(
+    original,
+    2_500,
+    10_000,
+    completedAt,
+  );
+
+  assert.equal(completed.completedAt, completedAt);
+  assert.equal(completed.elapsedMs, 3_500);
+  assert.equal(completed.timeLimitMs, 15_000);
+  assert.equal(completed.score, original.score);
+  assert.equal(completed.timeoutCount, original.timeoutCount);
+  assert.deepEqual(completed.answers, original.answers);
+  assert.equal(original.elapsedMs, 1_000);
+  assert.equal(original.timeLimitMs, 5_000);
 });
 
 test("復習完了メッセージを複数用意し、難易度を日本語表示する", () => {

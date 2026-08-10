@@ -1,4 +1,8 @@
-import type { QuizHistoryAnswer, QuizHistoryEntry } from "./result-history.ts";
+import {
+  createQuizHistoryEntry,
+  type QuizHistoryAnswer,
+  type QuizHistoryEntry,
+} from "./result-history.ts";
 import type { Difficulty, Question, RandomSource } from "./types.ts";
 
 const RECENT_HISTORY_REVIEW_LIMIT = 10;
@@ -69,6 +73,26 @@ function createReviewSession(
   return questions;
 }
 
+function completeReviewHistoryEntry(
+  entry: QuizHistoryEntry,
+  reviewElapsedMs: number,
+  reviewTimeLimitMs: number,
+  completedAt = Date.now(),
+): QuizHistoryEntry {
+  return createQuizHistoryEntry(
+    {
+      id: entry.id,
+      score: entry.score,
+      total: entry.total,
+      elapsedMs: entry.elapsedMs + reviewElapsedMs,
+      timeLimitMs: entry.timeLimitMs + reviewTimeLimitMs,
+      timeoutCount: entry.timeoutCount,
+      answers: entry.answers,
+    },
+    completedAt,
+  );
+}
+
 function getReviewCompletionMessage(
   random: RandomSource = Math.random,
 ): ReviewCompletionMessage {
@@ -85,6 +109,7 @@ export {
   RECENT_HISTORY_REVIEW_LIMIT,
   REVIEW_COMPLETION_MESSAGES,
   addRecentMistakeToSession,
+  completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
   getReviewCompletionMessage,

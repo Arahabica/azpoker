@@ -40,6 +40,7 @@
   } from "./result-history.ts";
   import {
     addRecentMistakeToSession,
+    completeReviewHistoryEntry,
     createReviewSession,
     getReviewCompletionMessage,
     type ReviewCompletionMessage,
@@ -99,6 +100,7 @@
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
   let sessionHistoryId = $state("");
+  let pendingHistoryEntry = $state<QuizHistoryEntry | null>(null);
   let reviewCompletionMessage = $state<ReviewCompletionMessage | null>(null);
   let resultHistory = $state<QuizHistoryEntry[]>([]);
   let historyDetailOrigin = $state<HistoryDetailOrigin>("direct");
@@ -113,7 +115,6 @@
   const timeoutCount = $derived(
     outcomes.filter((outcome) => outcome === "timeout").length,
   );
-  const reviewQuestions = $derived(createReviewSession(sessionAnswers));
   const historyDetailId = $derived(getHistoryIdFromPath(currentPath));
   const historyDetailNavigation = $derived(
     getHistoryDetailNavigation(historyDetailOrigin),
@@ -229,6 +230,7 @@
     if (preparingFlow === flow) return;
     flow = preparingFlow;
     sessionKind = "quiz";
+    pendingHistoryEntry = null;
     reviewCompletionMessage = null;
 
     try {
@@ -379,6 +381,16 @@
 
     if (nextFlow.status === "result") {
       if (sessionKind === "review") {
+        if (pendingHistoryEntry) {
+          resultHistory = saveQuizHistory(
+            completeReviewHistoryEntry(
+              pendingHistoryEntry,
+              sessionElapsedMs,
+              sessionTimeLimitMs,
+            ),
+          );
+          pendingHistoryEntry = null;
+        }
         reviewCompletionMessage = getReviewCompletionMessage();
         playSound("complete");
         focusElement("#continue-after-review");
@@ -396,6 +408,13 @@
         timeoutCount,
         answers: completedAnswers,
       });
+      const nextReviewSession = createReviewSession(completedAnswers);
+      if (
+        nextReviewSession.length > 0 &&
+        startReview(nextReviewSession, historyEntry)
+      ) {
+        return;
+      }
       resultHistory = saveQuizHistory(historyEntry);
       playSound(score === session.length ? "perfect" : "complete");
       focusElement("#retry");
@@ -410,16 +429,20 @@
     }
   }
 
-  function startReview(): void {
-    if (flow.status !== "result" || reviewQuestions.length === 0) return;
-    const nextSession = [...reviewQuestions];
+  function startReview(
+    questions: readonly Question[],
+    historyEntry: QuizHistoryEntry,
+  ): boolean {
+    if (flow.status !== "result" || questions.length === 0) return false;
+    const nextSession = [...questions];
     const reviewFlow = transitionGameFlow(flow, {
       type: "START_REVIEW",
       totalQuestions: nextSession.length,
     });
-    if (reviewFlow === flow) return;
+    if (reviewFlow === flow) return false;
 
     sessionKind = "review";
+    pendingHistoryEntry = historyEntry;
     session = nextSession;
     score = 0;
     outcomes = Array<QuestionOutcome | null>(nextSession.length).fill(null);
@@ -436,6 +459,7 @@
     flow = reviewFlow;
     playSound("start");
     prepareQuestion(nextSession[0]!);
+    return true;
   }
 
   function showLanding(shouldFocus = true): void {
@@ -445,6 +469,7 @@
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
     sessionHistoryId = "";
+    pendingHistoryEntry = null;
     reviewCompletionMessage = null;
     soundEffects?.stopAll();
     flow = transitionGameFlow(flow, { type: "LEAVE" });
@@ -630,9 +655,7 @@
         elapsedMs={sessionElapsedMs}
         timeLimitMs={sessionTimeLimitMs}
         {timeoutCount}
-        canReview={reviewQuestions.length > 0}
         onRetry={showPreparation}
-        onReview={startReview}
         onHome={showLanding}
       />
     {/if}
