@@ -11,6 +11,7 @@ export type Hands = readonly [Hole, Hole];
 export type GameMode = "A" | "B" | "C" | "D";
 export type Stage = "preflop" | "flop" | "turn";
 export type Difficulty = "medium" | "hard";
+export type AudienceLevel = "beginner" | "intermediate" | "advanced";
 export type PercentChoice = `${number}%`;
 export type HandIndex = 0 | 1;
 export type QuestionAnswer = PercentChoice | HandIndex;
@@ -30,6 +31,9 @@ interface QuestionBase {
   conceptKey: string;
   trueP: number;
   distractorModel: string;
+  level: AudienceLevel;
+  archetype?: string;
+  continuationReasons?: readonly [readonly string[], readonly string[]];
   target?: string;
   targetRank?: SourceRank;
   targetSuit?: Suit;

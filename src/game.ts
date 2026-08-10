@@ -1,4 +1,5 @@
 import type {
+  AudienceLevel,
   Difficulty,
   DisplayRank,
   GameMode,
@@ -16,12 +17,15 @@ const SESSION_MODE_COUNTS: Readonly<Record<GameMode, number>> = Object.freeze({
   D: 2,
 });
 const SESSION_STAGE_COUNTS: Readonly<Record<Stage, number>> = Object.freeze({
-  preflop: 3,
-  flop: 4,
+  preflop: 2,
+  flop: 5,
   turn: 3,
 });
 const SESSION_DIFFICULTY_COUNTS: Readonly<Record<Difficulty, number>> =
   Object.freeze({ medium: 8, hard: 2 });
+const SESSION_LEVEL_COUNTS: Readonly<
+  Record<Exclude<AudienceLevel, "advanced">, number>
+> = Object.freeze({ beginner: 7, intermediate: 3 });
 const SUIT_SYMBOLS: Readonly<Record<Suit, string>> = Object.freeze({
   c: "♣",
   d: "♦",
@@ -128,10 +132,13 @@ function createSession(
     const remainingDifficulties: Record<Difficulty, number> = {
       ...SESSION_DIFFICULTY_COUNTS,
     };
+    const remainingLevels: Record<
+      Exclude<AudienceLevel, "advanced">,
+      number
+    > = { ...SESSION_LEVEL_COUNTS };
     const selected: Question[] = [];
     const aCategories = new Set<string>();
     let firstD: Question | null = null;
-    let zeroCount = 0;
     let failed = false;
 
     for (const pool of slots) {
@@ -141,7 +148,11 @@ function createSession(
           remainingDifficulties[question.difficulty] <= 0
         )
           return false;
-        if (question.trueP === 0 && zeroCount >= 1) return false;
+        if (
+          question.level === "advanced" ||
+          remainingLevels[question.level] <= 0
+        )
+          return false;
         if (question.mode === "A" && aCategories.has(question.category))
           return false;
         if (
@@ -158,17 +169,21 @@ function createSession(
         break;
       }
       const question = candidates[Math.floor(random() * candidates.length)]!;
+      if (question.level === "advanced") {
+        throw new Error("上級者向け問題は通常セッションへ追加できません");
+      }
       selected.push(question);
       remainingStages[question.stage] -= 1;
       remainingDifficulties[question.difficulty] -= 1;
-      if (question.trueP === 0) zeroCount += 1;
+      remainingLevels[question.level] -= 1;
       if (question.mode === "A") aCategories.add(question.category);
       if (question.mode === "D" && !firstD) firstD = question;
     }
     if (
       !failed &&
       Object.values(remainingStages).every((count) => count === 0) &&
-      Object.values(remainingDifficulties).every((count) => count === 0)
+      Object.values(remainingDifficulties).every((count) => count === 0) &&
+      Object.values(remainingLevels).every((count) => count === 0)
     ) {
       return shuffle(selected, random);
     }
@@ -224,6 +239,7 @@ function formatActualPercent(value: number): string {
 export {
   SESSION_MODE_COUNTS,
   SESSION_DIFFICULTY_COUNTS,
+  SESSION_LEVEL_COUNTS,
   SESSION_STAGE_COUNTS,
   cardDetails,
   createSession,

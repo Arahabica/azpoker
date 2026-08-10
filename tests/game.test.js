@@ -5,6 +5,7 @@ import {
   SESSION_STAGE_COUNTS,
   SESSION_MODE_COUNTS,
   SESSION_DIFFICULTY_COUNTS,
+  SESSION_LEVEL_COUNTS,
   cardDetails,
   createSession,
   formatActualPercent,
@@ -46,7 +47,17 @@ test("10問を固定ステージ比率で重複なく選ぶ", () => {
       count,
     );
   }
-  assert.ok(session.filter((question) => question.trueP === 0).length <= 1);
+  for (const [level, count] of Object.entries(SESSION_LEVEL_COUNTS)) {
+    assert.equal(
+      session.filter((question) => question.level === level).length,
+      count,
+    );
+  }
+  assert.equal(
+    session.filter((question) => question.level === "advanced").length,
+    0,
+  );
+  assert.equal(session.filter((question) => question.trueP === 0).length, 0);
 });
 
 test("モードAのフロップとターンはカテゴリを重複させない", () => {
