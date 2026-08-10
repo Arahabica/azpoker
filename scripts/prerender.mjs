@@ -10,6 +10,7 @@ const serverOutputDirectory = fileURLToPath(
 );
 const outlet = "<!--app-html-->";
 const headOutlet = "<!--app-head-->";
+const historyDetailOutput = "history-detail/index.html";
 const pages = [
   { pathname: "/", output: "index.html", marker: 'id="landing"' },
   {
@@ -32,6 +33,15 @@ try {
   if (!template.includes(outlet) || !template.includes(headOutlet)) {
     throw new Error("プリレンダリング先が見つかりません");
   }
+
+  const historyDetailPath = fileURLToPath(
+    new URL(historyDetailOutput, outputDirectory),
+  );
+  const historyDetailHtml = template
+    .replace(headOutlet, "")
+    .replace(outlet, "");
+  await mkdir(dirname(historyDetailPath), { recursive: true });
+  await writeFile(historyDetailPath, historyDetailHtml);
 
   for (const page of pages) {
     const { body, head } = renderApp(page.pathname);

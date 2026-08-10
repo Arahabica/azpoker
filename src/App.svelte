@@ -3,10 +3,17 @@
 
   import {
     OGP_IMAGE_URL,
+    createHistoryDetailPath,
+    createHistoryDetailState,
     getCanonicalUrl,
+    getHistoryIdFromPath,
+    getHistoryDetailNavigation,
     getPageMetadata,
     normalizeAppPath,
+    readHistoryDetailOrigin,
     type AppPath,
+    type HistoryDetailOrigin,
+    type HistoryDetailSource,
   } from "./app-route.ts";
   import {
     createInitialGameFlow,
@@ -28,8 +35,14 @@
     createQuizHistoryId,
     readQuizHistory,
     saveQuizHistory,
+    type QuizHistoryAnswer,
     type QuizHistoryEntry,
   } from "./result-history.ts";
+  import {
+    addRecentMistakeToSession,
+    createReviewSession,
+    getReviewCompletionMessage,
+  } from "./review.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
   import type {
@@ -46,6 +59,7 @@
   import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
+  import ReviewResultScreen from "./screens/ReviewResultScreen.svelte";
   import TermsScreen from "./screens/TermsScreen.svelte";
 
   interface Props {
@@ -75,14 +89,18 @@
     untrack(() => normalizeAppPath(initialPath)),
   );
   let session = $state<Question[]>([]);
+  let sessionKind = $state<"quiz" | "review">("quiz");
   let score = $state(0);
   let choices = $state<PercentChoice[]>([]);
   let outcomes = $state<(QuestionOutcome | null)[]>([]);
+  let sessionAnswers = $state<(QuizHistoryAnswer | null)[]>([]);
   let soundEnabled = $state(true);
   let sessionElapsedMs = $state(0);
   let sessionTimeLimitMs = $state(0);
   let sessionHistoryId = $state("");
+  let reviewCompletionMessage = $state("");
   let resultHistory = $state<QuizHistoryEntry[]>([]);
+  let historyDetailOrigin = $state<HistoryDetailOrigin>("direct");
   let soundEffects: SoundEffects | undefined;
 
   const pageMetadata = $derived(getPageMetadata(currentPath));
@@ -93,6 +111,11 @@
   const startupError = $derived(getPreparationError(flow));
   const timeoutCount = $derived(
     outcomes.filter((outcome) => outcome === "timeout").length,
+  );
+  const reviewQuestions = $derived(createReviewSession(sessionAnswers));
+  const historyDetailId = $derived(getHistoryIdFromPath(currentPath));
+  const historyDetailNavigation = $derived(
+    getHistoryDetailNavigation(historyDetailOrigin),
   );
 
   function refreshResultHistory(): void {
@@ -195,7 +218,7 @@
       }
     }
     if (!nextSession) throw new Error("問題を選べませんでした");
-    return nextSession;
+    return addRecentMistakeToSession(nextSession, resultHistory);
   }
 
   async function prepareSession(): Promise<void> {
@@ -204,6 +227,8 @@
     });
     if (preparingFlow === flow) return;
     flow = preparingFlow;
+    sessionKind = "quiz";
+    reviewCompletionMessage = "";
 
     try {
       const [nextSession] = await waitLoadingAnimation(() =>
@@ -222,6 +247,9 @@
       rememberQuestions(session);
       score = 0;
       outcomes = Array<QuestionOutcome | null>(nextSession.length).fill(null);
+      sessionAnswers = Array<QuizHistoryAnswer | null>(nextSession.length).fill(
+        null,
+      );
       sessionElapsedMs = 0;
       sessionTimeLimitMs = nextSession.reduce(
         (total, question) => total + getQuestionTimeLimitMs(question),
@@ -289,6 +317,11 @@
       outcome = "correct";
     }
     outcomes[questionIndex] = outcome;
+    sessionAnswers[questionIndex] = {
+      question,
+      outcome,
+      selected,
+    };
     flow = answeredFlow;
     playSound(correct ? "correct" : "wrong");
     focusElement("#next-question");
@@ -326,13 +359,33 @@
   }
 
   function goNext(): void {
+    const repeatCurrent =
+      sessionKind === "review" && answerResult?.correct === false;
+    const repeatedQuestion = repeatCurrent ? currentQuestion : undefined;
     const nextFlow = transitionGameFlow(flow, {
       type: "NEXT_QUESTION",
+      repeatCurrent,
     });
     if (nextFlow === flow) return;
+
+    if (repeatedQuestion) {
+      session.push(repeatedQuestion);
+      outcomes.push(null);
+      sessionAnswers.push(null);
+      sessionTimeLimitMs += getQuestionTimeLimitMs(repeatedQuestion);
+    }
     flow = nextFlow;
 
     if (nextFlow.status === "result") {
+      if (sessionKind === "review") {
+        reviewCompletionMessage = getReviewCompletionMessage();
+        playSound("complete");
+        focusElement("#continue-after-review");
+        return;
+      }
+      const completedAnswers = sessionAnswers.filter(
+        (answer): answer is QuizHistoryAnswer => answer !== null,
+      );
       const historyEntry = createQuizHistoryEntry({
         id: sessionHistoryId || createQuizHistoryId(),
         score,
@@ -340,6 +393,7 @@
         elapsedMs: sessionElapsedMs,
         timeLimitMs: sessionTimeLimitMs,
         timeoutCount,
+        answers: completedAnswers,
       });
       resultHistory = saveQuizHistory(historyEntry);
       playSound(score === session.length ? "perfect" : "complete");
@@ -355,17 +409,78 @@
     }
   }
 
+  function startReview(): void {
+    if (flow.status !== "result" || reviewQuestions.length === 0) return;
+    const nextSession = [...reviewQuestions];
+    const reviewFlow = transitionGameFlow(flow, {
+      type: "START_REVIEW",
+      totalQuestions: nextSession.length,
+    });
+    if (reviewFlow === flow) return;
+
+    sessionKind = "review";
+    session = nextSession;
+    score = 0;
+    outcomes = Array<QuestionOutcome | null>(nextSession.length).fill(null);
+    sessionAnswers = Array<QuizHistoryAnswer | null>(nextSession.length).fill(
+      null,
+    );
+    sessionElapsedMs = 0;
+    sessionTimeLimitMs = nextSession.reduce(
+      (total, question) => total + getQuestionTimeLimitMs(question),
+      0,
+    );
+    sessionHistoryId = "";
+    reviewCompletionMessage = "";
+    flow = reviewFlow;
+    playSound("start");
+    prepareQuestion(nextSession[0]!);
+  }
+
   function showLanding(shouldFocus = true): void {
     outcomes = [];
+    sessionAnswers = [];
+    sessionKind = "quiz";
     sessionElapsedMs = 0;
     sessionTimeLimitMs = 0;
     sessionHistoryId = "";
+    reviewCompletionMessage = "";
     soundEffects?.stopAll();
     flow = transitionGameFlow(flow, { type: "LEAVE" });
     refreshResultHistory();
     if (shouldFocus) {
       focusElement("#start-game");
     }
+  }
+
+  function openHistoryDetail(id: string, origin: HistoryDetailSource): void {
+    const path = createHistoryDetailPath(id);
+    if (typeof window !== "undefined") {
+      window.history.pushState(createHistoryDetailState(origin), "", path);
+    }
+    currentPath = path;
+    historyDetailOrigin = origin;
+    showLanding(false);
+    focusElement("#history-detail-title");
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
+
+  function openHistoryFromTop(id: string): void {
+    openHistoryDetail(id, "top");
+  }
+
+  function openHistoryFromList(id: string): void {
+    openHistoryDetail(id, "history");
+  }
+
+  function leaveHistoryDetail(path: AppPath): void {
+    if (typeof window !== "undefined" && historyDetailOrigin !== "direct") {
+      window.history.back();
+      return;
+    }
+    moveToPath(path);
   }
 
   function moveToPath(path: AppPath, replace = false): void {
@@ -378,9 +493,14 @@
     }
 
     currentPath = path;
+    historyDetailOrigin = "direct";
     showLanding(path === "/");
     if (path !== "/") {
-      focusElement("#public-page-title");
+      focusElement(
+        getHistoryIdFromPath(path)
+          ? "#history-detail-title"
+          : "#public-page-title",
+      );
     }
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "auto" });
@@ -389,12 +509,18 @@
 
   onMount(() => {
     refreshResultHistory();
+    historyDetailOrigin = readHistoryDetailOrigin(window.history.state);
 
-    const handlePopState = (): void => {
+    const handlePopState = (event: PopStateEvent): void => {
       currentPath = normalizeAppPath(window.location.pathname);
+      historyDetailOrigin = readHistoryDetailOrigin(event.state);
       showLanding(currentPath === "/");
       if (currentPath !== "/") {
-        focusElement("#public-page-title");
+        focusElement(
+          getHistoryIdFromPath(currentPath)
+            ? "#history-detail-title"
+            : "#public-page-title",
+        );
       }
       window.scrollTo({ top: 0, behavior: "auto" });
     };
@@ -438,9 +564,18 @@
   <meta name="twitter:image" content={OGP_IMAGE_URL} />
 </svelte:head>
 
-<main class="app-shell">
-  {#if currentPath === "/history"}
-    <HistoryScreen history={resultHistory} onNavigate={moveToPath} />
+<main class="app-shell" data-app-path={currentPath}>
+  {#if currentPath === "/history" || historyDetailId}
+    <HistoryScreen
+      history={resultHistory}
+      detailId={historyDetailId}
+      detailNavigationPath={historyDetailNavigation.path}
+      detailNavigationLabel={historyDetailNavigation.label}
+      detailNavigationAriaLabel={historyDetailNavigation.ariaLabel}
+      onNavigate={moveToPath}
+      onOpenHistory={openHistoryFromList}
+      onLeaveDetail={leaveHistoryDetail}
+    />
   {:else if currentPath === "/terms"}
     <TermsScreen onNavigate={moveToPath} />
   {:else if currentPath === "/credits"}
@@ -450,6 +585,7 @@
       history={resultHistory}
       onStart={showPreparation}
       onNavigate={moveToPath}
+      onOpenHistory={openHistoryFromTop}
     />
   {:else if flow.status === "preparing"}
     <PreparationLoadingScreen delayMs={LOADING_INDICATOR_DELAY_MS} />
@@ -470,6 +606,7 @@
       {choices}
       {answerResult}
       {outcomes}
+      reviewMode={sessionKind === "review"}
       onLeave={showLanding}
       onAnswer={handleAnswer}
       onTimeWarning={handleTimeWarning}
@@ -477,15 +614,25 @@
       onNext={goNext}
     />
   {:else if flow.status === "result"}
-    <ResultScreen
-      {score}
-      total={session.length}
-      elapsedMs={sessionElapsedMs}
-      timeLimitMs={sessionTimeLimitMs}
-      {timeoutCount}
-      onRetry={showPreparation}
-      onHome={showLanding}
-    />
+    {#if sessionKind === "review"}
+      <ReviewResultScreen
+        message={reviewCompletionMessage}
+        onContinue={showPreparation}
+        onHome={showLanding}
+      />
+    {:else}
+      <ResultScreen
+        {score}
+        total={session.length}
+        elapsedMs={sessionElapsedMs}
+        timeLimitMs={sessionTimeLimitMs}
+        {timeoutCount}
+        canReview={reviewQuestions.length > 0}
+        onRetry={showPreparation}
+        onReview={startReview}
+        onHome={showLanding}
+      />
+    {/if}
   {/if}
 </main>
 

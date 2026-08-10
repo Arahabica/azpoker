@@ -9,7 +9,9 @@
     elapsedMs: number;
     timeLimitMs: number;
     timeoutCount: number;
+    canReview: boolean;
     onRetry: () => void;
+    onReview: () => void;
     onHome: () => void;
   }
 
@@ -19,7 +21,9 @@
     elapsedMs,
     timeLimitMs,
     timeoutCount,
+    canReview,
     onRetry,
+    onReview,
     onHome,
   }: Props = $props();
 
@@ -101,7 +105,15 @@
     </div>
   </div>
   <div class="result-actions">
-    <ActionButton id="retry" label="もう一度" onClick={onRetry} />
+    <ActionButton id="retry" label="問題を続ける" onClick={onRetry} />
+    {#if canReview}
+      <ActionButton
+        id="review-wrong-answers"
+        label="復習する"
+        variant="secondary"
+        onClick={onReview}
+      />
+    {/if}
     <ActionButton
       id="back-home"
       label="トップページに戻る"

@@ -12,9 +12,10 @@
     history: readonly QuizHistoryEntry[];
     onStart: () => void;
     onNavigate: (path: AppPath) => void;
+    onOpenHistory: (id: string) => void;
   }
 
-  let { history, onStart, onNavigate }: Props = $props();
+  let { history, onStart, onNavigate, onOpenHistory }: Props = $props();
 
   const recentHistory = $derived(history.slice(0, 2));
   const showMoreHistory = $derived(history.length > 2);
@@ -23,6 +24,10 @@
     if (!shouldHandleAppNavigation(event)) return;
     event.preventDefault();
     onNavigate("/history");
+  }
+
+  function openHistory(entry: QuizHistoryEntry): void {
+    onOpenHistory(entry.id);
   }
 </script>
 
@@ -44,6 +49,7 @@
         entries={recentHistory}
         showMore={showMoreHistory}
         onShowMore={showHistory}
+        onSelect={openHistory}
       />
     {/if}
 

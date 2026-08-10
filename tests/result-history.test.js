@@ -4,12 +4,32 @@ import test from "node:test";
 import {
   RESULT_HISTORY_KEY,
   RESULT_HISTORY_LIMIT,
+  RESULT_HISTORY_VERSION,
   createQuizHistoryEntry,
   formatRelativeHistoryTime,
   parseQuizHistory,
   readQuizHistory,
   saveQuizHistory,
 } from "../src/result-history.ts";
+
+const question = {
+  id: "a-history-1",
+  mode: "A",
+  stage: "flop",
+  hole: ["Ah", "Kh"],
+  board: ["Qh", "2c", "7d"],
+  category: "flush",
+  prompt: "フラッシュの確率は？",
+  explain: "同じマークが5枚そろう可能性です。",
+  difficulty: "medium",
+  conceptKey: "history-fixture",
+  trueP: 34.97,
+  distractorModel: "残り枚数を混同する",
+  level: "beginner",
+  answerType: "percent",
+  answer: "35%",
+  distractor: "20%",
+};
 
 function createMemoryStorage(initialValue = null) {
   const values = new Map();
@@ -121,6 +141,71 @@ test("不正な結果は保存用レコードにしない", () => {
         elapsedMs: 10_000,
         timeLimitMs: 95_000,
         timeoutCount: 0,
+      }),
+    /保存できないクイズ結果/,
+  );
+});
+
+test("各問題・選択回答・正誤を問題スナップショットと一緒に保存する", () => {
+  const entry = createQuizHistoryEntry(
+    {
+      id: "result-with-answers",
+      score: 0,
+      total: 1,
+      elapsedMs: 1_500,
+      timeLimitMs: 5_000,
+      timeoutCount: 0,
+      answers: [
+        {
+          question,
+          outcome: "wrong",
+          selected: "20%",
+        },
+      ],
+    },
+    1_800_000_000_000,
+  );
+
+  assert.equal(entry.version, RESULT_HISTORY_VERSION);
+  assert.deepEqual(parseQuizHistory(JSON.stringify([entry])), [entry]);
+  assert.equal(entry.answers[0].question.difficulty, "medium");
+  assert.equal(entry.answers[0].selected, "20%");
+});
+
+test("旧形式の履歴は概要を残したまま問題記録なしへ移行する", () => {
+  const legacy = {
+    version: 1,
+    id: "legacy-result",
+    completedAt: 1_700_000_000_000,
+    score: 8,
+    total: 10,
+    elapsedMs: 44_500,
+    timeLimitMs: 95_000,
+    timeoutCount: 1,
+  };
+
+  assert.deepEqual(parseQuizHistory(JSON.stringify([legacy])), [
+    { ...legacy, version: RESULT_HISTORY_VERSION, answers: [] },
+  ]);
+});
+
+test("回答記録の件数や正答数が概要と食い違う履歴は拒否する", () => {
+  assert.throws(
+    () =>
+      createQuizHistoryEntry({
+        id: "mismatched-answers",
+        score: 1,
+        total: 1,
+        elapsedMs: 1_500,
+        timeLimitMs: 5_000,
+        timeoutCount: 0,
+        answers: [
+          {
+            question,
+            outcome: "wrong",
+            selected: "20%",
+          },
+        ],
       }),
     /保存できないクイズ結果/,
   );

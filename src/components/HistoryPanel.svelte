@@ -6,14 +6,21 @@
     entries: readonly QuizHistoryEntry[];
     showMore?: boolean;
     onShowMore?: (event: MouseEvent) => void;
+    onSelect?: (entry: QuizHistoryEntry) => void;
   }
 
-  let { entries, showMore = false, onShowMore }: Props = $props();
+  let { entries, showMore = false, onShowMore, onSelect }: Props = $props();
 </script>
 
 <div class="history-panel" role="region" aria-labelledby="recent-history-title">
-  <h2 id="recent-history-title" class="history-panel-title">最近の履歴</h2>
-  <HistoryList {entries} />
+  <h2 id="recent-history-title" class="history-panel-title" tabindex="-1">
+    最近の履歴
+  </h2>
+  {#if onSelect}
+    <HistoryList {entries} {onSelect} />
+  {:else}
+    <HistoryList {entries} />
+  {/if}
   {#if showMore}
     <a class="more-link" href="/history" onclick={onShowMore}>もっと見る</a>
   {/if}

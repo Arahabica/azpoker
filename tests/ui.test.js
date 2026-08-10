@@ -29,6 +29,7 @@ const prepare = read("src/screens/PrepareScreen.svelte");
 const preparationLoading = read("src/screens/PreparationLoadingScreen.svelte");
 const quiz = read("src/screens/QuizScreen.svelte");
 const result = read("src/screens/ResultScreen.svelte");
+const reviewResult = read("src/screens/ReviewResultScreen.svelte");
 const actionButton = read("src/components/ActionButton.svelte");
 const answerSheet = read("src/components/AnswerSheet.svelte");
 const leaveConfirmationSheet = read(
@@ -46,6 +47,9 @@ const mixedFontText = read("src/components/MixedFontText.svelte");
 const quizProgressTimer = read("src/components/QuizProgressTimer.svelte");
 const historyPanel = read("src/components/HistoryPanel.svelte");
 const historyList = read("src/components/HistoryList.svelte");
+const historyDetail = read("src/components/HistoryDetail.svelte");
+const historyQuestionCard = read("src/components/HistoryQuestionCard.svelte");
+const difficultyBadge = read("src/components/DifficultyBadge.svelte");
 const holdemOverview = read("src/components/HoldemOverview.svelte");
 const landingQuizPreview = read("src/components/LandingQuizPreview.svelte");
 const publicPageShell = read("src/components/PublicPageShell.svelte");
@@ -127,6 +131,7 @@ test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用�
     prepare,
     quiz,
     result,
+    reviewResult,
     actionButton,
     answerSheet,
     leaveConfirmationSheet,
@@ -140,6 +145,9 @@ test("TypeScript 7で本番コードを検査し、Svelteの型検査も併用�
     mixedFontText,
     historyPanel,
     historyList,
+    historyDetail,
+    historyQuestionCard,
+    difficultyBadge,
     holdemOverview,
     landingQuizPreview,
     publicPageShell,
@@ -156,6 +164,8 @@ test("公開ページをビルド時に描画し、ブラウザでhydrateする"
   assert.match(prerender, /import\(serverOutput\)/);
   assert.match(prerender, /for \(const page of pages\)/);
   assert.match(prerender, /history\/index\.html/);
+  assert.match(prerender, /history-detail\/index\.html/);
+  assert.match(prerender, /const historyDetailHtml = template/);
   assert.match(prerender, /terms\/index\.html/);
   assert.match(prerender, /credits\/index\.html/);
   assert.match(
@@ -164,11 +174,9 @@ test("公開ページをビルド時に描画し、ブラウザでhydrateする"
   );
   assert.match(prerender, /rm\(serverOutputDirectory/);
   assert.match(main, /import \{ hydrate, mount \} from "svelte"/);
-  assert.match(
-    main,
-    /target\.querySelector\("\.app-shell"\) \? hydrate : mount/,
-  );
-  assert.match(main, /initialPath: window\.location\.pathname/);
+  assert.match(main, /const shouldHydrate = serverPath === initialPath/);
+  assert.match(main, /target\.replaceChildren\(\)/);
+  assert.match(main, /props: \{ initialPath \}/);
   assert.match(
     packageJson.scripts.build,
     /vite build --ssr src\/entry-server\.ts --outDir \.prerender/,
@@ -195,7 +203,15 @@ test("公開ページとゲーム画面を独立したSvelteコンポーネン�
   assert.match(result, /id="back-home"/);
   assert.match(historyScreen, /showHeading={false}/);
   assert.doesNotMatch(historyScreen, /直近50回の結果/);
-  assert.match(historyScreen, /<HistoryPanel entries={history} \/>/);
+  assert.match(historyScreen, /<HistoryPanel entries={history} onSelect=/);
+  assert.match(historyScreen, /<HistoryDetail entry={selectedEntry}/);
+  assert.match(app, /createHistoryDetailPath\(id\)/);
+  assert.match(app, /openHistoryDetail\(id, "top"\)/);
+  assert.match(app, /openHistoryDetail\(id, "history"\)/);
+  assert.match(app, /historyDetailOrigin !== "direct"/);
+  assert.match(historyScreen, /navigationLabel={detailId/);
+  assert.match(historyScreen, /onHeaderNavigate={detailId/);
+  assert.doesNotMatch(historyDetail, /back-to-history|履歴一覧に戻る/);
   assert.match(publicPageShell, /class="visually-hidden"/);
 });
 
@@ -214,7 +230,7 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
   assert.ok(
     landing.indexOf("<HistoryPanel") < landing.indexOf('id="start-game"'),
   );
-  assert.match(historyPanel, />最近の履歴<\/h2>/);
+  assert.match(historyPanel, /最近の履歴\s*<\/h2>/);
   assert.match(historyPanel, /<HistoryList {entries} \/>/);
   assert.match(historyPanel, /font-family:[\s\S]*"Kosugi Maru Landing"/);
   assert.match(historyPanel, /{#if showMore}/);
@@ -306,6 +322,34 @@ test("トップLPは問題、答え、アプリ説明、ルール説明の順で
   assert.match(holdemOverview, /target="_blank"/);
   assert.match(holdemOverview, /rel="external noopener"/);
   assert.doesNotMatch(holdemOverview, /このアプリで取り扱うポーカーです/);
+});
+
+test("誤答を復習し、履歴では1セットの問題と解説を縦に振り返る", () => {
+  assert.match(result, /label="問題を続ける"/);
+  assert.match(result, /{#if canReview}/);
+  assert.match(result, /label="復習する"/);
+  assert.ok(
+    result.indexOf('label="問題を続ける"') < result.indexOf('label="復習する"'),
+  );
+  assert.match(app, /type: "START_REVIEW"/);
+  assert.match(app, /repeatCurrent/);
+  assert.match(app, /session\.push\(repeatedQuestion\)/);
+  assert.match(reviewResult, /復習お疲れ様でした/);
+  assert.doesNotMatch(reviewResult, /REVIEW COMPLETE/);
+  assert.doesNotMatch(reviewResult, /間違えた問題をすべて解き直しました/);
+  assert.match(reviewResult, /label="トップページに戻る"/);
+  assert.match(reviewResult, /label="問題を続ける"/);
+  assert.match(quiz, /reviewMode/);
+  assert.match(quiz, /<DifficultyBadge difficulty={question\.difficulty}/);
+
+  assert.match(historyDetail, /class="question-history"/);
+  assert.match(historyDetail, /<HistoryQuestionCard/);
+  assert.match(historyQuestionCard, /<Board cards={question\.board}/);
+  assert.match(historyQuestionCard, /あなたの回答/);
+  assert.match(historyQuestionCard, /正解/);
+  assert.doesNotMatch(historyQuestionCard, /answer-summary|<dl/);
+  assert.match(historyQuestionCard, /解説/);
+  assert.match(historyQuestionCard, /<DifficultyBadge/);
 });
 
 test("共通フッターは感想の案内、Xへの連絡、3つのサイト情報だけを表示する", () => {

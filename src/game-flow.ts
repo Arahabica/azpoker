@@ -19,6 +19,7 @@ type GameFlowEvent =
   | { type: "PREPARATION_SUCCEEDED"; totalQuestions: number }
   | { type: "PREPARATION_FAILED"; message: string }
   | { type: "START_SESSION" }
+  | { type: "START_REVIEW"; totalQuestions: number }
   | {
       type: "ANSWER";
       questionIndex: number;
@@ -26,7 +27,7 @@ type GameFlowEvent =
       selected: QuestionAnswer;
     }
   | { type: "TIMEOUT"; questionIndex: number }
-  | { type: "NEXT_QUESTION" }
+  | { type: "NEXT_QUESTION"; repeatCurrent?: boolean }
   | { type: "LEAVE" };
 
 function createInitialGameFlow(): GameFlowState {
@@ -72,6 +73,15 @@ function transitionGameFlow(
           }
         : state;
 
+    case "START_REVIEW":
+      return state.status === "result" && hasQuestions(event.totalQuestions)
+        ? {
+            status: "answering",
+            questionIndex: 0,
+            totalQuestions: event.totalQuestions,
+          }
+        : state;
+
     case "ANSWER":
       return state.status === "answering" &&
         state.questionIndex === event.questionIndex
@@ -102,17 +112,20 @@ function transitionGameFlow(
           }
         : state;
 
-    case "NEXT_QUESTION":
+    case "NEXT_QUESTION": {
       if (state.status !== "answered") {
         return state;
       }
-      return state.questionIndex >= state.totalQuestions - 1
-        ? { status: "result", totalQuestions: state.totalQuestions }
+      const nextTotal =
+        state.totalQuestions + (event.repeatCurrent === true ? 1 : 0);
+      return state.questionIndex >= nextTotal - 1
+        ? { status: "result", totalQuestions: nextTotal }
         : {
             status: "answering",
             questionIndex: state.questionIndex + 1,
-            totalQuestions: state.totalQuestions,
+            totalQuestions: nextTotal,
           };
+    }
 
     case "LEAVE":
       return state.status === "top" ? state : createInitialGameFlow();

@@ -5,8 +5,8 @@
 | ファイル                                    | 用途                               | 収録内容                                 |       サイズ |
 | ------------------------------------------- | ---------------------------------- | ---------------------------------------- | -----------: |
 | `kosugi-maru/KosugiMaru-Landing.woff2`      | ヒーロー                           | タイトル、開始操作、最近の履歴           |  8,892 bytes |
-| `kosugi-maru/KosugiMaru-LandingBody.woff2`  | LP本文                             | LP本文とフッターで使う日本語、UI用句読点 | 24,956 bytes |
-| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 54,332 bytes |
+| `kosugi-maru/KosugiMaru-LandingBody.woff2`  | LP本文                             | LP本文とフッターで使う日本語、UI用句読点 | 23,428 bytes |
+| `kosugi-maru/KosugiMaru-Game.woff2`         | 開始準備・問題・回答・結果・エラー | `src/`と問題JSONで使う日本語、UI用句読点 | 59,980 bytes |
 | `m-plus-rounded-1c/MPLUSRounded1c-UI.woff2` | LP・ゲームの英数字                 | `A-Z`、`a-z`、`0-9`、`.`                 |  4,624 bytes |
 
 ヒーローは`Kosugi Maru Landing`、その下のLP本文は`Kosugi Maru Landing Body`を指定し、HTMLから先読みするのはヒーロー用だけとする。英数字は共通の`M PLUS Rounded 1c UI`、開始準備以降の日本語は`Kosugi Maru Game`を使う。`%`はM PLUSへ収録せず、各画面のKosugi Maruで表示する。
@@ -55,7 +55,7 @@ pnpm build
 
 ```text
 07517882c553b247fc17ef2520ebc1ee427e85768faec8993bd0ceb6336101d7  KosugiMaru-Landing.woff2
-8a9ca135db3829173e66205138b9a806756e5729e9f007cb8f3981dba09f4410  KosugiMaru-LandingBody.woff2
-2745393b1de8e8dcb95354d3552e85ab58952d09d98fe7236e5f6a98215687cf  KosugiMaru-Game.woff2
+e3ac3c7fda5326b1892f8ce22b28f98b3f418284ccecc98e937d407f3f392f15  KosugiMaru-LandingBody.woff2
+83c87445a0d9d203389a16b1c90aa349435d6b68ee32ed5690c0488b1da8464f  KosugiMaru-Game.woff2
 3c143b9b496af6c579ea01a6cd4509f8b94d18b61364b1415cdf79e70a4823e2  MPLUSRounded1c-UI.woff2
 ```
