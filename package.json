@@ -24,7 +24,7 @@
     "format:check": "prettier . --check",
     "check:bank": "python3 scripts/generate_large_question_bank.py --check",
     "questions:build": "python3 scripts/generate_large_question_bank.py",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test && pnpm run check:bank && pnpm run build && pnpm run check:storybook",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test && pnpm run check:bank && pnpm run build && pnpm run storybook:build",
     "fonts:build": "node scripts/build_font_subsets.mjs",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",

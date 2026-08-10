@@ -93,9 +93,33 @@ const timeoutHistoryEntry = createQuizHistoryEntry(
   FIXED_FUTURE_DATE - 1,
 );
 
+const perfectHistoryEntry = createQuizHistoryEntry(
+  {
+    id: "storybook-history-perfect",
+    score: 1,
+    total: 1,
+    elapsedMs: 3_200,
+    timeLimitMs: 16_000,
+    timeoutCount: 0,
+    answers: [correctHandAnswer],
+  },
+  FIXED_FUTURE_DATE - 2,
+);
+
 const historyEntries: readonly QuizHistoryEntry[] = [
   historyDetailEntry,
   timeoutHistoryEntry,
 ];
 
-export { handQuestion, historyDetailEntry, historyEntries, percentQuestion };
+const landingHistoryEntries: readonly QuizHistoryEntry[] = [
+  ...historyEntries,
+  perfectHistoryEntry,
+];
+
+export {
+  handQuestion,
+  historyDetailEntry,
+  historyEntries,
+  landingHistoryEntries,
+  percentQuestion,
+};

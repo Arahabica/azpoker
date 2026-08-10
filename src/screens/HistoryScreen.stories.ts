@@ -24,6 +24,15 @@ type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {
   name: "履歴なし",
+  play: async ({ args, canvas, userEvent }) => {
+    await expect(
+      canvas.getByRole("heading", { name: "まだ履歴がありません" }),
+    ).toBeVisible();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "問題に挑戦する" }),
+    );
+    await expect(args.onNavigate).toHaveBeenCalledWith("/");
+  },
 };
 
 export const List: Story = {
@@ -44,6 +53,16 @@ export const DetailFromHistory: Story = {
     history: historyEntries,
     detailId: historyDetailEntry.id,
   },
+  play: async ({ args, canvas, userEvent }) => {
+    await expect(
+      canvas.getByRole("heading", { name: "回答の振り返り" }),
+    ).toBeVisible();
+    await expect(canvas.getAllByText("解説")).toHaveLength(2);
+    await expect(canvas.getByText("難易度: ふつう")).toBeVisible();
+    await expect(canvas.getByText("難易度: むずかしい")).toBeVisible();
+    await userEvent.click(canvas.getByRole("link", { name: "履歴一覧へ戻る" }));
+    await expect(args.onLeaveDetail).toHaveBeenCalledWith("/history");
+  },
 };
 
 export const DetailFromTop: Story = {
@@ -55,6 +74,12 @@ export const DetailFromTop: Story = {
     detailNavigationLabel: "トップへ",
     detailNavigationAriaLabel: "トップページへ戻る",
   },
+  play: async ({ args, canvas, userEvent }) => {
+    await userEvent.click(
+      canvas.getByRole("link", { name: "トップページへ戻る" }),
+    );
+    await expect(args.onLeaveDetail).toHaveBeenCalledWith("/");
+  },
 };
 
 export const MissingDetail: Story = {
@@ -62,6 +87,11 @@ export const MissingDetail: Story = {
   args: {
     history: historyEntries,
     detailId: "missing-history",
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole("heading", { name: "履歴が見つかりません" }),
+    ).toBeVisible();
   },
 };
 

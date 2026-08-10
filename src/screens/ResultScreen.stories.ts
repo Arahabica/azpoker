@@ -32,6 +32,14 @@ export const FastPerfect: Story = {
   globals: {
     viewport: { value: "minimum", isRotated: false },
   },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
+      /10\s*問全問正解/,
+    );
+    await expect(
+      canvas.queryByRole("button", { name: "復習する" }),
+    ).not.toBeInTheDocument();
+  },
 };
 
 export const Perfect: Story = {
@@ -69,7 +77,10 @@ export const Eight: Story = {
 
 export const Six: Story = {
   name: "6問正解",
-  play: async ({ args, canvas, userEvent }) => {
+  play: async ({ args, canvas, canvasElement, userEvent }) => {
+    await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
+      /6\s*問正解/,
+    );
     await userEvent.click(canvas.getByRole("button", { name: "復習する" }));
     await expect(args.onReview).toHaveBeenCalledTimes(1);
   },
@@ -85,5 +96,10 @@ export const LowWithTimeout: Story = {
   args: {
     score: 2,
     timeoutCount: 2,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      canvasElement.querySelector(".timeout-count"),
+    ).toHaveTextContent(/時間切れ:\s*2\s*問/);
   },
 };

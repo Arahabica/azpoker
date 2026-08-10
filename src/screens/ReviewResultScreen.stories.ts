@@ -20,8 +20,15 @@ type Story = StoryObj<typeof meta>;
 export const Pattern01: Story = {
   name: "01 復習お疲れ様でした",
   play: async ({ args, canvas, userEvent }) => {
+    await expect(
+      canvas.getByRole("heading", { name: "復習お疲れ様でした！" }),
+    ).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "問題を続ける" }));
     await expect(args.onContinue).toHaveBeenCalledTimes(1);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "トップページに戻る" }),
+    );
+    await expect(args.onHome).toHaveBeenCalledTimes(1);
   },
 };
 

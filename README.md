@@ -17,13 +17,30 @@ pnpm dev
 
 Viteが表示したローカルURLをブラウザで開きます。
 
+## Storybook
+
+画面状態を固定してUIを確認する場合:
+
+```sh
+pnpm storybook
+```
+
+<http://localhost:6006/> で、トップ、問題の読み込み、開始準備、読み込みエラー、問題の回答前・正解・誤答・時間切れ、ゲーム終了、復習完了メッセージ12種類、履歴一覧・詳細、利用規約、素材・開発者、280px幅などを個別に確認できます。
+
+操作テストとアクセシビリティ検査を初めて実行する前に、テスト用ブラウザを導入します。
+
+```sh
+pnpm exec playwright install chromium
+pnpm check:storybook
+```
+
 ## 検証
 
 ```sh
 pnpm check
 ```
 
-`check` はTypeScript 7の型検査、Svelteコンポーネント検査、ESLint、Prettierの整形検査、テスト、20,000問とJSON構成の検査、本番ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はTypeScript 7の型検査、Svelteコンポーネント検査、ESLint、Prettierの整形検査、テスト、20,000問とJSON構成の検査、本番ビルド、Storybookの静的ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
 
 lintと整形を自動修正する場合:
 
@@ -32,7 +49,7 @@ pnpm lint:fix
 pnpm format
 ```
 
-GitHub Actionsでも、`main`へのpushとpull requestごとに依存関係を固定して同じコマンドを実行します。
+GitHub Actionsでも、`main`へのpushとpull requestごとに依存関係を固定して同じコマンドを実行し、さらにStorybookの操作テストとアクセシビリティ検査を行います。
 
 TypeScript 7.0はまだSvelteが利用するコンパイラAPIを提供していないため、`.ts`のCLI検査にはTypeScript 7、`.svelte`の埋め込み検査には互換用TypeScript 6を併用します。どちらも開発依存だけで、配信するJavaScriptには含まれません。
 

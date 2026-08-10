@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/svelte-vite";
-import { expect, fn } from "storybook/test";
+import { expect, fn, waitFor } from "storybook/test";
 
 import { handQuestion, percentQuestion } from "../storybook/fixtures.ts";
 import QuizScreen from "./QuizScreen.svelte";
@@ -64,6 +64,10 @@ export const Correct: Story = {
     ],
   },
   play: async ({ args, canvas, userEvent }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByText("正解")).toBeVisible();
+      await expect(canvas.getByText("35.0%")).toBeVisible();
+    });
     await userEvent.click(canvas.getByRole("button", { name: "次の問題へ" }));
     await expect(args.onNext).toHaveBeenCalledTimes(1);
   },
@@ -86,6 +90,12 @@ export const Wrong: Story = {
       null,
     ],
   },
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByText("不正解")).toBeVisible();
+      await expect(canvas.getByText("35.0%")).toBeVisible();
+    });
+  },
 };
 
 export const TimedOut: Story = {
@@ -105,6 +115,11 @@ export const TimedOut: Story = {
       null,
     ],
   },
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByText("時間切れ")).toBeVisible();
+    });
+  },
 };
 
 export const ReviewHand: Story = {
@@ -116,6 +131,10 @@ export const ReviewHand: Story = {
     choices: [],
     outcomes: [null, null],
     reviewMode: true,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("復習")).toBeVisible();
+    await expect(canvas.getByText("難易度: むずかしい")).toBeVisible();
   },
 };
 
