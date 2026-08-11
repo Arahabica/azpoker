@@ -24,9 +24,7 @@ function seededRandom(seed) {
   };
 }
 
-test("10問を固定ステージ比率で重複なく選ぶ", () => {
-  const session = createSession(bank, seededRandom(42));
-
+function assertSessionCounts(session) {
   assert.equal(session.length, 10);
   assert.equal(new Set(session.map((question) => question.id)).size, 10);
   for (const [stage, count] of Object.entries(SESSION_STAGE_COUNTS)) {
@@ -58,6 +56,30 @@ test("10問を固定ステージ比率で重複なく選ぶ", () => {
     0,
   );
   assert.equal(session.filter((question) => question.trueP === 0).length, 0);
+}
+
+test("10問を固定ステージ比率で重複なく選ぶ", () => {
+  const session = createSession(bank, seededRandom(42));
+
+  assertSessionCounts(session);
+});
+
+test("履歴の誤答1問を先に固定し、残り9問を選んでも合計10問にする", () => {
+  const previousSession = createSession(bank, seededRandom(84));
+
+  for (const [index, requiredQuestion] of previousSession.entries()) {
+    const session = createSession(
+      bank.filter((question) => question.id !== requiredQuestion.id),
+      seededRandom(100 + index),
+      requiredQuestion,
+    );
+
+    assertSessionCounts(session);
+    assert.equal(
+      session.filter((question) => question.id === requiredQuestion.id).length,
+      1,
+    );
+  }
 });
 
 test("モードAのフロップとターンはカテゴリを重複させない", () => {

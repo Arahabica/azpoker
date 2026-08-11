@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getResultSummary } from "../src/result-summary.ts";
+import {
+  PERFECT_RESULT_MESSAGES,
+  getResultSummary,
+} from "../src/result-summary.ts";
 import { REVIEW_COMPLETION_MESSAGES } from "../src/review.ts";
 import {
   splitAtNaturalBreaks,
@@ -63,16 +66,19 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
     { score: 4, elapsedMs: 9_000 },
     { score: 3, elapsedMs: 9_000 },
   ];
-  const resultMessages = resultInputs.map(
-    ({ score, elapsedMs }) =>
-      getResultSummary({
-        score,
-        total: 10,
-        elapsedMs,
-        timeLimitMs: 10_000,
-        timeoutCount: 0,
-      }).headline,
-  );
+  const resultMessages = [
+    ...PERFECT_RESULT_MESSAGES,
+    ...resultInputs.map(
+      ({ score, elapsedMs }) =>
+        getResultSummary({
+          score,
+          total: 10,
+          elapsedMs,
+          timeLimitMs: 10_000,
+          timeoutCount: 0,
+        }).headline,
+    ),
+  ];
 
   for (const phrases of REVIEW_COMPLETION_MESSAGES) {
     assert.ok(phrases.length > 0);
@@ -102,7 +108,7 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
     ["惜しい！", "パーフェクトは", "もう目前！"],
   );
   assert.deepEqual(
-    splitResultMessageAtNaturalBreaks("天才！君こそポーカーキングだ！"),
-    ["天才！", "君こそ", "ポーカーキングだ！"],
+    splitResultMessageAtNaturalBreaks("君こそポーカーキングだ！"),
+    ["君こそ", "ポーカーキングだ！"],
   );
 });

@@ -30,8 +30,11 @@ export const FastPerfect: Story = {
   },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
-      /10\s*問全問正解/,
+      /全問正解/,
     );
+    await expect(
+      canvasElement.querySelector(".stat-caption"),
+    ).toHaveTextContent(/10\s*問中/);
     await expect(canvas.getAllByRole("button")).toHaveLength(2);
   },
 };
@@ -40,20 +43,5 @@ export const Perfect: Story = {
   name: "全問正解",
   args: {
     elapsedMs: 80_000,
-  },
-};
-
-export const PerfectWithHistoryQuestion: Story = {
-  name: "全問正解・履歴問題あり",
-  args: {
-    score: 11,
-    total: 11,
-    elapsedMs: 84_000,
-    timeLimitMs: 111_000,
-  },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
-      /11\s*問全問正解/,
-    );
   },
 };

@@ -64,15 +64,6 @@
   {/if}
 
   <div class="result-content">
-    {#if summary.perfect}
-      <div class="perfect-crown" aria-hidden="true">
-        <svg viewBox="0 0 64 56">
-          <path d="M8 17 21 29 32 9l11 20 13-12-5 28H13L8 17Z"></path>
-          <path d="M15 49h34"></path>
-        </svg>
-      </div>
-    {/if}
-
     <h2 id="result-title">
       <MixedFontText text={summary.headline} messageWrap />
     </h2>
@@ -155,34 +146,6 @@
   .is-perfect .result-content h2 {
     color: #ffe45e;
     text-shadow: 0 0 1.4rem rgb(241 196 15 / 42%);
-  }
-
-  .perfect-crown {
-    display: grid;
-    width: clamp(5.4rem, 22vw, 7rem);
-    aspect-ratio: 1;
-    place-items: center;
-    border: 1px solid rgb(255 228 94 / 42%);
-    border-radius: 50%;
-    background:
-      radial-gradient(
-        circle at 50% 38%,
-        rgb(255 242 157 / 22%),
-        transparent 56%
-      ),
-      rgb(31 85 65 / 72%);
-    box-shadow:
-      0 0 0 0.45rem rgb(241 196 15 / 8%),
-      0 0.9rem 2.4rem rgb(0 34 25 / 32%);
-  }
-
-  .perfect-crown svg {
-    width: 62%;
-    fill: var(--accent);
-    stroke: #fff0a4;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
   }
 
   .result-stats {
@@ -294,10 +257,6 @@
     .result-content {
       gap: 1rem;
       padding-block: 0.4rem 1rem;
-    }
-
-    .perfect-crown {
-      width: 4.6rem;
     }
 
     .result-stats {

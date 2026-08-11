@@ -1,4 +1,21 @@
+import type { RandomSource } from "./types.ts";
+
 const FAST_RESULT_RATIO = 0.65;
+
+const PERFECT_RESULT_MESSAGES = [
+  "君こそポーカーキングだ！",
+  "完璧！一問も逃さない！",
+  "全問正解！お見事！",
+  "パーフェクト！読み切った！",
+  "圧巻！すべて正解！",
+  "見事な判断！完全クリア！",
+  "全問正解！最高のプレイ！",
+  "完璧な読み！素晴らしい！",
+  "お見事！パーフェクト！",
+  "冴えてる！全問正解！",
+  "強い！見事なパーフェクト！",
+  "素晴らしい！全部正解！",
+] as const;
 
 interface ResultInput {
   score: number;
@@ -64,20 +81,33 @@ function formatTimeLimit(timeLimitMs: number): string {
   return `${Math.round(timeLimitMs / 1_000)}秒`;
 }
 
-function getHeadline({
-  score,
-  total,
-  fast,
-  timeoutCount,
-}: Pick<ResultInput, "score" | "total" | "timeoutCount"> & {
-  fast: boolean;
-}): string {
+function getPerfectResultMessage(
+  random: RandomSource = Math.random,
+): (typeof PERFECT_RESULT_MESSAGES)[number] {
+  const value = random();
+  const normalized = Number.isFinite(value)
+    ? Math.min(Math.max(value, 0), 1 - Number.EPSILON)
+    : 0;
+  return PERFECT_RESULT_MESSAGES[
+    Math.floor(normalized * PERFECT_RESULT_MESSAGES.length)
+  ]!;
+}
+
+function getHeadline(
+  {
+    score,
+    total,
+    fast,
+    timeoutCount,
+  }: Pick<ResultInput, "score" | "total" | "timeoutCount"> & {
+    fast: boolean;
+  },
+  random: RandomSource,
+): string {
   const canPraiseSpeed = fast && timeoutCount === 0;
 
   if (score === total) {
-    return canPraiseSpeed
-      ? "天才！君こそポーカーキングだ！"
-      : "完璧！一問も逃さない！";
+    return getPerfectResultMessage(random);
   }
   if (score === total - 1) {
     return canPraiseSpeed
@@ -98,15 +128,18 @@ function getHeadline({
   return "大丈夫、ここから強くなる！";
 }
 
-function getResultSummary(result: ResultInput): Readonly<ResultSummary> {
+function getResultSummary(
+  result: ResultInput,
+  random: RandomSource = Math.random,
+): Readonly<ResultSummary> {
   validateResult(result);
   const { score, total, elapsedMs, timeLimitMs, timeoutCount } = result;
   const perfect = score === total;
   const fast = elapsedMs / timeLimitMs <= FAST_RESULT_RATIO;
 
   return Object.freeze({
-    headline: getHeadline({ score, total, fast, timeoutCount }),
-    scoreLabel: perfect ? `${total}問全問正解` : `${score}問正解`,
+    headline: getHeadline({ score, total, fast, timeoutCount }, random),
+    scoreLabel: perfect ? `全問正解` : `${score}問正解`,
     totalLabel: `${total}問中`,
     elapsedLabel: formatElapsedTime(elapsedMs),
     limitLabel: `制限時間: ${formatTimeLimit(timeLimitMs)}`,
@@ -118,7 +151,9 @@ function getResultSummary(result: ResultInput): Readonly<ResultSummary> {
 
 export {
   FAST_RESULT_RATIO,
+  PERFECT_RESULT_MESSAGES,
   formatElapsedTime,
   formatTimeLimit,
+  getPerfectResultMessage,
   getResultSummary,
 };

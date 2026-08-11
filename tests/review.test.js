@@ -5,10 +5,10 @@ import { createQuizHistoryEntry } from "../src/result-history.ts";
 import {
   RECENT_HISTORY_REVIEW_LIMIT,
   REVIEW_COMPLETION_MESSAGES,
-  addRecentMistakeToSession,
   completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
+  getRecentMistakeQuestion,
   getReviewCompletionMessage,
   recentWrongAnswers,
 } from "../src/review.ts";
@@ -61,29 +61,20 @@ function historyEntry(index, outcome = "wrong") {
   );
 }
 
-test("直近10セットの誤答だけを通常セットへランダムに1問追加する", () => {
+test("直近10セットの誤答だけから通常セットへ含める1問を選ぶ", () => {
   const history = Array.from(
     { length: RECENT_HISTORY_REVIEW_LIMIT + 1 },
     (_, index) => historyEntry(index),
   );
-  const base = [question("base-question")];
-  const session = addRecentMistakeToSession(base, history, () => 0.999);
+  const picked = getRecentMistakeQuestion(history, () => 0.999);
 
   assert.equal(recentWrongAnswers(history).length, 10);
-  assert.equal(session.length, 2);
-  assert.equal(session[1].id, "question-9");
-  assert.equal(
-    session.some((item) => item.id === "question-10"),
-    false,
-  );
+  assert.equal(picked?.id, "question-9");
+  assert.notEqual(picked?.id, "question-10");
 });
 
-test("通常セットと同じ問題は履歴から重複追加しない", () => {
-  const duplicated = question("question-0");
-  assert.deepEqual(
-    addRecentMistakeToSession([duplicated], [historyEntry(0)], () => 0),
-    [duplicated],
-  );
+test("誤答または時間切れがなければ履歴問題を選ばない", () => {
+  assert.equal(getRecentMistakeQuestion([historyEntry(0, "correct")]), null);
 });
 
 test("復習開始時は誤答と時間切れだけを問題IDごとに1件取り出す", () => {

@@ -40,18 +40,15 @@ function recentWrongAnswers(
     .filter((answer) => answer.outcome !== "correct");
 }
 
-function addRecentMistakeToSession(
-  session: readonly Question[],
+function getRecentMistakeQuestion(
   history: readonly QuizHistoryEntry[],
   random: RandomSource = Math.random,
-): Question[] {
-  const sessionIds = new Set(session.map((question) => question.id));
+): Question | null {
   const candidates = recentWrongAnswers(history).filter(
-    ({ question }) => !sessionIds.has(question.id),
+    ({ question }) => question.level !== "advanced",
   );
-  if (candidates.length === 0) return [...session];
-  const picked = candidates[randomIndex(candidates.length, random)]!;
-  return [...session, picked.question];
+  if (candidates.length === 0) return null;
+  return candidates[randomIndex(candidates.length, random)]!.question;
 }
 
 function createReviewSession(
@@ -108,10 +105,10 @@ function formatDifficulty(difficulty: Difficulty): string {
 export {
   RECENT_HISTORY_REVIEW_LIMIT,
   REVIEW_COMPLETION_MESSAGES,
-  addRecentMistakeToSession,
   completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
+  getRecentMistakeQuestion,
   getReviewCompletionMessage,
   recentWrongAnswers,
 };

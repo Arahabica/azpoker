@@ -39,9 +39,9 @@
     type QuizHistoryEntry,
   } from "./result-history.ts";
   import {
-    addRecentMistakeToSession,
     completeReviewHistoryEntry,
     createReviewSession,
+    getRecentMistakeQuestion,
     getReviewCompletionMessage,
     type ReviewCompletionMessage,
   } from "./review.ts";
@@ -200,6 +200,7 @@
 
   async function selectSession(): Promise<Question[]> {
     let nextSession: Question[] | undefined;
+    const recentMistake = getRecentMistakeQuestion(resultHistory);
     const refreshOrder: readonly ("BC" | "A" | "D" | null)[] = [
       null,
       "BC",
@@ -213,14 +214,18 @@
         refreshOrder[attempt] ?? null,
       );
       try {
-        nextSession = createSession(pool);
+        nextSession = createSession(
+          pool,
+          Math.random,
+          recentMistake ?? undefined,
+        );
         break;
       } catch {
         // 条件を作りやすい問題群から順に100問を入れ替える。
       }
     }
     if (!nextSession) throw new Error("問題を選べませんでした");
-    return addRecentMistakeToSession(nextSession, resultHistory);
+    return nextSession;
   }
 
   async function prepareSession(): Promise<void> {
