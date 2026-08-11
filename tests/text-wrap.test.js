@@ -5,7 +5,6 @@ import {
   PERFECT_RESULT_MESSAGES,
   getResultSummary,
 } from "../src/result-summary.ts";
-import { REVIEW_COMPLETION_MESSAGES } from "../src/review.ts";
 import {
   splitAtNaturalBreaks,
   splitResultMessageAtNaturalBreaks,
@@ -79,13 +78,6 @@ test("ゲーム終了メッセージを意味のまとまりでだけ折り返�
         }).headline,
     ),
   ];
-
-  for (const phrases of REVIEW_COMPLETION_MESSAGES) {
-    assert.ok(phrases.length > 0);
-    for (const phrase of phrases) {
-      assert.ok([...phrase].length <= 10, `長すぎるまとまり「${phrase}」`);
-    }
-  }
 
   for (const message of resultMessages) {
     const phrases = splitResultMessageAtNaturalBreaks(message);

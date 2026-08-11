@@ -6,22 +6,6 @@ import {
 import type { Difficulty, Question, RandomSource } from "./types.ts";
 
 const RECENT_HISTORY_REVIEW_LIMIT = 10;
-type ReviewCompletionMessage = readonly [string, ...string[]];
-
-const REVIEW_COMPLETION_MESSAGES = [
-  ["復習", "お疲れ様でした！"],
-  ["復習完了！", "また一歩", "強くなりました！"],
-  ["間違いを", "力に変えました！"],
-  ["苦手な問題をしっかり", "克服しました！"],
-  ["いい復習でした！", "次もこの調子！"],
-  ["すべて正解！", "よくできました！"],
-  ["もう一度", "向き合った分だけ", "強くなりました！"],
-  ["間違いにしっかり", "向き合えました！"],
-  ["復習完了！", "次の問題へ", "進もう！"],
-  ["すべて", "解き直せました！"],
-  ["復習で大きく", "前進しました！"],
-  ["迷った問題も、", "もう大丈夫！"],
-] as const satisfies readonly ReviewCompletionMessage[];
 
 function randomIndex(length: number, random: RandomSource): number {
   const value = random();
@@ -90,26 +74,15 @@ function completeReviewHistoryEntry(
   );
 }
 
-function getReviewCompletionMessage(
-  random: RandomSource = Math.random,
-): ReviewCompletionMessage {
-  return REVIEW_COMPLETION_MESSAGES[
-    randomIndex(REVIEW_COMPLETION_MESSAGES.length, random)
-  ]!;
-}
-
 function formatDifficulty(difficulty: Difficulty): string {
   return difficulty === "hard" ? "むずかしい" : "ふつう";
 }
 
 export {
   RECENT_HISTORY_REVIEW_LIMIT,
-  REVIEW_COMPLETION_MESSAGES,
   completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
   getRecentMistakeQuestion,
-  getReviewCompletionMessage,
   recentWrongAnswers,
 };
-export type { ReviewCompletionMessage };

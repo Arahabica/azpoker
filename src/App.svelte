@@ -42,8 +42,6 @@
     completeReviewHistoryEntry,
     createReviewSession,
     getRecentMistakeQuestion,
-    getReviewCompletionMessage,
-    type ReviewCompletionMessage,
   } from "./review.ts";
   import { createSoundEffects } from "./sound-effects.ts";
   import type { SoundEffects } from "./sound-effects.ts";
@@ -61,7 +59,6 @@
   import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
-  import ReviewResultScreen from "./screens/ReviewResultScreen.svelte";
   import TermsScreen from "./screens/TermsScreen.svelte";
 
   interface Props {
@@ -101,7 +98,6 @@
   let sessionTimeLimitMs = $state(0);
   let sessionHistoryId = $state("");
   let pendingHistoryEntry = $state<QuizHistoryEntry | null>(null);
-  let reviewCompletionMessage = $state<ReviewCompletionMessage | null>(null);
   let resultHistory = $state<QuizHistoryEntry[]>([]);
   let historyDetailOrigin = $state<HistoryDetailOrigin>("direct");
   let soundEffects: SoundEffects | undefined;
@@ -236,7 +232,6 @@
     flow = preparingFlow;
     sessionKind = "quiz";
     pendingHistoryEntry = null;
-    reviewCompletionMessage = null;
 
     try {
       const [nextSession] = await waitLoadingAnimation(() =>
@@ -386,19 +381,28 @@
 
     if (nextFlow.status === "result") {
       if (sessionKind === "review") {
-        if (pendingHistoryEntry) {
-          resultHistory = saveQuizHistory(
-            completeReviewHistoryEntry(
-              pendingHistoryEntry,
-              sessionElapsedMs,
-              sessionTimeLimitMs,
-            ),
-          );
-          pendingHistoryEntry = null;
-        }
-        reviewCompletionMessage = getReviewCompletionMessage();
+        if (!pendingHistoryEntry) return;
+        const completedHistoryEntry = completeReviewHistoryEntry(
+          pendingHistoryEntry,
+          sessionElapsedMs,
+          sessionTimeLimitMs,
+        );
+        resultHistory = saveQuizHistory(completedHistoryEntry);
+        sessionKind = "quiz";
+        session = completedHistoryEntry.answers.map(
+          (answer) => answer.question,
+        );
+        score = completedHistoryEntry.score;
+        outcomes = completedHistoryEntry.answers.map(
+          (answer) => answer.outcome,
+        );
+        sessionAnswers = [...completedHistoryEntry.answers];
+        sessionElapsedMs = completedHistoryEntry.elapsedMs;
+        sessionTimeLimitMs = completedHistoryEntry.timeLimitMs;
+        sessionHistoryId = completedHistoryEntry.id;
+        pendingHistoryEntry = null;
         playSound("complete");
-        focusElement("#continue-after-review");
+        focusElement("#retry");
         return;
       }
       const completedAnswers = sessionAnswers.filter(
@@ -460,7 +464,6 @@
       0,
     );
     sessionHistoryId = "";
-    reviewCompletionMessage = null;
     flow = reviewFlow;
     playSound("start");
     prepareQuestion(nextSession[0]!);
@@ -475,7 +478,6 @@
     sessionTimeLimitMs = 0;
     sessionHistoryId = "";
     pendingHistoryEntry = null;
-    reviewCompletionMessage = null;
     soundEffects?.stopAll();
     flow = transitionGameFlow(flow, { type: "LEAVE" });
     refreshResultHistory();
@@ -645,15 +647,7 @@
       onNext={goNext}
     />
   {:else if flow.status === "result"}
-    {#if sessionKind === "review"}
-      {#if reviewCompletionMessage}
-        <ReviewResultScreen
-          message={reviewCompletionMessage}
-          onContinue={showPreparation}
-          onHome={showLanding}
-        />
-      {/if}
-    {:else}
+    {#if sessionKind === "quiz"}
       <ResultScreen
         {score}
         total={session.length}

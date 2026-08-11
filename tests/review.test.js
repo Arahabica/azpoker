@@ -4,12 +4,10 @@ import test from "node:test";
 import { createQuizHistoryEntry } from "../src/result-history.ts";
 import {
   RECENT_HISTORY_REVIEW_LIMIT,
-  REVIEW_COMPLETION_MESSAGES,
   completeReviewHistoryEntry,
   createReviewSession,
   formatDifficulty,
   getRecentMistakeQuestion,
-  getReviewCompletionMessage,
   recentWrongAnswers,
 } from "../src/review.ts";
 
@@ -110,21 +108,7 @@ test("復習完了時は元の正誤を保ち、復習分の時間だけ履歴�
   assert.equal(original.timeLimitMs, 5_000);
 });
 
-test("復習完了メッセージを複数用意し、難易度を日本語表示する", () => {
-  assert.equal(REVIEW_COMPLETION_MESSAGES.length, 12);
-  assert.deepEqual(
-    getReviewCompletionMessage(() => 0),
-    ["復習", "お疲れ様でした！"],
-  );
-  assert.deepEqual(REVIEW_COMPLETION_MESSAGES[1], [
-    "復習完了！",
-    "また一歩",
-    "強くなりました！",
-  ]);
-  assert.deepEqual(
-    getReviewCompletionMessage(() => 0.999),
-    ["迷った問題も、", "もう大丈夫！"],
-  );
+test("復習問題の難易度を日本語表示する", () => {
   assert.equal(formatDifficulty("medium"), "ふつう");
   assert.equal(formatDifficulty("hard"), "むずかしい");
 });

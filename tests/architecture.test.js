@@ -83,7 +83,6 @@ test("AppがURLとゲーム状態を対応する画面へ接続する", () => {
     "PrepareScreen",
     "QuizScreen",
     "ResultScreen",
-    "ReviewResultScreen",
     "HistoryScreen",
     "TermsScreen",
     "CreditsScreen",
@@ -108,6 +107,13 @@ test("AppがURLとゲーム状態を対応する画面へ接続する", () => {
   assert.match(app, /createHistoryDetailPath\(id\)/);
   assert.match(app, /openHistoryDetail\(id, "top"\)/);
   assert.match(app, /openHistoryDetail\(id, "history"\)/);
+});
+
+test("復習終了後は専用ページを挟まず通常結果へ戻す", () => {
+  assert.doesNotMatch(app, /ReviewResultScreen|reviewCompletionMessage/);
+  assert.match(app, /sessionElapsedMs = completedHistoryEntry\.elapsedMs/);
+  assert.match(app, /sessionTimeLimitMs = completedHistoryEntry\.timeLimitMs/);
+  assert.match(app, /sessionKind = "quiz"/);
 });
 
 test("問題・フォント・効果音を読み込んでからゲームを開始する", () => {
