@@ -132,7 +132,7 @@ test("問題・フォント・効果音を読み込んでからゲームを開�
   for (const filename of [
     "kettei_33.mp3",
     "audiostock_106548.mp3",
-    "kettei_2.mp3",
+    "kettei_2-volume-up-12db.mp3",
     "otologic-warning-siren05-03.mp3",
     "otologic-multi-accent04-1.mp3",
     "otologic-multi-accent03-2.mp3",

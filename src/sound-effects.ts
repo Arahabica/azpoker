@@ -12,7 +12,7 @@ interface SoundEffectsOptions {
 const SOUND_URLS: Readonly<Record<SoundName, string>> = Object.freeze({
   start: "/sounds/kettei_33.mp3",
   correct: "/sounds/audiostock_106548.mp3",
-  wrong: "/sounds/kettei_2.mp3",
+  wrong: "/sounds/kettei_2-volume-up-12db.mp3",
   warning: "/sounds/otologic-warning-siren05-03.mp3",
   complete: "/sounds/otologic-multi-accent04-1.mp3",
   perfect: "/sounds/otologic-multi-accent03-2.mp3",
