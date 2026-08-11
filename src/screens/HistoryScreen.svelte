@@ -1,20 +1,62 @@
 <script lang="ts">
   import type { AppPath } from "../app-route.ts";
+  import HistoryDetail from "../components/HistoryDetail.svelte";
   import HistoryPanel from "../components/HistoryPanel.svelte";
   import PublicPageShell from "../components/PublicPageShell.svelte";
   import type { QuizHistoryEntry } from "../result-history.ts";
 
   interface Props {
     history: readonly QuizHistoryEntry[];
+    detailId?: string | null;
+    detailNavigationPath?: AppPath;
+    detailNavigationLabel?: string;
+    detailNavigationAriaLabel?: string;
     onNavigate: (path: AppPath) => void;
+    onOpenHistory: (id: string) => void;
+    onLeaveDetail: (path: AppPath) => void;
   }
 
-  let { history, onNavigate }: Props = $props();
+  let {
+    history,
+    detailId = null,
+    detailNavigationPath = "/history",
+    detailNavigationLabel = "履歴一覧へ戻る",
+    detailNavigationAriaLabel = "履歴一覧へ戻る",
+    onNavigate,
+    onOpenHistory,
+    onLeaveDetail,
+  }: Props = $props();
+
+  const selectedEntry = $derived(
+    history.find((entry) => entry.id === detailId) ?? null,
+  );
+
+  function selectHistory(entry: QuizHistoryEntry): void {
+    onOpenHistory(entry.id);
+  }
 </script>
 
-<PublicPageShell title="履歴" showHeading={false} {onNavigate}>
-  {#if history.length > 0}
-    <HistoryPanel entries={history} />
+<PublicPageShell
+  title="履歴"
+  showHeading={false}
+  immersiveBody={Boolean(detailId)}
+  navigationPath={detailId ? detailNavigationPath : "/"}
+  navigationLabel={detailId ? detailNavigationLabel : "トップへ"}
+  navigationAriaLabel={detailId
+    ? detailNavigationAriaLabel
+    : "トップページへ戻る"}
+  {onNavigate}
+  onHeaderNavigate={detailId ? onLeaveDetail : onNavigate}
+>
+  {#if detailId && selectedEntry}
+    <HistoryDetail entry={selectedEntry} />
+  {:else if detailId}
+    <section class="empty-history" aria-labelledby="missing-history-title">
+      <h2 id="missing-history-title">履歴が見つかりません</h2>
+      <p>この履歴は削除されたか、別の端末に保存されています。</p>
+    </section>
+  {:else if history.length > 0}
+    <HistoryPanel entries={history} onSelect={selectHistory} />
   {:else}
     <section class="empty-history" aria-labelledby="empty-history-title">
       <h2 id="empty-history-title">まだ履歴がありません</h2>

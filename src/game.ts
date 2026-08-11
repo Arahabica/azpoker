@@ -72,6 +72,7 @@ function shuffle<T>(
 function createSession(
   bank: readonly Question[],
   random: RandomSource = Math.random,
+  requiredQuestion?: Question,
 ): Question[] {
   if (!isArrayValue(bank) || bank.length === 0) {
     throw new TypeError("問題バンクが空です");
@@ -127,6 +128,26 @@ function createSession(
     classicB,
     ...Array<Question[]>(5).fill(byMode.A),
   ];
+  let requiredLevel: Exclude<AudienceLevel, "advanced"> | undefined;
+  if (requiredQuestion) {
+    if (requiredQuestion.level === "advanced") {
+      throw new Error("上級者向け問題は通常セッションへ追加できません");
+    }
+    requiredLevel = requiredQuestion.level;
+    const requiredPool =
+      requiredQuestion.mode === "A"
+        ? byMode.A
+        : requiredQuestion.mode === "B"
+          ? requiredQuestion.answerType === "hand"
+            ? classicB
+            : numericB
+          : byMode[requiredQuestion.mode];
+    const requiredSlotIndex = slots.indexOf(requiredPool);
+    if (requiredSlotIndex === -1) {
+      throw new Error("履歴問題を通常セッションへ追加できません");
+    }
+    slots.splice(requiredSlotIndex, 1);
+  }
   for (let attempt = 0; attempt < 2000; attempt += 1) {
     const remainingStages: Record<Stage, number> = { ...SESSION_STAGE_COUNTS };
     const remainingDifficulties: Record<Difficulty, number> = {
@@ -136,14 +157,23 @@ function createSession(
       Exclude<AudienceLevel, "advanced">,
       number
     > = { ...SESSION_LEVEL_COUNTS };
-    const selected: Question[] = [];
-    const aCategories = new Set<string>();
-    let firstD: Question | null = null;
+    const selected: Question[] = requiredQuestion ? [requiredQuestion] : [];
+    const aCategories = new Set<string>(
+      requiredQuestion?.mode === "A" ? [requiredQuestion.category] : [],
+    );
+    let firstD: Question | null =
+      requiredQuestion?.mode === "D" ? requiredQuestion : null;
+    if (requiredQuestion && requiredLevel) {
+      remainingStages[requiredQuestion.stage] -= 1;
+      remainingDifficulties[requiredQuestion.difficulty] -= 1;
+      remainingLevels[requiredLevel] -= 1;
+    }
     let failed = false;
 
     for (const pool of slots) {
       const candidates = pool.filter((question) => {
         if (
+          question.id === requiredQuestion?.id ||
           remainingStages[question.stage] <= 0 ||
           remainingDifficulties[question.difficulty] <= 0
         )

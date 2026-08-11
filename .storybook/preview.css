@@ -1,0 +1,58 @@
+.sb-show-main {
+  padding: 0 !important;
+}
+
+#storybook-root {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max-width);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 32%, rgb(87 236 186 / 16%), transparent 54%),
+    repeating-linear-gradient(
+      118deg,
+      transparent 0,
+      transparent 4px,
+      rgb(255 255 255 / 1.8%) 5px,
+      transparent 6px
+    ),
+    linear-gradient(
+      160deg,
+      var(--felt-light),
+      var(--felt) 50%,
+      var(--felt-dark)
+    );
+  isolation: isolate;
+}
+
+#storybook-root::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(0 0 0 / 12%),
+      transparent 9%,
+      transparent 91%,
+      rgb(0 0 0 / 12%)
+    ),
+    radial-gradient(
+      ellipse at 50% 56%,
+      transparent 45%,
+      rgb(0 31 24 / 18%) 100%
+    );
+  content: "";
+  pointer-events: none;
+}
+
+@media (min-width: 481px) {
+  #storybook-root {
+    border-right: 1px solid rgb(255 255 255 / 8%);
+    border-left: 1px solid rgb(255 255 255 / 8%);
+    box-shadow: 0 0 4rem rgb(0 0 0 / 46%);
+  }
+}

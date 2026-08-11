@@ -79,7 +79,7 @@ Source: https://audiostock.jp/audio/106548
 The following sounds are by 効果音ラボ:
 
 - `public/sounds/kettei_33.mp3`: 決定ボタンを押す33（開始）
-- `public/sounds/kettei_2.mp3`: 決定ボタンを押す2（不正解・時間切れ）
+- `public/sounds/kettei_2-volume-up-12db.mp3`: 決定ボタンを押す2（不正解・時間切れ、音量を12dB増幅）
 
 Source: https://soundeffect-lab.info/sound/button/
 

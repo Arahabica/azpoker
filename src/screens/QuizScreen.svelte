@@ -2,6 +2,7 @@
   import AnswerSheet from "../components/AnswerSheet.svelte";
   import Board from "../components/Board.svelte";
   import ChoiceButton from "../components/ChoiceButton.svelte";
+  import DifficultyBadge from "../components/DifficultyBadge.svelte";
   import HoleCards from "../components/HoleCards.svelte";
   import HandComparison from "../components/HandComparison.svelte";
   import LeaveConfirmationSheet from "../components/LeaveConfirmationSheet.svelte";
@@ -24,6 +25,7 @@
     choices: readonly PercentChoice[];
     answerResult: AnswerResult | null;
     outcomes: readonly (QuestionOutcome | null)[];
+    reviewMode?: boolean;
     onLeave: () => void;
     onAnswer: (selected: QuestionAnswer, elapsedMs: number) => void;
     onTimeWarning: (questionIndex: number) => void;
@@ -38,6 +40,7 @@
     choices,
     answerResult,
     outcomes,
+    reviewMode = false,
     onLeave,
     onAnswer,
     onTimeWarning,
@@ -55,6 +58,11 @@
   let leaveConfirmationOpen = $state(false);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
   const choicesConcealed = $derived(!choicesReady || Boolean(answerResult));
+  const showsResultNext = $derived(
+    currentIndex === total - 1 &&
+      answerResult?.correct === true &&
+      (reviewMode || outcomes.every((outcome) => outcome === "correct")),
+  );
 
   $effect(() => {
     const questionIndex = currentIndex;
@@ -124,6 +132,12 @@
 
 <section id="game" class="game-screen" aria-labelledby="prompt">
   <header class="quiz-header">
+    {#if reviewMode}
+      <div class="review-context">
+        <span class="review-label">復習</span>
+        <DifficultyBadge difficulty={question.difficulty} />
+      </div>
+    {/if}
     <QuizProgressTimer
       {currentIndex}
       {total}
@@ -180,7 +194,7 @@
       correct={answerResult.correct}
       timedOut={answerResult.timedOut}
       {question}
-      isLast={currentIndex === total - 1}
+      isLast={showsResultNext}
       blocked={leaveConfirmationOpen}
       {onNext}
       onRequestLeave={requestLeave}
@@ -208,10 +222,24 @@
   }
 
   .quiz-header {
-    display: flex;
+    display: grid;
     flex: 0 0 auto;
-    align-items: center;
+    align-content: center;
+    gap: 0.6rem;
     min-height: 2.75rem;
+  }
+
+  .review-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .review-label {
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
   }
 
   .question-content {

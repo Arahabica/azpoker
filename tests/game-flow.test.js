@@ -147,6 +147,61 @@ test("回答後だけ次の問題へ進み、最終問題の後は結果にす�
   );
 });
 
+test("復習中の誤答はキュー末尾へ戻し、正解するまで結果に進まない", () => {
+  let result = prepareGame(1);
+  result = transitionGameFlow(result, {
+    type: "ANSWER",
+    questionIndex: 0,
+    correct: false,
+    selected: "20%",
+  });
+  result = transitionGameFlow(result, { type: "NEXT_QUESTION" });
+
+  let review = transitionGameFlow(result, {
+    type: "START_REVIEW",
+    totalQuestions: 2,
+  });
+  review = transitionGameFlow(review, {
+    type: "ANSWER",
+    questionIndex: 0,
+    correct: false,
+    selected: "20%",
+  });
+  review = transitionGameFlow(review, {
+    type: "NEXT_QUESTION",
+    repeatCurrent: true,
+  });
+  assert.deepEqual(review, {
+    status: "answering",
+    questionIndex: 1,
+    totalQuestions: 3,
+  });
+
+  review = transitionGameFlow(review, {
+    type: "ANSWER",
+    questionIndex: 1,
+    correct: true,
+    selected: "35%",
+  });
+  review = transitionGameFlow(review, { type: "NEXT_QUESTION" });
+  assert.deepEqual(review, {
+    status: "answering",
+    questionIndex: 2,
+    totalQuestions: 3,
+  });
+
+  review = transitionGameFlow(review, {
+    type: "ANSWER",
+    questionIndex: 2,
+    correct: true,
+    selected: "35%",
+  });
+  assert.deepEqual(transitionGameFlow(review, { type: "NEXT_QUESTION" }), {
+    status: "result",
+    totalQuestions: 3,
+  });
+});
+
 test("離脱するとどの進行状態からでもトップへ戻る", () => {
   const answered = transitionGameFlow(prepareGame(), {
     type: "TIMEOUT",

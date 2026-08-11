@@ -91,7 +91,7 @@
 
     <h3>Lucide Icons</h3>
     <p>
-      音声と退出のアイコンにLucide Iconsを使用しています。LucideはISC
+      音声、退出のアイコンにLucide Iconsを使用しています。LucideはISC
       Licenseのもとで
       <a href="https://lucide.dev/" rel="external noopener" target="_blank"
         >提供されています</a

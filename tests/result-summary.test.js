@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  PERFECT_RESULT_MESSAGES,
   formatElapsedTime,
   formatTimeLimit,
+  getPerfectResultMessage,
   getResultSummary,
 } from "../src/result-summary.ts";
 
@@ -35,18 +37,21 @@ test("8問正解の結果を正答数と速さに合わせて表示する", () =
   );
 });
 
-test("速い全問正解を特別な結果として扱う", () => {
+test("全問正解を特別な結果として扱う", () => {
   assert.deepEqual(
-    getResultSummary({
-      score: 10,
-      total: 10,
-      elapsedMs: 32_500,
-      timeLimitMs: 55_000,
-      timeoutCount: 0,
-    }),
+    getResultSummary(
+      {
+        score: 10,
+        total: 10,
+        elapsedMs: 32_500,
+        timeLimitMs: 55_000,
+        timeoutCount: 0,
+      },
+      () => 0,
+    ),
     {
-      headline: "天才！君こそポーカーキングだ！",
-      scoreLabel: "10問全問正解",
+      headline: "君こそポーカーキングだ！",
+      scoreLabel: "全問正解",
       totalLabel: "10問中",
       elapsedLabel: "32.5秒",
       limitLabel: "制限時間: 55秒",
@@ -54,6 +59,18 @@ test("速い全問正解を特別な結果として扱う", () => {
       perfect: true,
       fast: true,
     },
+  );
+});
+
+test("全問正解メッセージを12種類からランダムに選ぶ", () => {
+  assert.equal(PERFECT_RESULT_MESSAGES.length, 12);
+  assert.equal(
+    getPerfectResultMessage(() => 0),
+    PERFECT_RESULT_MESSAGES[0],
+  );
+  assert.equal(
+    getPerfectResultMessage(() => 0.999),
+    PERFECT_RESULT_MESSAGES[11],
   );
 });
 

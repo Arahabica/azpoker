@@ -43,3 +43,19 @@ test("検索エンジンへ正規ドメインの公開ページを案内する",
     assert.match(sitemap, new RegExp(`<loc>https://azpoker\\.me${pathname}`));
   }
 });
+
+test("履歴詳細URLを一覧とは別の詳細専用HTMLへ内部転送する", () => {
+  const redirects = fs.readFileSync(
+    path.join(root, "public", "_redirects"),
+    "utf8",
+  );
+
+  assert.match(
+    redirects,
+    /^\/history\/:id \/history-detail\/index\.html 200$/m,
+  );
+  assert.match(
+    redirects,
+    /^\/history\/:id\/ \/history-detail\/index\.html 200$/m,
+  );
+});

@@ -1,16 +1,25 @@
 <script lang="ts">
-  import { splitAtNaturalBreaks } from "../text-wrap.ts";
+  import {
+    splitAtNaturalBreaks,
+    splitResultMessageAtNaturalBreaks,
+  } from "../text-wrap.ts";
 
   interface Props {
     text?: string;
     phraseWrap?: boolean;
+    messageWrap?: boolean;
   }
 
-  let { text = "", phraseWrap = false }: Props = $props();
+  let { text = "", phraseWrap = false, messageWrap = false }: Props = $props();
 
   const phrases = $derived(
-    phraseWrap ? splitAtNaturalBreaks(text) : [String(text)],
+    phraseWrap
+      ? splitAtNaturalBreaks(text)
+      : messageWrap
+        ? splitResultMessageAtNaturalBreaks(text)
+        : [String(text)],
   );
+  const wrapsPhrases = $derived(phraseWrap || messageWrap);
 
   function fontParts(phrase: string): string[] {
     return phrase.split(/([A-Za-z0-9.]+)/).filter(Boolean);
@@ -23,7 +32,7 @@
 
 <span class="mixed-font-text">
   {#each phrases as phrase, phraseIndex (`${phraseIndex}-${phrase}`)}
-    <span class:phrase={phraseWrap}>
+    <span class:phrase={wrapsPhrases}>
       {#each fontParts(phrase) as part, partIndex (`${partIndex}-${part}`)}
         {#if usesMPlus(part)}
           <span class="mplus">{part}</span>
@@ -31,7 +40,7 @@
           {part}
         {/if}
       {/each}
-    </span>{#if phraseWrap && phraseIndex < phrases.length - 1}<wbr />{/if}
+    </span>{#if wrapsPhrases && phraseIndex < phrases.length - 1}<wbr />{/if}
   {/each}
 </span>
 

@@ -9,7 +9,12 @@
     lead?: string;
     updatedAt?: string;
     showHeading?: boolean;
+    immersiveBody?: boolean;
+    navigationPath?: AppPath;
+    navigationLabel?: string;
+    navigationAriaLabel?: string;
     onNavigate: (path: AppPath) => void;
+    onHeaderNavigate?: (path: AppPath) => void;
     children: Snippet;
   }
 
@@ -18,14 +23,19 @@
     lead = "",
     updatedAt = "",
     showHeading = true,
+    immersiveBody = false,
+    navigationPath = "/",
+    navigationLabel = "トップへ",
+    navigationAriaLabel = "トップページへ戻る",
     onNavigate,
+    onHeaderNavigate,
     children,
   }: Props = $props();
 
-  function goHome(event: MouseEvent): void {
+  function followNavigation(event: MouseEvent): void {
     if (!shouldHandleAppNavigation(event)) return;
     event.preventDefault();
-    onNavigate("/");
+    (onHeaderNavigate ?? onNavigate)(navigationPath);
   }
 </script>
 
@@ -33,14 +43,14 @@
   <header class="page-header">
     <a
       class="home-link"
-      href="/"
-      onclick={goHome}
-      aria-label="トップページへ戻る"
+      href={navigationPath}
+      onclick={followNavigation}
+      aria-label={navigationAriaLabel}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m15 18-6-6 6-6"></path>
       </svg>
-      <span>トップへ</span>
+      <span>{navigationLabel}</span>
     </a>
   </header>
 
@@ -60,7 +70,7 @@
     </h1>
   {/if}
 
-  <div class="page-body">
+  <div class="page-body" class:is-immersive={immersiveBody}>
     {@render children()}
   </div>
 
@@ -153,7 +163,7 @@
     padding-bottom: 3rem;
   }
 
-  .page-body :global(section) {
+  .page-body:not(.is-immersive) :global(section) {
     padding: 1.25rem;
     border: 1px solid rgb(255 255 255 / 11%);
     border-radius: 1.15rem;
@@ -161,7 +171,7 @@
     box-shadow: inset 0 1px rgb(255 255 255 / 4%);
   }
 
-  .page-body :global(h2:not(.history-panel-title)) {
+  .page-body:not(.is-immersive) :global(h2:not(.history-panel-title)) {
     margin: 0 0 0.75rem;
     color: var(--text);
     font-size: 1.08rem;
@@ -170,36 +180,36 @@
     line-height: 1.55;
   }
 
-  .page-body :global(h3) {
+  .page-body:not(.is-immersive) :global(h3) {
     margin: 1.2rem 0 0.45rem;
     color: var(--text);
     font-size: 0.94rem;
     line-height: 1.6;
   }
 
-  .page-body :global(p),
-  .page-body :global(li) {
+  .page-body:not(.is-immersive) :global(p),
+  .page-body:not(.is-immersive) :global(li) {
     color: #c5d9d2;
     font-size: 0.88rem;
     line-height: 1.9;
   }
 
-  .page-body :global(p + p) {
+  .page-body:not(.is-immersive) :global(p + p) {
     margin-top: 0.7rem;
   }
 
-  .page-body :global(ul),
-  .page-body :global(ol:not(.history-list)) {
+  .page-body:not(.is-immersive) :global(ul),
+  .page-body:not(.is-immersive) :global(ol:not(.history-list)) {
     margin: 0;
     padding-left: 1.4rem;
   }
 
-  .page-body :global(a) {
+  .page-body:not(.is-immersive) :global(a) {
     color: #f7dd70;
     text-underline-offset: 0.22em;
   }
 
-  .page-body :global(a:focus-visible) {
+  .page-body:not(.is-immersive) :global(a:focus-visible) {
     border-radius: 0.15rem;
     outline: 3px solid rgb(255 255 255 / 82%);
     outline-offset: 3px;
@@ -210,7 +220,7 @@
       color: var(--text);
     }
 
-    .page-body :global(a:hover) {
+    .page-body:not(.is-immersive) :global(a:hover) {
       color: #fff0aa;
     }
   }
