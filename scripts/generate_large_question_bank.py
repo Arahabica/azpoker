@@ -15,6 +15,23 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+from generated.question_patterns import (
+    A_COUNTS,
+    B_HAND_COMPARISON_STAGE_TARGETS,
+    BATCH_SIZE,
+    B_BEGINNER_ARCHETYPES,
+    C_POSTFLOP_PER_PLAYER,
+    D_OPPONENT_RANK_STAGE_COUNTS,
+    GROUP_COUNTS,
+    LEGACY_MODE_COUNTS,
+    MODE_COUNTS,
+    NEW_A_COUNTS,
+    NEW_B_COUNTS,
+    NEW_D_COUNTS,
+    PATTERN_BY_KEY,
+    QUESTION_PATTERN_COUNTS,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public" / "questions"
 RANKS = "23456789TJQKA"
@@ -24,55 +41,7 @@ DECK = tuple(f"{rank}{suit}" for rank in RANKS for suit in SUITS)
 RANK_VALUE = {rank: index + 2 for index, rank in enumerate(RANKS)}
 DISPLAY_RANK = {"T": "10"}
 BUCKETS = (0, 1, 2, 3, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
-LEGACY_MODE_COUNTS = {"A": 6000, "B": 3000, "C": 338, "D": 662}
-MODE_COUNTS = {"A": 10_000, "B": 4800, "C": 1200, "D": 4000}
 HAND_NAMES = ("ハイカード", "ワンペア", "ツーペア", "スリー", "ストレート", "フラッシュ", "フルハウス", "フォーカード", "ストレートフラッシュ")
-A_COUNTS = {
-    "flush": 1400,
-    "straight": 1600,
-    "flush_or_straight": 800,
-    "rank_hit": 550,
-    "rank_trips": 500,
-    "two_pair": 400,
-    "full_house": 400,
-    "four_kind": 250,
-    "straight_flush": 100,
-}
-NEW_A_COUNTS = {
-    "backdoor_flush": 200,
-    "flush_draw": 500,
-    "oesd": 500,
-    "gutshot": 500,
-    "board_pair": 350,
-    "board_two_pair": 300,
-    "overcard": 400,
-    "four_flush_board": 350,
-    "pocket_pair_counterfeit": 350,
-    "two_pair_counterfeit": 300,
-    "same_hand_category": 250,
-}
-NEW_B_COUNTS = {
-    "trailing_hand_wins": 900,
-    "leading_hand_holds": 900,
-}
-NEW_D_COUNTS = {
-    "opponent_pocket_pair": 209,
-    "opponent_overpair": 209,
-    "opponent_set": 209,
-    "opponent_top_pair_plus": 209,
-    "opponent_two_pair": 209,
-    "opponent_straight": 209,
-    "opponent_flush": 209,
-    "opponent_oesd": 209,
-    "opponent_gutshot": 209,
-    "opponent_flush_draw": 209,
-    "opponent_combo_draw": 208,
-    "opponent_higher_flush": 208,
-    "opponent_same_pair_higher_kicker": 208,
-    "all_opponents_miss_board": 208,
-    "exactly_one_opponent_target_rank": 208,
-    "multiple_opponents_target_rank": 208,
-}
 
 
 def display_rank(rank: str) -> str:
@@ -651,29 +620,7 @@ def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tu
 def build_mode_b(rng: random.Random) -> list[dict]:
     questions = []
     seen = set()
-    stage_targets = {
-        "preflop": {
-            "pair_vs_overcards": 250,
-            "pair_vs_high_cards": 100,
-            "pair_vs_pair": 100,
-            "domination": 150,
-            "playable_preflop": 100,
-        },
-        "flop": {
-            "draw_vs_two_pair_plus": 200,
-            "top_pair_vs_flush_draw": 250,
-            "one_pair_kicker": 150,
-            "combo_hand": 200,
-            "continue_matchup": 350,
-        },
-        "turn": {
-            "draw_vs_two_pair_plus": 200,
-            "top_pair_vs_flush_draw": 250,
-            "one_pair_kicker": 150,
-            "combo_hand": 200,
-            "continue_matchup": 350,
-        },
-    }
+    stage_targets = B_HAND_COMPARISON_STAGE_TARGETS
     for stage, targets in stage_targets.items():
         count = sum(targets.values())
         archetype_counts = Counter()
@@ -808,7 +755,7 @@ def opponent_rank_percent(hole, board, target_rank: str, players: int) -> float:
 def build_mode_d(rng: random.Random) -> list[dict]:
     questions = []
     seen = set()
-    stage_counts = {"preflop": 156, "flop": 253, "turn": 253}
+    stage_counts = D_OPPONENT_RANK_STAGE_COUNTS
     for stage, count in stage_counts.items():
         board_size = {"preflop": 0, "flop": 3, "turn": 4}[stage]
         while sum(question["stage"] == stage for question in questions) < count:
@@ -1289,7 +1236,7 @@ def build_new_mode_c(rng: random.Random) -> list[dict]:
     entries = []
     seen = set()
     for players in (2, 6):
-        while sum(entry[2] == players for entry in entries) < 431:
+        while sum(entry[2] == players for entry in entries) < C_POSTFLOP_PER_PLAYER:
             stage = "flop" if sum(entry[2] == players for entry in entries) % 2 == 0 else "turn"
             cards = tuple(rng.sample(DECK, 5 if stage == "flop" else 6))
             hole, board = cards[:2], cards[2:]
@@ -1555,16 +1502,45 @@ def build_new_mode_d(rng: random.Random) -> list[dict]:
 
 
 def validate(bank: list[dict]) -> None:
-    if len(bank) != 20_000:
-        raise RuntimeError(f"問題数が20,000問ではありません: {len(bank)}")
+    expected_total = sum(MODE_COUNTS.values())
+    if len(bank) != expected_total:
+        raise RuntimeError(
+            f"問題数が正本の{expected_total:,}問ではありません: {len(bank):,}"
+        )
     mode_counts = Counter(question["mode"] for question in bank)
     if dict(mode_counts) != MODE_COUNTS:
         raise RuntimeError(f"モード比率が不正です: {mode_counts}")
+    expected_category_counts = {
+        (mode, category): count
+        for mode, categories in QUESTION_PATTERN_COUNTS.items()
+        for category, count in categories.items()
+    }
+    category_counts = Counter(
+        (question["mode"], question["category"]) for question in bank
+    )
+    if dict(category_counts) != expected_category_counts:
+        raise RuntimeError(
+            "カテゴリ内訳が正本と一致しません: "
+            f"期待={expected_category_counts}, 実際={dict(category_counts)}"
+        )
     if len({question["id"] for question in bank}) != len(bank):
         raise RuntimeError("問題IDが重複しています")
     if len({question["conceptKey"] for question in bank}) != len(bank):
         raise RuntimeError("スート同型を含む問題構造が重複しています")
     for question in bank:
+        pattern = PATTERN_BY_KEY.get(
+            f"{question.get('mode')}:{question.get('category')}"
+        )
+        if pattern is None:
+            raise RuntimeError(f"正本にないカテゴリです: {question['id']}")
+        if question.get("answerType") != pattern["answer_type"]:
+            raise RuntimeError(f"回答形式が正本と不一致です: {question['id']}")
+        if question.get("stage") not in pattern["stages"]:
+            raise RuntimeError(f"ステージが正本と不一致です: {question['id']}")
+        if "players" in pattern and question.get("playerCount") not in pattern["players"]:
+            raise RuntimeError(f"卓人数が正本と不一致です: {question['id']}")
+        if question.get("level") != expected_question_level(question):
+            raise RuntimeError(f"対象者レベルが正本と不一致です: {question['id']}")
         if question.get("category") in {
             "nut_flush",
             "same_final_category",
@@ -1680,69 +1656,25 @@ def validate(bank: list[dict]) -> None:
             raise RuntimeError(f"卓人数なし: {question['id']}")
 
 
-A_BEGINNER_CATEGORIES = {
-    "flush",
-    "straight",
-    "rank_hit",
-    "rank_trips",
-    "two_pair",
-    "four_kind",
-    "backdoor_flush",
-    "flush_draw",
-    "oesd",
-    "gutshot",
-    "board_pair",
-    "overcard",
-}
-B_BEGINNER_ARCHETYPES = {
-    "pair_vs_overcards",
-    "pair_vs_pair",
-    "top_pair_vs_flush_draw",
-    "one_pair_kicker",
-}
-D_ADVANCED_CATEGORIES = {
-    "all_opponents_miss_board",
-    "exactly_one_opponent_target_rank",
-    "multiple_opponents_target_rank",
-}
-D_INTERMEDIATE_CATEGORIES = {
-    "opponent_combo_draw",
-    "opponent_higher_flush",
-    "opponent_same_pair_higher_kicker",
-}
+def expected_question_level(question: dict) -> str:
+    if question["mode"] == "B":
+        pattern = PATTERN_BY_KEY[f"B:{question['category']}"]
+        if pattern["level_rule"] == "b_archetype":
+            return (
+                "beginner"
+                if question.get("archetype") in B_BEGINNER_ARCHETYPES
+                else "intermediate"
+            )
+    pattern = PATTERN_BY_KEY[f"{question['mode']}:{question['category']}"]
+    if pattern["level_rule"] == "fixed":
+        return pattern["level"]
+    if pattern["level_rule"] == "players":
+        return pattern["levels_by_players"][question["playerCount"]]
+    raise RuntimeError(f"対象者レベルを決められません: {question['id']}")
 
 
 def normalize_question_level(question: dict) -> None:
-    if question["mode"] == "A":
-        question["level"] = (
-            "beginner"
-            if question["category"] in A_BEGINNER_CATEGORIES
-            else "intermediate"
-        )
-        return
-    if question["mode"] == "B":
-        question["level"] = (
-            "beginner"
-            if question["answerType"] == "hand"
-            and question.get("archetype") in B_BEGINNER_ARCHETYPES
-            else "intermediate"
-        )
-        return
-    if question["mode"] == "C":
-        question["level"] = (
-            "advanced"
-            if question["playerCount"] == 6
-            else "beginner" if question["stage"] == "preflop" else "intermediate"
-        )
-        return
-    question["level"] = (
-        "advanced"
-        if question["playerCount"] == 6
-        or question["category"] in D_ADVANCED_CATEGORIES
-        else "intermediate"
-        if question["category"] in D_INTERMEDIATE_CATEGORIES
-        else "beginner"
-    )
+    question["level"] = expected_question_level(question)
 
 
 def normalize_question_copy(question: dict) -> None:
@@ -1814,34 +1746,34 @@ def spread_questions(questions: list[dict], file_count: int) -> list[list[dict]]
 def expected_files(bank_by_mode: dict[str, list[dict]]) -> dict[Path, str]:
     files = {}
     manifest = {
-        "version": "", "total": 20_000, "batchSize": 100,
+        "version": "", "total": sum(MODE_COUNTS.values()), "batchSize": BATCH_SIZE,
         "modes": {mode: {"count": len(questions)} for mode, questions in bank_by_mode.items()},
         "groups": {
-            "A": {"count": 10_000, "files": 100, "path": "a"},
-            "BC": {"count": 6000, "files": 60, "path": "bc"},
-            "D": {"count": 4000, "files": 40, "path": "d"},
+            "A": {"count": GROUP_COUNTS["A"], "files": GROUP_COUNTS["A"] // BATCH_SIZE, "path": "a"},
+            "BC": {"count": GROUP_COUNTS["BC"], "files": GROUP_COUNTS["BC"] // BATCH_SIZE, "path": "bc"},
+            "D": {"count": GROUP_COUNTS["D"], "files": GROUP_COUNTS["D"] // BATCH_SIZE, "path": "d"},
         },
     }
     digest = hashlib.sha256()
     classic_b = [question for question in bank_by_mode["B"] if question["answerType"] == "hand"]
     numeric_b = [question for question in bank_by_mode["B"] if question["answerType"] == "percent"]
     group_chunks = {
-        "a": spread_questions(bank_by_mode["A"], 100),
+        "a": spread_questions(bank_by_mode["A"], GROUP_COUNTS["A"] // BATCH_SIZE),
         "bc": [
             [*classic, *numeric, *mode_c]
             for classic, numeric, mode_c in zip(
-                spread_questions(classic_b, 60),
-                spread_questions(numeric_b, 60),
-                spread_questions(bank_by_mode["C"], 60),
+                spread_questions(classic_b, GROUP_COUNTS["BC"] // BATCH_SIZE),
+                spread_questions(numeric_b, GROUP_COUNTS["BC"] // BATCH_SIZE),
+                spread_questions(bank_by_mode["C"], GROUP_COUNTS["BC"] // BATCH_SIZE),
                 strict=True,
             )
         ],
-        "d": spread_questions(bank_by_mode["D"], 40),
+        "d": spread_questions(bank_by_mode["D"], GROUP_COUNTS["D"] // BATCH_SIZE),
     }
     for group, chunks in group_chunks.items():
         for index, chunk in enumerate(chunks, 1):
-            if len(chunk) != 100:
-                raise RuntimeError(f"{group}/{index:04d}.json が100問ではありません")
+            if len(chunk) != BATCH_SIZE:
+                raise RuntimeError(f"{group}/{index:04d}.json が{BATCH_SIZE}問ではありません")
             path = Path(group) / f"{index:04d}.json"
             content = render_json(chunk)
             files[path] = content
@@ -1859,13 +1791,17 @@ def check_output() -> int:
         return 1
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     questions = []
-    for group, expected_count in (("a", 10_000), ("bc", 6000), ("d", 4000)):
+    for group, expected_count in (
+        ("a", GROUP_COUNTS["A"]),
+        ("bc", GROUP_COUNTS["BC"]),
+        ("d", GROUP_COUNTS["D"]),
+    ):
         paths = sorted((OUTPUT / group).glob("*.json"))
-        if len(paths) != expected_count // 100:
+        if len(paths) != expected_count // BATCH_SIZE:
             raise RuntimeError(f"グループ{group}のJSON数が不正です")
         for path in paths:
             chunk = json.loads(path.read_text(encoding="utf-8"))
-            if len(chunk) != 100:
+            if len(chunk) != BATCH_SIZE:
                 raise RuntimeError(f"{path.relative_to(ROOT)} の問題数が不正です")
             questions.extend(chunk)
     bank = questions
@@ -1875,7 +1811,10 @@ def check_output() -> int:
         mode: {"count": count} for mode, count in MODE_COUNTS.items()
     } or dict(mode_counts) != MODE_COUNTS:
         raise RuntimeError("manifest.json が問題データと一致しません")
-    print(f"問題バンク: {len(bank):,}問 / JSON 200ファイル / 全件検証済み")
+    print(
+        f"問題バンク: {len(bank):,}問 / "
+        f"JSON {sum(GROUP_COUNTS.values()) // BATCH_SIZE}ファイル / 全件検証済み"
+    )
     return 0
 
 
@@ -1890,7 +1829,7 @@ def load_existing_legacy() -> dict[str, list[dict]] | None:
             continue
         for source in sorted(path.glob("*.json")):
             questions.extend(json.loads(source.read_text(encoding="utf-8")))
-    limits = {"A": 6000, "B": 3000, "C": 338, "D": 662}
+    limits = LEGACY_MODE_COUNTS
     legacy = {mode: [] for mode in limits}
     for question in questions:
         mode = question.get("mode")

@@ -59,6 +59,14 @@ TypeScript 7.0はまだSvelteが利用するコンパイラAPIを提供してい
 pnpm questions:build
 ```
 
+問題パターンの正本は [`questions/patterns.md`](questions/patterns.md) です。日本語の名称、学習目的、出題例、件数、対象者、ステージ、出題系統を編集し、次のコマンドでPython・TypeScript用の定義を更新します。
+
+```sh
+pnpm patterns:build
+```
+
+`pnpm questions:build` は最初にパターン定義も更新します。生成済み定義と正本の不一致は `pnpm patterns:check` とCIで検出します。
+
 OGP画像を現在のトップページから再生成する場合:
 
 ```sh
@@ -109,9 +117,11 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/game.ts`: 問題選択と表示用の純粋関数
 - `src/probability-engine.ts`: 確率計算の純粋関数
 - `src/question-loader.ts`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
+- `questions/patterns.md`: 問題カテゴリ、学習目的、件数、対象者、出題系統の人間向け正本
+- `scripts/generate_question_patterns.py`: Markdownの正本からPython・TypeScript定義を生成
 - `src/loading-timing.ts`: 短い読み込みでは表示せず、表示したローディングは最低時間を保つ遷移制御
 - `src/result-summary.ts`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
 - `src/sound-effects.ts`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止
 - `public/sounds/`: 開始、正解、不正解、時間警告、通常結果、満点の効果音
 - `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
-- `scripts/generate_large_question_bank.py`: 4モードの問題生成、確率計算、分割出力
+- `scripts/generate_large_question_bank.py`: 生成されたパターン定義に従う4モードの問題生成、確率計算、分割出力
