@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatActualPercent } from "../game.ts";
   import ActionButton from "./ActionButton.svelte";
+  import LeaveIcon from "./LeaveIcon.svelte";
   import MixedFontText from "./MixedFontText.svelte";
   import type { Question } from "../types.ts";
 
@@ -48,15 +49,7 @@
     aria-label="問題を終了する"
     onclick={onRequestLeave}
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M11 20H2"></path>
-      <path
-        d="M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.561z"
-      ></path>
-      <path d="M11 4H8a2 2 0 0 0-2 2v14"></path>
-      <path d="M14 12h.01"></path>
-      <path d="M22 20h-3"></path>
-    </svg>
+    <LeaveIcon />
   </button>
   <div
     class="answer-mark"
@@ -112,6 +105,8 @@
   }
 
   .leave-button {
+    --leave-icon-opacity: 0.42;
+
     position: absolute;
     top: 0.72rem;
     right: var(--gutter);
@@ -125,16 +120,6 @@
     background: transparent;
     color: #fff;
     cursor: pointer;
-  }
-
-  .leave-button svg {
-    width: 1.4rem;
-    fill: none;
-    opacity: 0.42;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
   }
 
   .answer-mark {
@@ -204,8 +189,8 @@
       background: rgb(255 255 255 / 6%);
     }
 
-    .leave-button:hover svg {
-      opacity: 0.68;
+    .leave-button:hover {
+      --leave-icon-opacity: 0.68;
     }
   }
 

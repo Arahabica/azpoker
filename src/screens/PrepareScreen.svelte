@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { shouldHandleAppNavigation } from "../app-route.ts";
   import ActionButton from "../components/ActionButton.svelte";
-  import PageNavigationLink from "../components/PageNavigationLink.svelte";
+  import LeaveIcon from "../components/LeaveIcon.svelte";
 
   interface Props {
     soundEnabled: boolean;
@@ -21,11 +22,20 @@
     onRetry,
     onHome,
   }: Props = $props();
+
+  function returnHome(event: MouseEvent): void {
+    if (!shouldHandleAppNavigation(event)) return;
+    event.preventDefault();
+    onHome();
+  }
 </script>
 
 <section id="prepare" class="prepare-screen" aria-labelledby="prepare-title">
   <header class="prepare-header">
-    <PageNavigationLink path="/" onNavigate={onHome} />
+    <a class="prepare-home-link" href="/" onclick={returnHome}>
+      <LeaveIcon />
+      <span>トップに戻る</span>
+    </a>
   </header>
 
   <h1 id="prepare-title" tabindex="-1">問題を開始します</h1>
@@ -100,8 +110,29 @@
   }
 
   .prepare-header {
+    display: flex;
     width: 100%;
     min-height: 3rem;
+    justify-content: flex-end;
+  }
+
+  .prepare-home-link {
+    --leave-icon-size: 1.25rem;
+    --leave-icon-opacity: 0.68;
+
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.4rem;
+    color: #dbeae4;
+    font-size: 0.84rem;
+    text-decoration: none;
+  }
+
+  .prepare-home-link:focus-visible {
+    border-radius: 0.3rem;
+    outline: 3px solid rgb(255 255 255 / 82%);
+    outline-offset: 3px;
   }
 
   .prepare-screen h1 {
@@ -214,6 +245,12 @@
   }
 
   @media (hover: hover) {
+    .prepare-home-link:hover {
+      --leave-icon-opacity: 0.9;
+
+      color: var(--text);
+    }
+
     .sound-toggle:hover .sound-icon {
       background: linear-gradient(180deg, #6c8079, #586d65);
     }
