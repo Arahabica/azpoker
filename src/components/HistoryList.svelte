@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ChevronIcon from "./icons/ChevronIcon.svelte";
   import { formatElapsedTime } from "../result-summary.ts";
   import {
     formatRelativeHistoryTime,
@@ -37,9 +38,7 @@
         <span class="history-elapsed">{formatElapsedTime(entry.elapsedMs)}</span
         >
         {#if onSelect}
-          <svg class="row-arrow" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m9 18 6-6-6-6"></path>
-          </svg>
+          <span class="row-arrow"><ChevronIcon direction="right" /></span>
         {/if}
       </button>
     </li>
@@ -57,6 +56,9 @@
   }
 
   .history-row {
+    --chevron-icon-opacity: 0.5;
+    --chevron-icon-size: 1rem;
+
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
@@ -116,13 +118,6 @@
     position: absolute;
     top: 50%;
     right: 0.65rem;
-    width: 1rem;
-    fill: none;
-    opacity: 0.5;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
     transform: translateY(-50%);
   }
 

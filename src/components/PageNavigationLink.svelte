@@ -1,5 +1,6 @@
 <script lang="ts">
   import { shouldHandleAppNavigation, type AppPath } from "../app-route.ts";
+  import ChevronIcon from "./icons/ChevronIcon.svelte";
 
   interface Props {
     path: AppPath;
@@ -28,14 +29,14 @@
   onclick={followNavigation}
   aria-label={ariaLabel}
 >
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="m15 18-6-6 6-6"></path>
-  </svg>
+  <ChevronIcon direction="left" />
   <span>{label}</span>
 </a>
 
 <style>
   .page-navigation-link {
+    --chevron-icon-size: 1.15rem;
+
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -43,15 +44,6 @@
     color: #dbeae4;
     font-size: 0.84rem;
     text-decoration: none;
-  }
-
-  .page-navigation-link svg {
-    width: 1.15rem;
-    fill: none;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
   }
 
   .page-navigation-link:focus-visible {

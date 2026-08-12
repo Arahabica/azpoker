@@ -1,7 +1,8 @@
 <script lang="ts">
   import { formatActualPercent } from "../game.ts";
   import ActionButton from "./ActionButton.svelte";
-  import LeaveIcon from "./LeaveIcon.svelte";
+  import AnswerResultIcon from "./icons/AnswerResultIcon.svelte";
+  import LeaveIcon from "./icons/LeaveIcon.svelte";
   import MixedFontText from "./MixedFontText.svelte";
   import type { Question } from "../types.ts";
 
@@ -51,19 +52,8 @@
   >
     <LeaveIcon />
   </button>
-  <div
-    class="answer-mark"
-    data-result={correct ? "correct" : "wrong"}
-    aria-hidden="true"
-  >
-    <svg class="answer-icon answer-icon-check" viewBox="0 0 48 48">
-      <circle cx="24" cy="24" r="20"></circle>
-      <path d="m15 24 6 6 13-14"></path>
-    </svg>
-    <svg class="answer-icon answer-icon-cross" viewBox="0 0 48 48">
-      <circle cx="24" cy="24" r="20"></circle>
-      <path d="m17 17 14 14m0-14L17 31"></path>
-    </svg>
+  <div class="answer-mark" aria-hidden="true">
+    <AnswerResultIcon {correct} />
   </div>
   <p id="feedback-title" class="feedback-title">
     {feedbackTitle}
@@ -126,26 +116,6 @@
     width: 3rem;
     height: 3rem;
     margin: 0 auto 0.35rem;
-  }
-
-  .answer-icon {
-    display: none;
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 3.5;
-  }
-
-  .answer-mark[data-result="correct"] .answer-icon-check {
-    display: block;
-    stroke: var(--correct);
-  }
-
-  .answer-mark[data-result="wrong"] .answer-icon-cross {
-    display: block;
-    stroke: var(--wrong);
   }
 
   .feedback-title {

@@ -209,6 +209,35 @@ test("カード表示を共通コンポーネントへ集約する", () => {
   );
 });
 
+test("SVGアイコンとインジケーターを専用コンポーネントへ集約する", () => {
+  const svgComponents = fs
+    .readdirSync(path.join(root, "src", "components"), {
+      recursive: true,
+      withFileTypes: true,
+    })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".svelte"))
+    .map((entry) =>
+      path.join(entry.parentPath, entry.name).replace(`${root}${path.sep}`, ""),
+    )
+    .filter((filename) => /<svg\b/.test(read(filename)))
+    .sort();
+
+  assert.deepEqual(svgComponents, [
+    "src/components/LoadingSpinner.svelte",
+    "src/components/icons/AnswerResultIcon.svelte",
+    "src/components/icons/ChevronIcon.svelte",
+    "src/components/icons/LeaveIcon.svelte",
+    "src/components/icons/SoundIcon.svelte",
+    "src/components/icons/SuitIcon.svelte",
+  ]);
+
+  for (const screen of fs
+    .readdirSync(path.join(root, "src", "screens"))
+    .filter((filename) => filename.endsWith(".svelte"))) {
+    assert.doesNotMatch(read(`src/screens/${screen}`), /<svg\b/);
+  }
+});
+
 test("レスポンシブ境界とグローバルCSSの責務を固定する", () => {
   assert.match(styles, /--accent: rgb\(241 196 15\)/);
   assert.match(styles, /html \{[\s\S]*?min-width: 280px/);
