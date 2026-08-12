@@ -236,10 +236,22 @@ test("A5sの2人勝率は捨て選択肢を使わない", () => {
   assert.equal(question.distractor, "45%");
 });
 
-test("6人卓は上級者向けへ分離する", () => {
+test("6人卓は危険ボード4カテゴリだけ中級者へ出題する", () => {
   const multiway = bank.filter((question) => question.playerCount === 6);
+  const boardThreatCategories = new Set([
+    "opponent_straight_three_connected_board",
+    "opponent_straight_four_connected_board",
+    "opponent_flush_three_suited_board",
+    "opponent_flush_four_suited_board",
+  ]);
   assert.ok(multiway.length > 0);
-  assert.ok(multiway.every((question) => question.level === "advanced"));
+  assert.ok(
+    multiway.every((question) =>
+      boardThreatCategories.has(question.category)
+        ? question.level === "intermediate"
+        : question.level === "advanced",
+    ),
+  );
   assert.ok(
     bank.some(
       (question) =>
@@ -502,7 +514,9 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
   }
   for (const question of questions) {
     if (
-      question.playerCount === 6 ||
+      (question.playerCount === 6 &&
+        !question.category.endsWith("_connected_board") &&
+        !question.category.endsWith("_suited_board")) ||
       [
         "all_opponents_miss_board",
         "exactly_one_opponent_target_rank",
@@ -510,6 +524,68 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
       ].includes(question.category)
     ) {
       assert.equal(question.level, "advanced", question.id);
+    }
+  }
+});
+
+test("危険ボード4カテゴリは6人卓の完成役確率を各250問扱う", () => {
+  const categories = {
+    opponent_straight_three_connected_board: {
+      stage: "flop",
+      boardSize: 3,
+      kind: "straight",
+    },
+    opponent_straight_four_connected_board: {
+      stage: "turn",
+      boardSize: 4,
+      kind: "straight",
+    },
+    opponent_flush_three_suited_board: {
+      stage: "flop",
+      boardSize: 3,
+      kind: "flush",
+    },
+    opponent_flush_four_suited_board: {
+      stage: "turn",
+      boardSize: 4,
+      kind: "flush",
+    },
+  };
+  const rankOrder = "A23456789TJQKA";
+
+  for (const [category, expected] of Object.entries(categories)) {
+    const questions = bank.filter((question) => question.category === category);
+    assert.equal(questions.length, QUESTION_PATTERN_COUNTS.D[category]);
+    assert.equal(questions.length, 250);
+    for (const question of questions) {
+      assert.equal(question.playerCount, 6, question.id);
+      assert.equal(question.level, "intermediate", question.id);
+      assert.equal(question.stage, expected.stage, question.id);
+      assert.equal(question.board.length, expected.boardSize, question.id);
+      assert.equal(
+        question.prompt,
+        `6人卓でほかの誰かが${expected.kind === "straight" ? "ストレート" : "フラッシュ"}の確率は？`,
+        question.id,
+      );
+      if (expected.kind === "flush") {
+        assert.equal(
+          new Set(question.board.map((card) => card[1])).size,
+          1,
+          question.id,
+        );
+      } else {
+        const ranks = question.board.map((card) => card[0]);
+        assert.ok(
+          [...rankOrder].some((_, index) => {
+            const sequence = rankOrder.slice(index, index + expected.boardSize);
+            return (
+              sequence.length === expected.boardSize &&
+              [...sequence].every((rank) => ranks.includes(rank))
+            );
+          }),
+          `${question.id}: ボードが連番でない`,
+        );
+      }
     }
   }
 });

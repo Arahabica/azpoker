@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""20,000問を生成し、用途別の100問JSONへ分割する。"""
+"""正本に定義された問題を生成し、用途別の100問JSONへ分割する。"""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import shutil
 import sys
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache
 from pathlib import Path
 
 from generated.question_patterns import (
@@ -42,6 +43,16 @@ RANK_VALUE = {rank: index + 2 for index, rank in enumerate(RANKS)}
 DISPLAY_RANK = {"T": "10"}
 BUCKETS = (0, 1, 2, 3, 5, 7.5, 10, 12.5, 15, 17.5, 20, *range(25, 101, 5))
 HAND_NAMES = ("ハイカード", "ワンペア", "ツーペア", "スリー", "ストレート", "フラッシュ", "フルハウス", "フォーカード", "ストレートフラッシュ")
+BOARD_THREAT_CATEGORIES = {
+    "opponent_straight_three_connected_board",
+    "opponent_straight_four_connected_board",
+    "opponent_flush_three_suited_board",
+    "opponent_flush_four_suited_board",
+}
+STRAIGHT_SEQUENCES = (
+    ("A", "2", "3", "4", "5"),
+    *(tuple(RANKS[start:start + 5]) for start in range(9)),
+)
 
 
 def display_rank(rank: str) -> str:
@@ -1290,8 +1301,18 @@ def opponent_matches(category, hand, hero, board, target_rank=None):
         return any(RANK_VALUE[card[0]] == top for card in hand) and score[0] >= 1
     if category == "opponent_two_pair":
         return score[0] == 2 and bool({card[0] for card in hand} & board_ranks)
+    if category in {
+        "opponent_straight_three_connected_board",
+        "opponent_straight_four_connected_board",
+    }:
+        return has_straight_using_hole(hand, board)
     if category == "opponent_straight":
         return score[0] == 4 and has_straight_using_hole(hand, board)
+    if category in {
+        "opponent_flush_three_suited_board",
+        "opponent_flush_four_suited_board",
+    }:
+        return has_flush_using_hole(hand, board)
     if category == "opponent_flush":
         return score[0] == 5 and has_flush_using_hole(hand, board)
     if category == "opponent_oesd":
@@ -1322,6 +1343,8 @@ def opponent_property_percent(category, hero, board, target_rank, players, rng):
         hands = itertools.combinations(deck, 2)
         results = [opponent_matches(category, hand, hero, board, target_rank) for hand in hands]
         return sum(results) / len(results) * 100
+    if category in BOARD_THREAT_CATEGORIES:
+        return exact_board_threat_percent(category, tuple(deck), board, players - 1)
     hits = 0
     trials = 5000
     for _ in range(trials):
@@ -1338,6 +1361,105 @@ def opponent_property_percent(category, hero, board, target_rank, players, rng):
             hit = any(matches)
         hits += hit
     return hits / trials * 100
+
+
+def exact_board_threat_percent(
+    category: str,
+    deck: tuple[str, ...],
+    board: tuple[str, ...],
+    opponents: int,
+) -> float:
+    """Calculate the exact chance that any opponent has the board-made threat."""
+    board_ranks = {card[0] for card in board}
+    bad_label_pairs: set[frozenset[str]] = set()
+
+    if "straight" in category:
+        missing_sets = {
+            frozenset(set(sequence) - board_ranks)
+            for sequence in STRAIGHT_SEQUENCES
+            if board_ranks <= set(sequence)
+            and len(set(sequence) - board_ranks) <= 2
+        }
+        relevant_ranks = set().union(*missing_sets)
+        labels = tuple(card[0] if card[0] in relevant_ranks else "other" for card in deck)
+        for missing in missing_sets:
+            if len(missing) == 1:
+                rank = next(iter(missing))
+                bad_label_pairs.update(
+                    (
+                        frozenset((rank,)),
+                        *(frozenset((rank, other)) for other in relevant_ranks if other != rank),
+                        frozenset((rank, "other")),
+                    )
+                )
+            else:
+                bad_label_pairs.add(missing)
+    else:
+        target_suit = board[0][1]
+        labels = tuple("target" if card[1] == target_suit else "other" for card in deck)
+        if len(board) == 3:
+            bad_label_pairs.add(frozenset(("target",)))
+        else:
+            bad_label_pairs.update(
+                (frozenset(("target",)), frozenset(("target", "other")))
+            )
+
+    label_counts = Counter(labels)
+    ordered_labels = tuple(sorted(label_counts))
+    label_indexes = {label: index for index, label in enumerate(ordered_labels)}
+    bad_index_pairs = tuple(
+        sorted(
+            tuple(sorted(label_indexes[label] for label in pair))
+            for pair in bad_label_pairs
+        )
+    )
+    no_match = deal_without_bad_pair_probability(
+        tuple(label_counts[label] for label in ordered_labels),
+        bad_index_pairs,
+        opponents,
+    )
+    return (1 - no_match) * 100
+
+
+@lru_cache(maxsize=None)
+def deal_without_bad_pair_probability(
+    counts: tuple[int, ...],
+    bad_pairs: tuple[tuple[int, ...], ...],
+    hands_left: int,
+) -> float:
+    """Deal unordered two-card hands and return the exact no-match probability."""
+    if hands_left == 0:
+        return 1.0
+    total_cards = sum(counts)
+    total_pairs = math.comb(total_cards, 2)
+    bad = set(bad_pairs)
+    probability = 0.0
+    for left, left_count in enumerate(counts):
+        if left_count == 0:
+            continue
+        for right in range(left, len(counts)):
+            right_count = counts[right]
+            ways = (
+                math.comb(left_count, 2)
+                if left == right
+                else left_count * right_count
+            )
+            if ways == 0:
+                continue
+            pair = (left,) if left == right else (left, right)
+            if pair in bad:
+                continue
+            remaining = list(counts)
+            remaining[left] -= 1
+            remaining[right] -= 1
+            probability += (
+                ways
+                / total_pairs
+                * deal_without_bad_pair_probability(
+                    tuple(remaining), bad_pairs, hands_left - 1
+                )
+            )
+    return probability
 
 
 MODE_D_BEGINNER_COPY = {
@@ -1364,6 +1486,22 @@ MODE_D_BEGINNER_COPY = {
     "opponent_flush": (
         "がフラッシュの確率は？",
         "相手の2枚と現在のボードから、同じマークが5枚できる組合せです。",
+    ),
+    "opponent_straight_three_connected_board": (
+        "がストレートの確率は？",
+        "3枚の連番だけではストレートになりません。不足する2種類を同じ相手が持つ組合せです。フォールド傾向は含まない純粋なカード確率です。",
+    ),
+    "opponent_straight_four_connected_board": (
+        "がストレートの確率は？",
+        "4枚の連番につながる端のカードを、相手が1枚以上持つ組合せです。フォールド傾向は含まない純粋なカード確率です。",
+    ),
+    "opponent_flush_three_suited_board": (
+        "がフラッシュの確率は？",
+        "ボードと同じマークを2枚とも持つ相手がいる組合せです。",
+    ),
+    "opponent_flush_four_suited_board": (
+        "がフラッシュの確率は？",
+        "ボードと同じマークを1枚以上持つ相手がいる組合せです。",
     ),
     "opponent_oesd": (
         "がストレートの両端待ちの確率は？",
@@ -1444,6 +1582,24 @@ def build_new_d_state(category, rng):
         "multiple_opponents_target_rank",
     }:
         return "preflop", tuple(rng.sample(DECK, 2)), ()
+    if category in BOARD_THREAT_CATEGORIES:
+        if "straight" in category:
+            connected_count = 3 if "three" in category else 4
+            sequence = rng.choice(STRAIGHT_SEQUENCES)
+            start = rng.randrange(0, len(sequence) - connected_count + 1)
+            board_ranks = sequence[start:start + connected_count]
+            board = tuple(
+                f"{rank}{suit}"
+                for rank, suit in zip(board_ranks, rng.sample(SUITS, connected_count), strict=True)
+            )
+        else:
+            suited_count = 3 if "three" in category else 4
+            suit = rng.choice(SUITS)
+            board = tuple(
+                f"{rank}{suit}" for rank in rng.sample(tuple(RANKS), suited_count)
+            )
+        hero = tuple(rng.sample([card for card in DECK if card not in board], 2))
+        return ("flop" if len(board) == 3 else "turn"), hero, board
     stage = rng.choice(("flop", "turn"))
     board_size = 3 if stage == "flop" else 4
     if category == "opponent_higher_flush":
@@ -1464,10 +1620,15 @@ def build_new_d_state(category, rng):
     return stage, cards[:2], cards[2:]
 
 
-def build_new_mode_d(rng: random.Random) -> list[dict]:
+def build_new_mode_d(
+    rng: random.Random,
+    category_counts: dict[str, int] | None = None,
+    existing_count: int = 0,
+) -> list[dict]:
     questions = []
     seen = set()
-    for category, count in NEW_D_COUNTS.items():
+    counts = NEW_D_COUNTS if category_counts is None else category_counts
+    for category, count in counts.items():
         made = 0
         attempts = 0
         while made < count:
@@ -1475,7 +1636,12 @@ def build_new_mode_d(rng: random.Random) -> list[dict]:
             if attempts > count * 3000:
                 raise RuntimeError(f"D/{category} の生成候補が不足")
             stage, hole, board = build_new_d_state(category, rng)
-            players = 6 if category == "multiple_opponents_target_rank" else 2 if made % 2 == 0 else 6
+            players = (
+                6
+                if category == "multiple_opponents_target_rank"
+                or category in BOARD_THREAT_CATEGORIES
+                else 2 if made % 2 == 0 else 6
+            )
             target_rank = rng.choice(RANKS) if category.endswith("target_rank") else None
             value = opponent_property_percent(category, hole, board, target_rank, players, rng)
             if not 0.5 <= value <= 99.5:
@@ -1484,12 +1650,17 @@ def build_new_mode_d(rng: random.Random) -> list[dict]:
             if key in seen:
                 continue
             prompt, explain = mode_d_copy(category, players, target_rank, board)
-            fields = answer_fields(value, "相手人数、見えているカード、ボードだけの役のいずれかを数え違える")
+            distractor_model = (
+                "1人分の確率をそのまま使う、または相手5人分を単純に5倍する"
+                if category in BOARD_THREAT_CATEGORIES
+                else "相手人数、見えているカード、ボードだけの役のいずれかを数え違える"
+            )
+            fields = answer_fields(value, distractor_model)
             question = {
-                "id": f"d-{LEGACY_MODE_COUNTS['D'] + len(questions) + 1:04d}",
+                "id": f"d-{LEGACY_MODE_COUNTS['D'] + existing_count + len(questions) + 1:04d}",
                 "mode": "D", "stage": stage, "hole": list(hole), "board": list(board),
                 "playerCount": players, "category": category, "prompt": prompt, "explain": explain,
-                "difficulty": "hard" if players == 6 or category in {"opponent_combo_draw", "opponent_higher_flush", "opponent_same_pair_higher_kicker"} else "medium",
+                "difficulty": "medium" if category in BOARD_THREAT_CATEGORIES else "hard" if players == 6 or category in {"opponent_combo_draw", "opponent_higher_flush", "opponent_same_pair_higher_kicker"} else "medium",
                 "conceptKey": key, **fields,
             }
             if target_rank:
@@ -1652,8 +1823,44 @@ def validate(bank: list[dict]) -> None:
             )
             if question["trueP"] != expected:
                 raise RuntimeError(f"ボード4枚の確率が不正です: {question['id']}")
+        if question.get("category") in BOARD_THREAT_CATEGORIES:
+            validate_board_threat_question(question)
         if question["mode"] == "D" and not question["prompt"].startswith(f"{question['playerCount']}人卓で"):
             raise RuntimeError(f"卓人数なし: {question['id']}")
+
+
+def validate_board_threat_question(question: dict) -> None:
+    category = question["category"]
+    board = tuple(question["board"])
+    expected_stage = "flop" if "three" in category else "turn"
+    expected_count = 3 if "three" in category else 4
+    if question["playerCount"] != 6 or question["stage"] != expected_stage:
+        raise RuntimeError(f"危険ボードの卓人数・ステージが不正です: {question['id']}")
+    if len(board) != expected_count:
+        raise RuntimeError(f"危険ボードの枚数が不正です: {question['id']}")
+    if "straight" in category:
+        ranks = {card[0] for card in board}
+        if not any(
+            ranks <= set(sequence)
+            and any(set(sequence[index:index + expected_count]) == ranks for index in range(6 - expected_count))
+            for sequence in STRAIGHT_SEQUENCES
+        ):
+            raise RuntimeError(f"ボードが連番ではありません: {question['id']}")
+    elif len({card[1] for card in board}) != 1:
+        raise RuntimeError(f"ボードのマークがそろっていません: {question['id']}")
+    expected = round(
+        opponent_property_percent(
+            category,
+            tuple(question["hole"]),
+            board,
+            None,
+            6,
+            random.Random(0),
+        ),
+        2,
+    )
+    if question["trueP"] != expected:
+        raise RuntimeError(f"危険ボードの確率が不正です: {question['id']}")
 
 
 def expected_question_level(question: dict) -> str:
@@ -1867,6 +2074,30 @@ def load_existing_additions() -> dict[str, list[dict]]:
     return additions
 
 
+def extend_mode_d_additions(
+    existing: list[dict], rng: random.Random
+) -> list[dict] | None:
+    """Reuse reviewed D additions when the source only appends new categories."""
+    actual = Counter(question["category"] for question in existing)
+    if any(actual[category] > expected for category, expected in NEW_D_COUNTS.items()):
+        return None
+    if any(category not in NEW_D_COUNTS for category in actual):
+        return None
+    missing = {
+        category: expected - actual[category]
+        for category, expected in NEW_D_COUNTS.items()
+        if expected > actual[category]
+    }
+    if not missing:
+        return existing
+    print(
+        "モードDは既存追加分を再利用し、新規カテゴリだけ生成します",
+        flush=True,
+    )
+    generated = build_new_mode_d(rng, missing, len(existing))
+    return [*existing, *generated]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1903,10 +2134,17 @@ def main() -> int:
         ("C", build_new_mode_c, 2026081203),
         ("D", build_new_mode_d, 2026081204),
     ):
-        cache_version = {"A": "-v6", "B": "-v9", "D": "-v2"}.get(mode, "")
+        cache_version = {"A": "-v6", "B": "-v9", "D": "-v3"}.get(mode, "")
         cache_path = Path("/tmp") / f"anzan-poker-new-{mode.lower()}{cache_version}.json"
         expected = MODE_COUNTS[mode] - LEGACY_MODE_COUNTS[mode]
-        if mode in {"C", "D"} and len(existing_additions[mode]) == expected:
+        extended_d = (
+            extend_mode_d_additions(existing_additions[mode], random.Random(seed))
+            if mode == "D" and existing_additions[mode]
+            else None
+        )
+        if mode == "D" and extended_d is not None and len(extended_d) == expected:
+            additions[mode] = extended_d
+        elif mode in {"C", "D"} and len(existing_additions[mode]) == expected:
             additions[mode] = existing_additions[mode]
         elif cache_path.exists():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))

@@ -40,7 +40,7 @@ pnpm check:storybook
 pnpm check
 ```
 
-`check` はTypeScript 7の型検査、Svelteコンポーネント検査、ESLint、Prettierの整形検査、テスト、20,000問とJSON構成の検査、本番ビルド、Storybookの静的ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
+`check` はTypeScript 7の型検査、Svelteコンポーネント検査、ESLint、Prettierの整形検査、テスト、21,000問とJSON構成の検査、本番ビルド、Storybookの静的ビルドを順番に実行します。コミット前はこのコマンドを完走させます。
 
 lintと整形を自動修正する場合:
 
@@ -123,5 +123,5 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/result-summary.ts`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
 - `src/sound-effects.ts`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止
 - `public/sounds/`: 開始、正解、不正解、時間警告、通常結果、満点の効果音
-- `public/questions/`: 100問単位のJSON 200ファイルとmanifest（合計20,000問）
+- `public/questions/`: 100問単位のJSON 210ファイルとmanifest（合計21,000問）
 - `scripts/generate_large_question_bank.py`: 生成されたパターン定義に従う4モードの問題生成、確率計算、分割出力

@@ -13,7 +13,7 @@
 ```toml question-catalog
 schema_version = 1
 batch_size = 100
-expected_mode_counts = { A = 10000, B = 4800, C = 1200, D = 4000 }
+expected_mode_counts = { A = 10000, B = 4800, C = 1200, D = 5000 }
 ```
 
 ## モードA：自分の手札が完成・変化する確率
@@ -617,6 +617,82 @@ stages = ["フロップ", "ターン"]
 players = [2, 6]
 audience_by_players = { "2人" = "初心者", "6人" = "上級者" }
 session_family = "完成役・所持札"
+```
+
+### 3枚連続ボードで相手がストレート
+
+ここからの「危険ボード」4パターンには、次の前提を共通で適用します。
+
+- 6人卓は自分1人と相手5人です。
+- 表示された自分の手札は、相手へ配られない既知カードとして計算します。
+- 答えは、現在のボードで相手5人のうち少なくとも1人が完成役を持つ確率です。
+- 参加レンジやフォールド済みカードは推定せず、残りカードを無作為に配る純粋なカード確率です。
+- 低い連番から高い連番まで出題し、並びが端に近いことで完成形の数が変わる違いも扱います。
+
+```toml question-pattern
+id = "opponent_straight_three_connected_board"
+mode = "D"
+name = "3枚連続ボードで相手がストレート"
+purpose = "3枚の連番が見えているフロップで、6人卓のほかの5人の誰かが不足する2種類を持つ可能性を考える"
+example = "ボードが10・J・Qのとき、6人卓でほかの誰かがストレートの確率は？"
+count = 250
+generator = "D相手役"
+answer_type = "確率"
+stages = ["フロップ"]
+players = [6]
+audience = "中級者"
+session_family = "危険ボード"
+```
+
+### 4枚連続ボードで相手がストレート
+
+```toml question-pattern
+id = "opponent_straight_four_connected_board"
+mode = "D"
+name = "4枚連続ボードで相手がストレート"
+purpose = "4枚の連番が見えているターンで、6人卓のほかの5人の誰かが並びの端を持つ可能性を考える"
+example = "ボードが10・J・Q・Kのとき、6人卓でほかの誰かがストレートの確率は？"
+count = 250
+generator = "D相手役"
+answer_type = "確率"
+stages = ["ターン"]
+players = [6]
+audience = "中級者"
+session_family = "危険ボード"
+```
+
+### 同じマーク3枚のボードで相手がフラッシュ
+
+```toml question-pattern
+id = "opponent_flush_three_suited_board"
+mode = "D"
+name = "同じマーク3枚のボードで相手がフラッシュ"
+purpose = "同じマーク3枚が見えているフロップで、6人卓のほかの5人の誰かが同じマークを2枚持つ可能性を考える"
+example = "ボードにハートが3枚あるとき、6人卓でほかの誰かがフラッシュの確率は？"
+count = 250
+generator = "D相手役"
+answer_type = "確率"
+stages = ["フロップ"]
+players = [6]
+audience = "中級者"
+session_family = "危険ボード"
+```
+
+### 同じマーク4枚のボードで相手がフラッシュ
+
+```toml question-pattern
+id = "opponent_flush_four_suited_board"
+mode = "D"
+name = "同じマーク4枚のボードで相手がフラッシュ"
+purpose = "同じマーク4枚が見えているターンで、6人卓のほかの5人の誰かが同じマークを1枚以上持つ可能性を考える"
+example = "ボードにハートが4枚あるとき、6人卓でほかの誰かがフラッシュの確率は？"
+count = 250
+generator = "D相手役"
+answer_type = "確率"
+stages = ["ターン"]
+players = [6]
+audience = "中級者"
+session_family = "危険ボード"
 ```
 
 ### 相手がストレートの両端待ち

@@ -55,6 +55,7 @@ D_FAMILY_NAMES = {
     "完成役・所持札": "holding",
     "ドロー": "draw",
     "テーブル全体": "table",
+    "危険ボード": "board_threat",
 }
 MODES = ("A", "B", "C", "D")
 
@@ -395,6 +396,9 @@ def typescript_source(catalog: dict, patterns: list[dict]) -> str:
         for pattern in patterns
         if pattern["mode"] == "D"
     }
+    d_family_type = " | ".join(
+        json.dumps(family) for family in sorted(set(D_FAMILY_NAMES.values()))
+    )
 
     def js(value: object) -> str:
         return json.dumps(value, ensure_ascii=False, indent=2)
@@ -412,7 +416,7 @@ const QUESTION_PATTERN_COUNTS = {js(pattern_counts)} as const satisfies Readonly
 const QUESTION_ANSWER_TYPE_COUNTS = {js(answer_type_counts)} as const;
 const B_HAND_COMPARISON_ARCHETYPE_COUNTS = {js(dict(archetype_counts))} as const;
 
-type DQuestionFamily = "draw" | "holding" | "table";
+type DQuestionFamily = {d_family_type};
 
 const D_CATEGORY_FAMILIES: Readonly<Record<string, DQuestionFamily>> = Object.freeze({js(d_families)});
 
