@@ -16,6 +16,7 @@ const meta = {
     onSoundChange: fn(),
     onStart: fn(),
     onRetry: fn(),
+    onHome: fn(),
   },
 } satisfies Meta<typeof PrepareScreen>;
 
@@ -32,6 +33,10 @@ export const ReadyWithSound: Story = {
 
     await userEvent.click(canvas.getByRole("button", { name: "スタート" }));
     await expect(args.onStart).toHaveBeenCalledTimes(1);
+    await userEvent.click(
+      canvas.getByRole("link", { name: "トップページへ戻る" }),
+    );
+    await expect(args.onHome).toHaveBeenCalledTimes(1);
   },
 };
 

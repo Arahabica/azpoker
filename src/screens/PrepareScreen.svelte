@@ -1,5 +1,6 @@
 <script lang="ts">
   import ActionButton from "../components/ActionButton.svelte";
+  import PageNavigationLink from "../components/PageNavigationLink.svelte";
 
   interface Props {
     soundEnabled: boolean;
@@ -8,6 +9,7 @@
     onSoundChange: (enabled: boolean) => void;
     onStart: () => void;
     onRetry: () => void;
+    onHome: () => void;
   }
 
   let {
@@ -17,10 +19,15 @@
     onSoundChange,
     onStart,
     onRetry,
+    onHome,
   }: Props = $props();
 </script>
 
 <section id="prepare" class="prepare-screen" aria-labelledby="prepare-title">
+  <header class="prepare-header">
+    <PageNavigationLink path="/" onNavigate={onHome} />
+  </header>
+
   <h1 id="prepare-title" tabindex="-1">問題を開始します</h1>
 
   <div class="prepare-controls">
@@ -86,10 +93,15 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
+    padding: max(1rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
     animation: prepare-screen-fade-in 200ms ease-out both;
+  }
+
+  .prepare-header {
+    width: 100%;
+    min-height: 3rem;
   }
 
   .prepare-screen h1 {

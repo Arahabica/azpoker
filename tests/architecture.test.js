@@ -125,7 +125,12 @@ test("問題・フォント・効果音を読み込んでからゲームを開�
     /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/,
   );
   assert.match(app, /onStart=\{startSession\}/);
-  assert.match(app, /playSound\("start"\)/);
+  assert.match(app, /onHome=\{showLanding\}/);
+  assert.equal(
+    (app.match(/playSound\("start"\)/g) ?? []).length,
+    1,
+    "通常クイズの開始時だけ開始音を鳴らす",
+  );
   assert.match(app, /playSound\("warning"\)/);
   assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
 

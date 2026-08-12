@@ -465,7 +465,6 @@
     );
     sessionHistoryId = "";
     flow = reviewFlow;
-    playSound("start");
     prepareQuestion(nextSession[0]!);
     return true;
   }
@@ -630,6 +629,7 @@
       onSoundChange={setSoundEnabled}
       onStart={startSession}
       onRetry={prepareSession}
+      onHome={showLanding}
     />
   {:else if (flow.status === "answering" || flow.status === "answered") && currentQuestion}
     <QuizScreen
