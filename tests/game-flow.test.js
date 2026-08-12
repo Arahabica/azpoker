@@ -224,4 +224,12 @@ test("離脱するとどの進行状態からでもトップへ戻る", () => {
     }),
     leftDuringPreparation,
   );
+
+  const ready = transitionGameFlow(preparing, {
+    type: "PREPARATION_SUCCEEDED",
+    totalQuestions: 10,
+  });
+  assert.deepEqual(transitionGameFlow(ready, { type: "LEAVE" }), {
+    status: "top",
+  });
 });

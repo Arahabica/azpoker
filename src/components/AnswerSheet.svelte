@@ -1,6 +1,8 @@
 <script lang="ts">
   import { formatActualPercent } from "../game.ts";
   import ActionButton from "./ActionButton.svelte";
+  import AnswerResultIcon from "./icons/AnswerResultIcon.svelte";
+  import LeaveIcon from "./icons/LeaveIcon.svelte";
   import MixedFontText from "./MixedFontText.svelte";
   import type { Question } from "../types.ts";
 
@@ -48,29 +50,10 @@
     aria-label="問題を終了する"
     onclick={onRequestLeave}
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M11 20H2"></path>
-      <path
-        d="M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.561z"
-      ></path>
-      <path d="M11 4H8a2 2 0 0 0-2 2v14"></path>
-      <path d="M14 12h.01"></path>
-      <path d="M22 20h-3"></path>
-    </svg>
+    <LeaveIcon />
   </button>
-  <div
-    class="answer-mark"
-    data-result={correct ? "correct" : "wrong"}
-    aria-hidden="true"
-  >
-    <svg class="answer-icon answer-icon-check" viewBox="0 0 48 48">
-      <circle cx="24" cy="24" r="20"></circle>
-      <path d="m15 24 6 6 13-14"></path>
-    </svg>
-    <svg class="answer-icon answer-icon-cross" viewBox="0 0 48 48">
-      <circle cx="24" cy="24" r="20"></circle>
-      <path d="m17 17 14 14m0-14L17 31"></path>
-    </svg>
+  <div class="answer-mark" aria-hidden="true">
+    <AnswerResultIcon {correct} />
   </div>
   <p id="feedback-title" class="feedback-title">
     {feedbackTitle}
@@ -112,6 +95,8 @@
   }
 
   .leave-button {
+    --leave-icon-opacity: 0.42;
+
     position: absolute;
     top: 0.72rem;
     right: var(--gutter);
@@ -127,40 +112,10 @@
     cursor: pointer;
   }
 
-  .leave-button svg {
-    width: 1.4rem;
-    fill: none;
-    opacity: 0.42;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
-  }
-
   .answer-mark {
     width: 3rem;
     height: 3rem;
     margin: 0 auto 0.35rem;
-  }
-
-  .answer-icon {
-    display: none;
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 3.5;
-  }
-
-  .answer-mark[data-result="correct"] .answer-icon-check {
-    display: block;
-    stroke: var(--correct);
-  }
-
-  .answer-mark[data-result="wrong"] .answer-icon-cross {
-    display: block;
-    stroke: var(--wrong);
   }
 
   .feedback-title {
@@ -204,8 +159,8 @@
       background: rgb(255 255 255 / 6%);
     }
 
-    .leave-button:hover svg {
-      opacity: 0.68;
+    .leave-button:hover {
+      --leave-icon-opacity: 0.68;
     }
   }
 

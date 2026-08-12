@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { DisplayRank } from "../../types.ts";
+  import SuitIcon from "../icons/SuitIcon.svelte";
 
   interface Props {
     rank: DisplayRank;
@@ -13,13 +14,9 @@
 <span class="face" aria-hidden="true">
   <span class="corner">
     <span class="rank">{rank}</span>
-    <svg class="corner-suit" viewBox={suitViewBox}>
-      <path d={suitPath}></path>
-    </svg>
+    <SuitIcon path={suitPath} viewBox={suitViewBox} placement="corner" />
   </span>
-  <svg class="center-suit" viewBox={suitViewBox}>
-    <path d={suitPath}></path>
-  </svg>
+  <SuitIcon path={suitPath} viewBox={suitViewBox} placement="center" />
 </span>
 
 <style>
@@ -46,21 +43,5 @@
     letter-spacing: -0.06em;
     font-variant-numeric: lining-nums tabular-nums;
     transform: translateX(var(--rank-optical-shift));
-  }
-
-  .corner-suit {
-    width: 0.78rem;
-    width: 19cqi;
-    margin-top: 4cqi;
-    fill: currentcolor;
-  }
-
-  .center-suit {
-    position: absolute;
-    top: 62%;
-    left: 50%;
-    width: 52%;
-    fill: currentcolor;
-    transform: translate(-50%, -50%);
   }
 </style>

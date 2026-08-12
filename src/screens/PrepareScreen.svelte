@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { shouldHandleAppNavigation } from "../app-route.ts";
   import ActionButton from "../components/ActionButton.svelte";
+  import LeaveIcon from "../components/icons/LeaveIcon.svelte";
+  import SoundIcon from "../components/icons/SoundIcon.svelte";
 
   interface Props {
     soundEnabled: boolean;
@@ -8,6 +11,7 @@
     onSoundChange: (enabled: boolean) => void;
     onStart: () => void;
     onRetry: () => void;
+    onHome: () => void;
   }
 
   let {
@@ -17,10 +21,24 @@
     onSoundChange,
     onStart,
     onRetry,
+    onHome,
   }: Props = $props();
+
+  function returnHome(event: MouseEvent): void {
+    if (!shouldHandleAppNavigation(event)) return;
+    event.preventDefault();
+    onHome();
+  }
 </script>
 
 <section id="prepare" class="prepare-screen" aria-labelledby="prepare-title">
+  <header class="prepare-header">
+    <a class="prepare-home-link" href="/" onclick={returnHome}>
+      <LeaveIcon />
+      <span>トップに戻る</span>
+    </a>
+  </header>
+
   <h1 id="prepare-title" tabindex="-1">問題を開始します</h1>
 
   <div class="prepare-controls">
@@ -34,23 +52,7 @@
       onclick={() => onSoundChange(!soundEnabled)}
     >
       <span class="sound-icon" aria-hidden="true">
-        {#if soundEnabled}
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"
-            ></path>
-            <path d="M16 9a5 5 0 0 1 0 6"></path>
-            <path d="M19.364 18.364a9 9 0 0 0 0-12.728"></path>
-          </svg>
-        {:else}
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298Z"
-            ></path>
-            <line x1="22" x2="16" y1="9" y2="15"></line>
-            <line x1="16" x2="22" y1="9" y2="15"></line>
-          </svg>
-        {/if}
+        <SoundIcon enabled={soundEnabled} />
       </span>
       <span class="sound-label">{soundEnabled ? "音あり" : "音なし"}</span>
     </button>
@@ -86,10 +88,36 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: max(2rem, env(safe-area-inset-top)) var(--gutter)
+    padding: max(1rem, env(safe-area-inset-top)) var(--gutter)
       max(2rem, env(safe-area-inset-bottom));
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
     animation: prepare-screen-fade-in 200ms ease-out both;
+  }
+
+  .prepare-header {
+    display: flex;
+    width: 100%;
+    min-height: 3rem;
+    justify-content: flex-end;
+  }
+
+  .prepare-home-link {
+    --leave-icon-size: 1.25rem;
+    --leave-icon-opacity: 0.68;
+
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.4rem;
+    color: #dbeae4;
+    font-size: 0.84rem;
+    text-decoration: none;
+  }
+
+  .prepare-home-link:focus-visible {
+    border-radius: 0.3rem;
+    outline: 3px solid rgb(255 255 255 / 82%);
+    outline-offset: 3px;
   }
 
   .prepare-screen h1 {
@@ -170,15 +198,6 @@
     transform: translateY(0.22rem);
   }
 
-  .sound-icon svg {
-    width: 2.25rem;
-    fill: none;
-    stroke: currentcolor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
-  }
-
   .sound-label {
     color: var(--text);
     font-size: 0.95rem;
@@ -202,6 +221,12 @@
   }
 
   @media (hover: hover) {
+    .prepare-home-link:hover {
+      --leave-icon-opacity: 0.9;
+
+      color: var(--text);
+    }
+
     .sound-toggle:hover .sound-icon {
       background: linear-gradient(180deg, #6c8079, #586d65);
     }

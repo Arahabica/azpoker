@@ -125,7 +125,12 @@ test("問題・フォント・効果音を読み込んでからゲームを開�
     /Promise\.all\(\[[\s\S]*selectSession\(\)[\s\S]*preloadGameFonts\(\)[\s\S]*preloadSoundEffects\(\)/,
   );
   assert.match(app, /onStart=\{startSession\}/);
-  assert.match(app, /playSound\("start"\)/);
+  assert.match(app, /onHome=\{showLanding\}/);
+  assert.equal(
+    (app.match(/playSound\("start"\)/g) ?? []).length,
+    1,
+    "通常クイズの開始時だけ開始音を鳴らす",
+  );
   assert.match(app, /playSound\("warning"\)/);
   assert.match(app, /playSound\(correct \? "correct" : "wrong"\)/);
 
@@ -202,6 +207,35 @@ test("カード表示を共通コンポーネントへ集約する", () => {
     fs.readdirSync(path.join(root, "src", "components", "card-faces")),
     ["CardFace.svelte"],
   );
+});
+
+test("SVGアイコンとインジケーターを専用コンポーネントへ集約する", () => {
+  const svgComponents = fs
+    .readdirSync(path.join(root, "src", "components"), {
+      recursive: true,
+      withFileTypes: true,
+    })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".svelte"))
+    .map((entry) =>
+      path.join(entry.parentPath, entry.name).replace(`${root}${path.sep}`, ""),
+    )
+    .filter((filename) => /<svg\b/.test(read(filename)))
+    .sort();
+
+  assert.deepEqual(svgComponents, [
+    "src/components/LoadingSpinner.svelte",
+    "src/components/icons/AnswerResultIcon.svelte",
+    "src/components/icons/ChevronIcon.svelte",
+    "src/components/icons/LeaveIcon.svelte",
+    "src/components/icons/SoundIcon.svelte",
+    "src/components/icons/SuitIcon.svelte",
+  ]);
+
+  for (const screen of fs
+    .readdirSync(path.join(root, "src", "screens"))
+    .filter((filename) => filename.endsWith(".svelte"))) {
+    assert.doesNotMatch(read(`src/screens/${screen}`), /<svg\b/);
+  }
 });
 
 test("レスポンシブ境界とグローバルCSSの責務を固定する", () => {

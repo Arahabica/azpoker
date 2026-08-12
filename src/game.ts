@@ -9,6 +9,7 @@ import type {
   Stage,
   Suit,
 } from "./types.ts";
+import { dQuestionFamily } from "./generated/question-patterns.ts";
 
 const SESSION_MODE_COUNTS: Readonly<Record<GameMode, number>> = Object.freeze({
   A: 5,
@@ -96,26 +97,6 @@ function createSession(
   const numericB = byMode.B.filter(
     (question) => question.answerType === "percent",
   );
-  const dFamily = (question: Question): "draw" | "table" | "holding" => {
-    if (
-      [
-        "opponent_oesd",
-        "opponent_gutshot",
-        "opponent_flush_draw",
-        "opponent_combo_draw",
-      ].includes(question.category)
-    )
-      return "draw";
-    if (
-      [
-        "all_opponents_miss_board",
-        "exactly_one_opponent_target_rank",
-        "multiple_opponents_target_rank",
-      ].includes(question.category)
-    )
-      return "table";
-    return "holding";
-  };
   if (classicB.length === 0 || numericB.length === 0) {
     throw new Error("モードBの出題形式が不足しています");
   }
@@ -189,7 +170,8 @@ function createSession(
           question.mode === "D" &&
           firstD &&
           (question.category === firstD.category ||
-            dFamily(question) === dFamily(firstD))
+            dQuestionFamily(question.category) ===
+              dQuestionFamily(firstD.category))
         )
           return false;
         return true;

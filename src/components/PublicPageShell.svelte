@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
-  import { shouldHandleAppNavigation, type AppPath } from "../app-route.ts";
+  import type { AppPath } from "../app-route.ts";
+  import PageNavigationLink from "./PageNavigationLink.svelte";
   import SiteFooter from "./SiteFooter.svelte";
 
   interface Props {
@@ -32,26 +33,19 @@
     children,
   }: Props = $props();
 
-  function followNavigation(event: MouseEvent): void {
-    if (!shouldHandleAppNavigation(event)) return;
-    event.preventDefault();
+  function followNavigation(): void {
     (onHeaderNavigate ?? onNavigate)(navigationPath);
   }
 </script>
 
 <section class="public-page" aria-labelledby="public-page-title">
   <header class="page-header">
-    <a
-      class="home-link"
-      href={navigationPath}
-      onclick={followNavigation}
-      aria-label={navigationAriaLabel}
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m15 18-6-6 6-6"></path>
-      </svg>
-      <span>{navigationLabel}</span>
-    </a>
+    <PageNavigationLink
+      path={navigationPath}
+      label={navigationLabel}
+      ariaLabel={navigationAriaLabel}
+      onNavigate={followNavigation}
+    />
   </header>
 
   {#if showHeading}
@@ -92,31 +86,6 @@
 
   .page-header {
     min-height: 3rem;
-  }
-
-  .home-link {
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
-    gap: 0.2rem;
-    color: #dbeae4;
-    font-size: 0.84rem;
-    text-decoration: none;
-  }
-
-  .home-link svg {
-    width: 1.15rem;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
-  }
-
-  .home-link:focus-visible {
-    border-radius: 0.3rem;
-    outline: 3px solid rgb(255 255 255 / 82%);
-    outline-offset: 3px;
   }
 
   .heading {
@@ -216,10 +185,6 @@
   }
 
   @media (hover: hover) {
-    .home-link:hover {
-      color: var(--text);
-    }
-
     .page-body:not(.is-immersive) :global(a:hover) {
       color: #fff0aa;
     }
