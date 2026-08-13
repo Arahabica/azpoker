@@ -1,21 +1,18 @@
 <script lang="ts">
   import equityRows from "../generated/preflop-equity-table.json";
 
-  type PlayerCount = 6 | 9;
-
   const RANKS = [..."AKQJT98765432"] as const;
-  const TIERS = [
-    { tier: 1, label: "とても弱い", range: "16%未満" },
-    { tier: 2, label: "弱い", range: "16%以上" },
-    { tier: 3, label: "中", range: "22%以上" },
-    { tier: 4, label: "強い", range: "25%以上" },
-    { tier: 5, label: "とても強い", range: "30%以上" },
+  const TIER_LABELS = [
+    "とても弱い",
+    "弱い",
+    "中",
+    "強い",
+    "とても強い",
   ] as const;
+  const TIER_THRESHOLDS = [16, 22, 25, 30] as const;
   const equityByHand = new Map(
     equityRows.map((row) => [row.hand, row] as const),
   );
-
-  let playerCount = $state<PlayerCount>(6);
 
   function handAt(rowIndex: number, columnIndex: number): string {
     const rowRank = RANKS[rowIndex]!;
@@ -28,15 +25,21 @@
   function equityFor(hand: string): number {
     const row = equityByHand.get(hand);
     if (!row) throw new Error(`勝率表に${hand}がありません`);
-    return playerCount === 6 ? row.players6 : row.players9;
+    return row.players6;
   }
 
   function tierFor(value: number): number {
-    if (value >= 30) return 5;
-    if (value >= 25) return 4;
-    if (value >= 22) return 3;
-    if (value >= 16) return 2;
+    if (value >= TIER_THRESHOLDS[3]) return 5;
+    if (value >= TIER_THRESHOLDS[2]) return 4;
+    if (value >= TIER_THRESHOLDS[1]) return 3;
+    if (value >= TIER_THRESHOLDS[0]) return 2;
     return 1;
+  }
+
+  function rangeFor(tierIndex: number): string {
+    return tierIndex === 0
+      ? `${TIER_THRESHOLDS[0]}%未満`
+      : `${TIER_THRESHOLDS[tierIndex - 1]}%以上`;
   }
 </script>
 
@@ -46,7 +49,7 @@
     <p>ハンド名の色で、ショーダウン時の強さを確認できます。</p>
   </div>
 
-  <table aria-label={`${playerCount}人卓のスターティングハンド勝率表`}>
+  <table aria-label="6人卓のスターティングハンド勝率表">
     <tbody>
       {#each RANKS as rank, rowIndex (rank)}
         <tr>
@@ -54,7 +57,7 @@
             {@const hand = handAt(rowIndex, columnIndex)}
             {@const value = equityFor(hand)}
             {@const tier = tierFor(value)}
-            {@const strength = TIERS[tier - 1]!.label}
+            {@const strength = TIER_LABELS[tier - 1]!}
             <td data-tier={tier} aria-label={`${hand}、${strength}`}>
               {hand}
             </td>
@@ -69,35 +72,18 @@
   </div>
 
   <ul class="strength-legend" aria-label="勝率による強さの色分け">
-    {#each TIERS as item (item.tier)}
+    {#each TIER_LABELS as label, tierIndex (label)}
+      {@const tier = tierIndex + 1}
       <li>
-        <i data-tier={item.tier} aria-hidden="true"></i>
-        <span>{item.label}</span>
-        <small>{item.range}</small>
+        <i data-tier={tier} aria-hidden="true"></i>
+        <span>{label}</span>
+        <small>{rangeFor(tierIndex)}</small>
       </li>
     {/each}
   </ul>
 
-  <div class="player-toggle" role="group" aria-label="卓人数を切り替える">
-    <button
-      type="button"
-      class:active={playerCount === 6}
-      aria-pressed={playerCount === 6}
-      onclick={() => (playerCount = 6)}>6人卓</button
-    >
-    <span aria-hidden="true">/</span>
-    <button
-      type="button"
-      class:active={playerCount === 9}
-      aria-pressed={playerCount === 9}
-      onclick={() => (playerCount = 9)}>9人卓</button
-    >
-  </div>
-
-  <p class="player-context" aria-live="polite">
-    {playerCount}人卓で最初に判断する場合の目安です。{playerCount +
-      1}人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が{playerCount -
-      1}人います。
+  <p class="player-context">
+    6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。
   </p>
 
   <p class="chart-source">
@@ -250,34 +236,6 @@
     white-space: nowrap;
   }
 
-  .player-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.3rem;
-    padding-inline: 0.55rem;
-    color: rgb(223 237 232 / 36%);
-    font-size: 0.65rem;
-  }
-
-  .player-toggle button {
-    min-height: 1.75rem;
-    padding: 0.2rem 0.3rem;
-    border: 0;
-    background: transparent;
-    color: rgb(223 237 232 / 45%);
-    font: inherit;
-    cursor: pointer;
-  }
-
-  .player-toggle button.active {
-    color: #eef7f3;
-    text-decoration: underline;
-    text-decoration-color: rgb(247 221 112 / 72%);
-    text-underline-offset: 0.26em;
-  }
-
-  .player-toggle button:focus-visible,
   .chart-source a:focus-visible {
     border-radius: 0.15rem;
     outline: 3px solid rgb(255 255 255 / 82%);
@@ -290,7 +248,6 @@
   }
 
   @media (hover: hover) {
-    .player-toggle button:hover,
     .chart-source a:hover {
       color: #fff0aa;
     }

@@ -73,6 +73,11 @@ export const FirstVisit: Story = {
     await expect(
       canvas.getByRole("cell", { name: "Q7o、とても弱い" }),
     ).toBeVisible();
+    await expect(canvas.getByText("16%未満")).toBeVisible();
+    await expect(canvas.getByText("30%以上")).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "9人卓" }),
+    ).not.toBeInTheDocument();
     const strengthCells = [
       canvas.getByRole("cell", { name: "AA、とても強い" }),
       canvas.getByRole("cell", { name: "KQo、強い" }),
@@ -99,23 +104,6 @@ export const FirstVisit: Story = {
       "https://github.com/Arahabica/azpoker",
     );
     await expect(sourceCodeLink).toHaveAttribute("target", "_blank");
-    const ninePlayers = canvas.getByRole("button", { name: "9人卓" });
-    await userEvent.click(ninePlayers);
-    await expect(ninePlayers).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      canvas.getByRole("table", {
-        name: "9人卓のスターティングハンド勝率表",
-      }),
-    ).toBeVisible();
-    await expect(
-      canvas.getByText(
-        "9人卓で最初に判断する場合の目安です。10人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が8人います。",
-      ),
-    ).toBeVisible();
-    await expect(
-      canvas.getByRole("cell", { name: "AA、とても強い" }),
-    ).toBeVisible();
-    await expect(canvas.getByRole("cell", { name: "AKs、中" })).toBeVisible();
     await userEvent.click(startButtons[0]!);
     await expect(args.onStart).toHaveBeenCalledTimes(1);
   },
