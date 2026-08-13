@@ -99,6 +99,31 @@
     </p>
   </section>
 
+  <section>
+    <h2>プリフロップ勝率表</h2>
+    <p>
+      トップページの6人卓・9人卓の勝率は、100万回のシミュレーション結果を掲載する
+      <a
+        href="https://lapoker.info/ranking/"
+        rel="external noopener"
+        target="_blank">LA Poker.info</a
+      >
+      を参照しています。6人卓の値は
+      <a
+        href="https://bright777.com/texasholdem-handrank"
+        rel="external noopener"
+        target="_blank">株式会社ブライトの人数別勝率表</a
+      >
+      および
+      <a
+        href="https://mpj-portal.jp/forbeginners/technique-pokertable/"
+        rel="external noopener"
+        target="_blank">MPJ Portalの6人プレー表</a
+      >
+      とも照合しています。
+    </p>
+  </section>
+
   <section id="sounds">
     <h2>効果音</h2>
     <h3>Audiostock</h3>

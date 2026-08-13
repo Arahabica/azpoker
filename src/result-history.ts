@@ -243,6 +243,14 @@ function readQuizHistory(
   }
 }
 
+function getOlderHistoryEntry(
+  history: readonly QuizHistoryEntry[],
+  currentId: string,
+): QuizHistoryEntry | null {
+  const currentIndex = history.findIndex((entry) => entry.id === currentId);
+  return currentIndex >= 0 ? (history[currentIndex + 1] ?? null) : null;
+}
+
 function createQuizHistoryId(): string {
   if (typeof globalThis.crypto?.randomUUID === "function") {
     return globalThis.crypto.randomUUID();
@@ -314,6 +322,7 @@ export {
   createQuizHistoryEntry,
   createQuizHistoryId,
   formatRelativeHistoryTime,
+  getOlderHistoryEntry,
   isQuizHistoryAnswer,
   isQuizHistoryEntry,
   parseQuizHistory,

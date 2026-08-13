@@ -34,6 +34,65 @@ export const FirstVisit: Story = {
       name: "クイズをはじめる",
     });
     await expect(startButtons).toHaveLength(2);
+    await expect(
+      canvas.getByRole("heading", { level: 3, name: "プリフロップ勝率表" }),
+    ).toBeVisible();
+    const holdemHeading = canvas.getByRole("heading", {
+      level: 3,
+      name: "テキサスホールデム",
+    });
+    const appendixHeading = canvas.getByRole("heading", {
+      level: 2,
+      name: "付録",
+    });
+    await expect(appendixHeading).toBeVisible();
+    await expect(
+      holdemHeading.compareDocumentPosition(appendixHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await expect(
+      canvas.getByRole("table", { name: "6人卓のプリフロップ勝率表" }),
+    ).toBeVisible();
+    await expect(canvas.getAllByRole("cell")).toHaveLength(169);
+    await expect(
+      canvas.getByRole("cell", { name: "AA、とても強い" }),
+    ).toBeVisible();
+    await expect(canvas.getByRole("cell", { name: "KQo、強い" })).toBeVisible();
+    await expect(canvas.getByRole("cell", { name: "A5s、中" })).toBeVisible();
+    await expect(canvas.getByRole("cell", { name: "Q2s、弱い" })).toBeVisible();
+    await expect(
+      canvas.getByRole("cell", { name: "Q7o、とても弱い" }),
+    ).toBeVisible();
+    const strengthCells = [
+      canvas.getByRole("cell", { name: "AA、とても強い" }),
+      canvas.getByRole("cell", { name: "KQo、強い" }),
+      canvas.getByRole("cell", { name: "A5s、中" }),
+      canvas.getByRole("cell", { name: "Q2s、弱い" }),
+      canvas.getByRole("cell", { name: "Q7o、とても弱い" }),
+    ];
+    for (const cell of strengthCells) {
+      await expect(getComputedStyle(cell).borderTopWidth).toBe("0px");
+      await expect(getComputedStyle(cell).borderRadius).toBe("0px");
+    }
+    await expect(getComputedStyle(strengthCells[3]!).backgroundColor).toBe(
+      "rgba(245, 245, 240, 0.52)",
+    );
+    await expect(canvas.queryAllByRole("columnheader")).toHaveLength(0);
+    await expect(canvas.queryAllByRole("rowheader")).toHaveLength(0);
+    await expect(canvas.queryByText("49.2")).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole("link", { name: "LA Poker.info" }),
+    ).toHaveAttribute("href", "https://lapoker.info/ranking/");
+    const ninePlayers = canvas.getByRole("button", { name: "9人卓" });
+    await userEvent.click(ninePlayers);
+    await expect(ninePlayers).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      canvas.getByRole("table", { name: "9人卓のプリフロップ勝率表" }),
+    ).toBeVisible();
+    await expect(
+      canvas.getByRole("cell", { name: "AA、とても強い" }),
+    ).toBeVisible();
+    await expect(canvas.getByRole("cell", { name: "AKs、中" })).toBeVisible();
     await userEvent.click(startButtons[0]!);
     await expect(args.onStart).toHaveBeenCalledTimes(1);
   },
@@ -72,5 +131,22 @@ export const MinimumWidth: Story = {
   args: { history: landingHistoryEntries },
   globals: {
     viewport: { value: "minimum", isRotated: false },
+  },
+  play: async ({ canvasElement }) => {
+    const chart = canvasElement.querySelector<HTMLElement>(".equity-chart");
+    const table = canvasElement.querySelector<HTMLTableElement>(
+      ".equity-chart table",
+    );
+    const app = canvasElement.querySelector<HTMLElement>(".landing-screen");
+
+    await expect(chart).not.toBeNull();
+    await expect(table).not.toBeNull();
+    await expect(app).not.toBeNull();
+    await expect(chart!.scrollWidth).toBeLessThanOrEqual(chart!.clientWidth);
+    await expect(table!.scrollWidth).toBeLessThanOrEqual(table!.clientWidth);
+    await expect(app!.scrollWidth).toBeLessThanOrEqual(app!.clientWidth);
+    await expect(chart!.getBoundingClientRect().width).toBe(
+      app!.getBoundingClientRect().width,
+    );
   },
 };

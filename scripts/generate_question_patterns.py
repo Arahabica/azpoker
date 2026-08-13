@@ -148,7 +148,7 @@ def normalize_pattern(raw: dict) -> dict:
         if (
             not isinstance(players, list)
             or not players
-            or any(player not in (2, 6) for player in players)
+            or any(player not in (2, 6, 9) for player in players)
         ):
             fail(f"{pattern_id} の players が不正です")
         normalized["players"] = players
@@ -307,10 +307,12 @@ def python_source(catalog: dict, patterns: list[dict]) -> str:
         for stage, variants in hand_comparison["variants"].items()
     }
     b_beginner_archetypes = sorted(
-        variant_id
-        for variants in hand_comparison["variants"].values()
-        for variant_id, details in variants.items()
-        if details["level"] == "beginner"
+        {
+            variant_id
+            for variants in hand_comparison["variants"].values()
+            for variant_id, details in variants.items()
+            if details["level"] == "beginner"
+        }
     )
     opponent_rank = next(
         pattern

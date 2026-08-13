@@ -4,13 +4,16 @@
     formatRelativeHistoryTime,
     type QuizHistoryEntry,
   } from "../result-history.ts";
+  import ActionButton from "./ActionButton.svelte";
   import HistoryQuestionCard from "./HistoryQuestionCard.svelte";
 
   interface Props {
     entry: QuizHistoryEntry;
+    olderEntry?: QuizHistoryEntry | null;
+    onNext?: (entry: QuizHistoryEntry) => void;
   }
 
-  let { entry }: Props = $props();
+  let { entry, olderEntry = null, onNext }: Props = $props();
 </script>
 
 <div class="history-detail">
@@ -42,6 +45,16 @@
         このセットは履歴機能の更新前に保存されたため、スコアと時間だけ確認できます。
       </p>
     </section>
+  {/if}
+
+  {#if olderEntry && onNext}
+    <div class="next-history">
+      <ActionButton
+        id="next-history-detail"
+        label="次へ"
+        onClick={() => onNext(olderEntry)}
+      />
+    </div>
   {/if}
 </div>
 
@@ -128,5 +141,9 @@
     border: 1px solid rgb(255 255 255 / 11%);
     border-radius: 1.15rem;
     background: rgb(2 42 32 / 45%);
+  }
+
+  .next-history {
+    padding: 0.5rem 0 2rem;
   }
 </style>

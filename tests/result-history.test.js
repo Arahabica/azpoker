@@ -7,6 +7,7 @@ import {
   RESULT_HISTORY_VERSION,
   createQuizHistoryEntry,
   formatRelativeHistoryTime,
+  getOlderHistoryEntry,
   parseQuizHistory,
   readQuizHistory,
   saveQuizHistory,
@@ -104,6 +105,15 @@ test("結果を新しい順で最大50件保存する", () => {
   assert.equal(history[0].id, "result-52");
   assert.equal(history.at(-1).id, "result-3");
   assert.deepEqual(readQuizHistory(storage), history);
+});
+
+test("表示中の履歴から一つ古い履歴を取得する", () => {
+  const history = [result("result-3"), result("result-2"), result("result-1")];
+
+  assert.equal(getOlderHistoryEntry(history, "result-3")?.id, "result-2");
+  assert.equal(getOlderHistoryEntry(history, "result-2")?.id, "result-1");
+  assert.equal(getOlderHistoryEntry(history, "result-1"), null);
+  assert.equal(getOlderHistoryEntry(history, "missing"), null);
 });
 
 test("同じセッションIDは新しい結果へ置き換えて重複させない", () => {

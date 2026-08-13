@@ -20,6 +20,12 @@ const questionsRoot = path.join(root, "public", "questions");
 const manifest = JSON.parse(
   fs.readFileSync(path.join(questionsRoot, "manifest.json"), "utf8"),
 );
+const preflopEquityTable = JSON.parse(
+  fs.readFileSync(
+    path.join(root, "src", "generated", "preflop-equity-table.json"),
+    "utf8",
+  ),
+);
 
 function choicePercent(value) {
   assert.match(value, /^\d+(?:\.5)?%$/);
@@ -227,16 +233,33 @@ test("手札のペアより高いカードは具体的な数字と残り枚数�
   }
 });
 
-test("A5sの2人勝率は捨て選択肢を使わない", () => {
-  const question = bank.find(
-    (candidate) => candidate.mode === "C" && candidate.conceptKey === "A5s:2",
+test("プリフロップ勝率は全169ハンドを6人・9人卓で用意する", () => {
+  const questions = bank.filter(
+    (question) => question.category === "preflop_equity",
   );
-  assert.ok(question);
-  assert.equal(question.answer, "60%");
-  assert.equal(question.distractor, "45%");
+  assert.equal(questions.length, 338);
+  assert.deepEqual(
+    new Set(questions.map((question) => question.playerCount)),
+    new Set([6, 9]),
+  );
+  for (const players of [6, 9]) {
+    assert.equal(
+      questions.filter((question) => question.playerCount === players).length,
+      169,
+    );
+  }
 });
 
-test("6人卓は危険ボード4カテゴリだけ中級者へ出題する", () => {
+test("トップページの勝率表は掲載値を169ハンド分使う", () => {
+  assert.equal(preflopEquityTable.length, 169);
+  assert.equal(new Set(preflopEquityTable.map((row) => row.hand)).size, 169);
+  assert.deepEqual(
+    preflopEquityTable.find((row) => row.hand === "AA"),
+    { hand: "AA", players6: 49.2, players9: 34.7 },
+  );
+});
+
+test("卓人数とカテゴリに応じた対象者レベルにする", () => {
   const multiway = bank.filter((question) => question.playerCount === 6);
   const boardThreatCategories = new Set([
     "opponent_straight_three_connected_board",
@@ -247,17 +270,25 @@ test("6人卓は危険ボード4カテゴリだけ中級者へ出題する", () 
   assert.ok(multiway.length > 0);
   assert.ok(
     multiway.every((question) =>
-      boardThreatCategories.has(question.category)
-        ? question.level === "intermediate"
-        : question.level === "advanced",
+      question.category === "preflop_equity"
+        ? question.level === "beginner"
+        : boardThreatCategories.has(question.category)
+          ? question.level === "intermediate"
+          : question.level === "advanced",
     ),
   );
   assert.ok(
+    bank
+      .filter((question) => question.playerCount === 9)
+      .every(
+        (question) =>
+          question.category === "preflop_equity" &&
+          question.level === "intermediate",
+      ),
+  );
+  assert.ok(
     bank.some(
-      (question) =>
-        question.mode === "C" &&
-        question.playerCount === 2 &&
-        question.level !== "advanced",
+      (question) => question.playerCount === 2 && question.level !== "advanced",
     ),
   );
 });
@@ -541,6 +572,34 @@ test("手札比較は両方に続行理由がある実戦的な類型へ寄せ�
     assert.equal(question.prompt, "勝率が高いのは？");
     assert.equal(question.continuationReasons.length, 2, question.id);
     assert.ok(question.continuationReasons.every((reasons) => reasons.length));
+    if (question.stage === "preflop") {
+      assert.equal(question.simulationTrials, 12_000, question.id);
+      const ranks = "23456789TJQKA";
+      const rankPairs = question.hands.map((hand) =>
+        hand
+          .map((card) => ranks.indexOf(card[0]))
+          .sort((left, right) => right - left),
+      );
+      assert.equal(
+        rankPairs.some(([high, low]) => high === low),
+        question.archetype === "pair_vs_overcards",
+        question.id,
+      );
+      if (!rankPairs.some(([high, low]) => high === low)) {
+        const [first, second] = rankPairs;
+        assert.equal(
+          (first[0] > second[0] && first[1] > second[1]) ||
+            (second[0] > first[0] && second[1] > first[1]),
+          false,
+          question.id,
+        );
+        assert.equal(
+          first[0] === second[0] && first[1] !== second[1],
+          false,
+          question.id,
+        );
+      }
+    }
   }
 });
 

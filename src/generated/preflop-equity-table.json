@@ -1,0 +1,847 @@
+[
+  {
+    "hand": "AA",
+    "players6": 49.2,
+    "players9": 34.7
+  },
+  {
+    "hand": "AKs",
+    "players6": 31.1,
+    "players9": 22.7
+  },
+  {
+    "hand": "AKo",
+    "players6": 27.9,
+    "players9": 19.2
+  },
+  {
+    "hand": "AQs",
+    "players6": 29.4,
+    "players9": 21.1
+  },
+  {
+    "hand": "AQo",
+    "players6": 25.9,
+    "players9": 17.5
+  },
+  {
+    "hand": "AJs",
+    "players6": 27.8,
+    "players9": 19.9
+  },
+  {
+    "hand": "AJo",
+    "players6": 24.4,
+    "players9": 16.1
+  },
+  {
+    "hand": "ATs",
+    "players6": 26.7,
+    "players9": 18.9
+  },
+  {
+    "hand": "ATo",
+    "players6": 23.1,
+    "players9": 15.1
+  },
+  {
+    "hand": "A9s",
+    "players6": 24.2,
+    "players9": 16.9
+  },
+  {
+    "hand": "A9o",
+    "players6": 20.3,
+    "players9": 12.8
+  },
+  {
+    "hand": "A8s",
+    "players6": 23.3,
+    "players9": 16.2
+  },
+  {
+    "hand": "A8o",
+    "players6": 19.4,
+    "players9": 12.0
+  },
+  {
+    "hand": "A7s",
+    "players6": 22.5,
+    "players9": 15.7
+  },
+  {
+    "hand": "A7o",
+    "players6": 18.4,
+    "players9": 11.4
+  },
+  {
+    "hand": "A6s",
+    "players6": 21.7,
+    "players9": 15.3
+  },
+  {
+    "hand": "A6o",
+    "players6": 17.5,
+    "players9": 10.9
+  },
+  {
+    "hand": "A5s",
+    "players6": 22.2,
+    "players9": 15.9
+  },
+  {
+    "hand": "A5o",
+    "players6": 18.0,
+    "players9": 11.5
+  },
+  {
+    "hand": "A4s",
+    "players6": 21.6,
+    "players9": 15.5
+  },
+  {
+    "hand": "A4o",
+    "players6": 17.3,
+    "players9": 11.0
+  },
+  {
+    "hand": "A3s",
+    "players6": 21.0,
+    "players9": 15.1
+  },
+  {
+    "hand": "A3o",
+    "players6": 16.7,
+    "players9": 10.7
+  },
+  {
+    "hand": "A2s",
+    "players6": 20.4,
+    "players9": 14.6
+  },
+  {
+    "hand": "A2o",
+    "players6": 16.1,
+    "players9": 10.2
+  },
+  {
+    "hand": "KK",
+    "players6": 43.0,
+    "players9": 29.2
+  },
+  {
+    "hand": "KQs",
+    "players6": 28.3,
+    "players9": 20.4
+  },
+  {
+    "hand": "KQo",
+    "players6": 25.1,
+    "players9": 16.9
+  },
+  {
+    "hand": "KJs",
+    "players6": 26.9,
+    "players9": 19.3
+  },
+  {
+    "hand": "KJo",
+    "players6": 23.5,
+    "players9": 15.6
+  },
+  {
+    "hand": "KTs",
+    "players6": 25.8,
+    "players9": 18.5
+  },
+  {
+    "hand": "KTo",
+    "players6": 22.3,
+    "players9": 14.7
+  },
+  {
+    "hand": "K9s",
+    "players6": 23.2,
+    "players9": 16.3
+  },
+  {
+    "hand": "K9o",
+    "players6": 19.5,
+    "players9": 12.3
+  },
+  {
+    "hand": "K8s",
+    "players6": 21.3,
+    "players9": 14.8
+  },
+  {
+    "hand": "K8o",
+    "players6": 17.4,
+    "players9": 10.8
+  },
+  {
+    "hand": "K7s",
+    "players6": 20.8,
+    "players9": 14.5
+  },
+  {
+    "hand": "K7o",
+    "players6": 16.7,
+    "players9": 10.2
+  },
+  {
+    "hand": "K6s",
+    "players6": 20.1,
+    "players9": 14.0
+  },
+  {
+    "hand": "K6o",
+    "players6": 16.0,
+    "players9": 9.8
+  },
+  {
+    "hand": "K5s",
+    "players6": 19.5,
+    "players9": 13.7
+  },
+  {
+    "hand": "K5o",
+    "players6": 15.4,
+    "players9": 9.5
+  },
+  {
+    "hand": "K4s",
+    "players6": 19.0,
+    "players9": 13.4
+  },
+  {
+    "hand": "K4o",
+    "players6": 14.7,
+    "players9": 9.1
+  },
+  {
+    "hand": "K3s",
+    "players6": 18.4,
+    "players9": 13.1
+  },
+  {
+    "hand": "K3o",
+    "players6": 14.2,
+    "players9": 8.9
+  },
+  {
+    "hand": "K2s",
+    "players6": 18.1,
+    "players9": 13.0
+  },
+  {
+    "hand": "K2o",
+    "players6": 13.7,
+    "players9": 8.6
+  },
+  {
+    "hand": "QQ",
+    "players6": 37.9,
+    "players9": 24.9
+  },
+  {
+    "hand": "QJs",
+    "players6": 26.1,
+    "players9": 18.7
+  },
+  {
+    "hand": "QJo",
+    "players6": 22.9,
+    "players9": 15.3
+  },
+  {
+    "hand": "QTs",
+    "players6": 25.2,
+    "players9": 18.1
+  },
+  {
+    "hand": "QTo",
+    "players6": 21.6,
+    "players9": 14.4
+  },
+  {
+    "hand": "Q9s",
+    "players6": 22.5,
+    "players9": 15.9
+  },
+  {
+    "hand": "Q9o",
+    "players6": 19.0,
+    "players9": 12.1
+  },
+  {
+    "hand": "Q8s",
+    "players6": 20.7,
+    "players9": 14.4
+  },
+  {
+    "hand": "Q8o",
+    "players6": 16.9,
+    "players9": 10.5
+  },
+  {
+    "hand": "Q7s",
+    "players6": 19.2,
+    "players9": 13.3
+  },
+  {
+    "hand": "Q7o",
+    "players6": 15.1,
+    "players9": 9.2
+  },
+  {
+    "hand": "Q6s",
+    "players6": 18.5,
+    "players9": 12.9
+  },
+  {
+    "hand": "Q6o",
+    "players6": 14.4,
+    "players9": 8.8
+  },
+  {
+    "hand": "Q5s",
+    "players6": 18.1,
+    "players9": 12.7
+  },
+  {
+    "hand": "Q5o",
+    "players6": 13.9,
+    "players9": 8.5
+  },
+  {
+    "hand": "Q4s",
+    "players6": 17.6,
+    "players9": 12.4
+  },
+  {
+    "hand": "Q4o",
+    "players6": 13.3,
+    "players9": 8.1
+  },
+  {
+    "hand": "Q3s",
+    "players6": 17.0,
+    "players9": 12.1
+  },
+  {
+    "hand": "Q3o",
+    "players6": 12.8,
+    "players9": 7.9
+  },
+  {
+    "hand": "Q2s",
+    "players6": 16.6,
+    "players9": 11.9
+  },
+  {
+    "hand": "Q2o",
+    "players6": 12.3,
+    "players9": 7.7
+  },
+  {
+    "hand": "JJ",
+    "players6": 33.6,
+    "players9": 21.6
+  },
+  {
+    "hand": "JTs",
+    "players6": 24.7,
+    "players9": 17.9
+  },
+  {
+    "hand": "JTo",
+    "players6": 21.5,
+    "players9": 14.5
+  },
+  {
+    "hand": "J9s",
+    "players6": 22.4,
+    "players9": 15.9
+  },
+  {
+    "hand": "J9o",
+    "players6": 18.7,
+    "players9": 12.1
+  },
+  {
+    "hand": "J8s",
+    "players6": 20.5,
+    "players9": 14.4
+  },
+  {
+    "hand": "J8o",
+    "players6": 16.8,
+    "players9": 10.7
+  },
+  {
+    "hand": "J7s",
+    "players6": 18.9,
+    "players9": 13.2
+  },
+  {
+    "hand": "J7o",
+    "players6": 14.9,
+    "players9": 9.2
+  },
+  {
+    "hand": "J6s",
+    "players6": 17.4,
+    "players9": 12.1
+  },
+  {
+    "hand": "J6o",
+    "players6": 13.2,
+    "players9": 8.0
+  },
+  {
+    "hand": "J5s",
+    "players6": 17.0,
+    "players9": 11.8
+  },
+  {
+    "hand": "J5o",
+    "players6": 12.8,
+    "players9": 7.7
+  },
+  {
+    "hand": "J4s",
+    "players6": 16.4,
+    "players9": 11.5
+  },
+  {
+    "hand": "J4o",
+    "players6": 12.3,
+    "players9": 7.5
+  },
+  {
+    "hand": "J3s",
+    "players6": 16.0,
+    "players9": 11.3
+  },
+  {
+    "hand": "J3o",
+    "players6": 11.7,
+    "players9": 7.2
+  },
+  {
+    "hand": "J2s",
+    "players6": 15.6,
+    "players9": 11.1
+  },
+  {
+    "hand": "J2o",
+    "players6": 11.3,
+    "players9": 7.0
+  },
+  {
+    "hand": "TT",
+    "players6": 30.0,
+    "players9": 19.2
+  },
+  {
+    "hand": "T9s",
+    "players6": 22.5,
+    "players9": 16.2
+  },
+  {
+    "hand": "T9o",
+    "players6": 18.9,
+    "players9": 12.6
+  },
+  {
+    "hand": "T8s",
+    "players6": 20.6,
+    "players9": 14.8
+  },
+  {
+    "hand": "T8o",
+    "players6": 16.9,
+    "players9": 11.0
+  },
+  {
+    "hand": "T7s",
+    "players6": 19.0,
+    "players9": 13.5
+  },
+  {
+    "hand": "T7o",
+    "players6": 15.1,
+    "players9": 9.7
+  },
+  {
+    "hand": "T6s",
+    "players6": 17.4,
+    "players9": 12.3
+  },
+  {
+    "hand": "T6o",
+    "players6": 13.4,
+    "players9": 8.3
+  },
+  {
+    "hand": "T5s",
+    "players6": 16.0,
+    "players9": 11.2
+  },
+  {
+    "hand": "T5o",
+    "players6": 11.9,
+    "players9": 7.2
+  },
+  {
+    "hand": "T4s",
+    "players6": 15.6,
+    "players9": 11.0
+  },
+  {
+    "hand": "T4o",
+    "players6": 11.5,
+    "players9": 7.0
+  },
+  {
+    "hand": "T3s",
+    "players6": 15.1,
+    "players9": 10.7
+  },
+  {
+    "hand": "T3o",
+    "players6": 11.0,
+    "players9": 6.8
+  },
+  {
+    "hand": "T2s",
+    "players6": 14.8,
+    "players9": 10.5
+  },
+  {
+    "hand": "T2o",
+    "players6": 10.6,
+    "players9": 6.6
+  },
+  {
+    "hand": "99",
+    "players6": 26.6,
+    "players9": 17.2
+  },
+  {
+    "hand": "98s",
+    "players6": 20.2,
+    "players9": 14.5
+  },
+  {
+    "hand": "98o",
+    "players6": 16.6,
+    "players9": 10.9
+  },
+  {
+    "hand": "97s",
+    "players6": 18.9,
+    "players9": 13.6
+  },
+  {
+    "hand": "97o",
+    "players6": 15.1,
+    "players9": 9.8
+  },
+  {
+    "hand": "96s",
+    "players6": 17.4,
+    "players9": 12.4
+  },
+  {
+    "hand": "96o",
+    "players6": 13.5,
+    "players9": 8.7
+  },
+  {
+    "hand": "95s",
+    "players6": 16.0,
+    "players9": 11.3
+  },
+  {
+    "hand": "95o",
+    "players6": 12.0,
+    "players9": 7.4
+  },
+  {
+    "hand": "94s",
+    "players6": 14.6,
+    "players9": 10.3
+  },
+  {
+    "hand": "94o",
+    "players6": 10.5,
+    "players9": 6.4
+  },
+  {
+    "hand": "93s",
+    "players6": 14.3,
+    "players9": 10.1
+  },
+  {
+    "hand": "93o",
+    "players6": 10.1,
+    "players9": 6.1
+  },
+  {
+    "hand": "92s",
+    "players6": 13.9,
+    "players9": 9.9
+  },
+  {
+    "hand": "92o",
+    "players6": 9.6,
+    "players9": 5.9
+  },
+  {
+    "hand": "88",
+    "players6": 24.0,
+    "players9": 15.8
+  },
+  {
+    "hand": "87s",
+    "players6": 18.9,
+    "players9": 13.7
+  },
+  {
+    "hand": "87o",
+    "players6": 15.4,
+    "players9": 10.3
+  },
+  {
+    "hand": "86s",
+    "players6": 17.6,
+    "players9": 12.9
+  },
+  {
+    "hand": "86o",
+    "players6": 13.9,
+    "players9": 9.2
+  },
+  {
+    "hand": "85s",
+    "players6": 16.3,
+    "players9": 11.8
+  },
+  {
+    "hand": "85o",
+    "players6": 12.4,
+    "players9": 8.1
+  },
+  {
+    "hand": "84s",
+    "players6": 14.8,
+    "players9": 10.6
+  },
+  {
+    "hand": "84o",
+    "players6": 10.8,
+    "players9": 6.8
+  },
+  {
+    "hand": "83s",
+    "players6": 13.6,
+    "players9": 9.7
+  },
+  {
+    "hand": "83o",
+    "players6": 9.5,
+    "players9": 5.8
+  },
+  {
+    "hand": "82s",
+    "players6": 13.3,
+    "players9": 9.6
+  },
+  {
+    "hand": "82o",
+    "players6": 9.1,
+    "players9": 5.6
+  },
+  {
+    "hand": "77",
+    "players6": 21.9,
+    "players9": 14.8
+  },
+  {
+    "hand": "76s",
+    "players6": 18.0,
+    "players9": 13.2
+  },
+  {
+    "hand": "76o",
+    "players6": 14.2,
+    "players9": 9.6
+  },
+  {
+    "hand": "75s",
+    "players6": 16.7,
+    "players9": 12.3
+  },
+  {
+    "hand": "75o",
+    "players6": 12.8,
+    "players9": 8.7
+  },
+  {
+    "hand": "74s",
+    "players6": 15.3,
+    "players9": 11.2
+  },
+  {
+    "hand": "74o",
+    "players6": 11.4,
+    "players9": 7.6
+  },
+  {
+    "hand": "73s",
+    "players6": 14.0,
+    "players9": 10.1
+  },
+  {
+    "hand": "73o",
+    "players6": 9.9,
+    "players9": 6.4
+  },
+  {
+    "hand": "72s",
+    "players6": 12.8,
+    "players9": 9.2
+  },
+  {
+    "hand": "72o",
+    "players6": 8.6,
+    "players9": 5.4
+  },
+  {
+    "hand": "66",
+    "players6": 20.1,
+    "players9": 14.0
+  },
+  {
+    "hand": "65s",
+    "players6": 17.0,
+    "players9": 12.7
+  },
+  {
+    "hand": "65o",
+    "players6": 13.3,
+    "players9": 9.2
+  },
+  {
+    "hand": "64s",
+    "players6": 15.9,
+    "players9": 11.9
+  },
+  {
+    "hand": "64o",
+    "players6": 12.0,
+    "players9": 8.3
+  },
+  {
+    "hand": "63s",
+    "players6": 14.5,
+    "players9": 10.8
+  },
+  {
+    "hand": "63o",
+    "players6": 10.6,
+    "players9": 7.2
+  },
+  {
+    "hand": "62s",
+    "players6": 13.3,
+    "players9": 9.8
+  },
+  {
+    "hand": "62o",
+    "players6": 9.1,
+    "players9": 6.0
+  },
+  {
+    "hand": "55",
+    "players6": 18.5,
+    "players9": 13.2
+  },
+  {
+    "hand": "54s",
+    "players6": 16.5,
+    "players9": 12.5
+  },
+  {
+    "hand": "54o",
+    "players6": 12.6,
+    "players9": 8.9
+  },
+  {
+    "hand": "53s",
+    "players6": 15.2,
+    "players9": 11.6
+  },
+  {
+    "hand": "53o",
+    "players6": 11.4,
+    "players9": 8.0
+  },
+  {
+    "hand": "52s",
+    "players6": 14.0,
+    "players9": 10.6
+  },
+  {
+    "hand": "52o",
+    "players6": 10.0,
+    "players9": 6.8
+  },
+  {
+    "hand": "44",
+    "players6": 17.3,
+    "players9": 12.9
+  },
+  {
+    "hand": "43s",
+    "players6": 14.7,
+    "players9": 11.1
+  },
+  {
+    "hand": "43o",
+    "players6": 10.7,
+    "players9": 7.5
+  },
+  {
+    "hand": "42s",
+    "players6": 13.7,
+    "players9": 10.4
+  },
+  {
+    "hand": "42o",
+    "players6": 9.5,
+    "players9": 6.6
+  },
+  {
+    "hand": "33",
+    "players6": 16.2,
+    "players9": 12.6
+  },
+  {
+    "hand": "32s",
+    "players6": 13.0,
+    "players9": 9.9
+  },
+  {
+    "hand": "32o",
+    "players6": 8.9,
+    "players9": 6.1
+  },
+  {
+    "hand": "22",
+    "players6": 15.5,
+    "players9": 12.5
+  }
+]

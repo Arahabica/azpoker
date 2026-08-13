@@ -3,7 +3,10 @@
   import HistoryDetail from "../components/HistoryDetail.svelte";
   import HistoryPanel from "../components/HistoryPanel.svelte";
   import PublicPageShell from "../components/PublicPageShell.svelte";
-  import type { QuizHistoryEntry } from "../result-history.ts";
+  import {
+    getOlderHistoryEntry,
+    type QuizHistoryEntry,
+  } from "../result-history.ts";
 
   interface Props {
     history: readonly QuizHistoryEntry[];
@@ -13,6 +16,7 @@
     detailNavigationAriaLabel?: string;
     onNavigate: (path: AppPath) => void;
     onOpenHistory: (id: string) => void;
+    onOpenOlderHistory: (id: string) => void;
     onLeaveDetail: (path: AppPath) => void;
   }
 
@@ -24,15 +28,23 @@
     detailNavigationAriaLabel = "履歴一覧へ戻る",
     onNavigate,
     onOpenHistory,
+    onOpenOlderHistory,
     onLeaveDetail,
   }: Props = $props();
 
   const selectedEntry = $derived(
     history.find((entry) => entry.id === detailId) ?? null,
   );
+  const olderEntry = $derived(
+    detailId ? getOlderHistoryEntry(history, detailId) : null,
+  );
 
   function selectHistory(entry: QuizHistoryEntry): void {
     onOpenHistory(entry.id);
+  }
+
+  function selectOlderHistory(entry: QuizHistoryEntry): void {
+    onOpenOlderHistory(entry.id);
   }
 </script>
 
@@ -49,7 +61,11 @@
   onHeaderNavigate={detailId ? onLeaveDetail : onNavigate}
 >
   {#if detailId && selectedEntry}
-    <HistoryDetail entry={selectedEntry} />
+    <HistoryDetail
+      entry={selectedEntry}
+      {olderEntry}
+      onNext={selectOlderHistory}
+    />
   {:else if detailId}
     <section class="empty-history" aria-labelledby="missing-history-title">
       <h2 id="missing-history-title">履歴が見つかりません</h2>

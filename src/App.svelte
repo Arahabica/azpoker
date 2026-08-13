@@ -507,6 +507,24 @@
     openHistoryDetail(id, "history");
   }
 
+  function openOlderHistoryDetail(id: string): void {
+    const path = createHistoryDetailPath(id);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(
+        historyDetailOrigin === "direct"
+          ? null
+          : createHistoryDetailState(historyDetailOrigin),
+        "",
+        path,
+      );
+    }
+    currentPath = path;
+    focusElement("#history-detail-title");
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
+
   function leaveHistoryDetail(path: AppPath): void {
     if (typeof window !== "undefined" && historyDetailOrigin !== "direct") {
       window.history.back();
@@ -606,6 +624,7 @@
       detailNavigationAriaLabel={historyDetailNavigation.ariaLabel}
       onNavigate={moveToPath}
       onOpenHistory={openHistoryFromList}
+      onOpenOlderHistory={openOlderHistoryDetail}
       onLeaveDetail={leaveHistoryDetail}
     />
   {:else if currentPath === "/terms"}

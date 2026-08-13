@@ -90,16 +90,13 @@ const QUESTION_ANSWER_TYPE_COUNTS = {
   },
 } as const;
 const B_HAND_COMPARISON_ARCHETYPE_COUNTS = {
-  pair_vs_overcards: 250,
-  pair_vs_high_cards: 100,
-  pair_vs_pair: 100,
-  domination: 150,
-  playable_preflop: 100,
-  draw_vs_two_pair_plus: 400,
-  top_pair_vs_flush_draw: 500,
-  one_pair_kicker: 300,
-  combo_hand: 400,
-  continue_matchup: 700,
+  pair_vs_overcards: 600,
+  playable_preflop: 600,
+  draw_vs_two_pair_plus: 300,
+  top_pair_vs_flush_draw: 400,
+  one_pair_kicker: 200,
+  combo_hand: 300,
+  continue_matchup: 600,
 } as const;
 
 type DQuestionFamily = "board_threat" | "draw" | "holding" | "table";

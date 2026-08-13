@@ -460,6 +460,11 @@ def equity(hands: tuple[tuple[str, str], ...], board: tuple[str, ...], rng: rand
     return [round(win / total * 100, 2) for win in wins]
 
 
+def preflop_comparison_equity_task(args) -> list[float]:
+    hands, seed = args
+    return equity(hands, (), random.Random(seed), 12_000)
+
+
 def board_hand_category(board: tuple[str, ...]) -> int:
     counts = Counter(card[0] for card in board)
     groups = sorted(counts.values(), reverse=True)
@@ -598,6 +603,31 @@ def comparison_archetype(
     return "continue_matchup"
 
 
+def is_obvious_preflop_comparison(
+    hands: tuple[tuple[str, str], tuple[str, str]],
+) -> bool:
+    """Rank-only matchups whose stronger hand is apparent without calculation."""
+    rank_pairs = [
+        tuple(
+            sorted(
+                (RANK_VALUE[card[0]] for card in hand),
+                reverse=True,
+            )
+        )
+        for hand in hands
+    ]
+    if any(high == low for high, low in rank_pairs):
+        return False
+    first, second = rank_pairs
+    coordinate_dominance = (
+        first[0] > second[0] and first[1] > second[1]
+    ) or (
+        second[0] > first[0] and second[1] > first[1]
+    )
+    shared_rank_with_better_kicker = first[0] == second[0] and first[1] != second[1]
+    return coordinate_dominance or shared_rank_with_better_kicker
+
+
 def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tuple[str, ...], equities: list[float]):
     current_scores = [evaluate((*hand, *board))[0] for hand in hands]
     reasons = tuple(continuation_reasons(hand, board) for hand in hands)
@@ -608,7 +638,7 @@ def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tu
     best = max(equities)
     category_gap = abs(current_scores[0] - current_scores[1])
     obvious = (
-        (not board and best >= 85)
+        (not board and is_obvious_preflop_comparison(hands))
         or (bool(board) and best >= 95 and category_gap >= 1 and len(factors) == 1)
         or (bool(board) and best >= 90 and category_gap >= 2 and len(factors) <= 2)
     )
@@ -628,13 +658,47 @@ def comparison_profile(hands: tuple[tuple[str, str], tuple[str, str]], board: tu
     )
 
 
-def build_mode_b(rng: random.Random) -> list[dict]:
+def build_mode_b(
+    rng: random.Random,
+    existing: list[dict] | None = None,
+) -> list[dict]:
     questions = []
     seen = set()
     stage_targets = B_HAND_COMPARISON_STAGE_TARGETS
+    if existing:
+        for stage, targets in stage_targets.items():
+            for archetype, target in targets.items():
+                candidates = [
+                    question
+                    for question in existing
+                    if question["stage"] == stage
+                    and question.get("archetype") == archetype
+                    and (
+                        stage != "preflop"
+                        or (
+                            max(question["equities"]) >= 51
+                            and not is_obvious_preflop_comparison(
+                                tuple(tuple(hand) for hand in question["hands"])
+                            )
+                        )
+                    )
+                ]
+                candidates.sort(
+                    key=lambda question: (
+                        max(question["equities"]),
+                        question["id"],
+                    )
+                )
+                for question in candidates[:target]:
+                    questions.append(question)
+                    seen.add(question["conceptKey"])
     for stage, targets in stage_targets.items():
         count = sum(targets.values())
-        archetype_counts = Counter()
+        archetype_counts = Counter(
+            question["archetype"]
+            for question in questions
+            if question["stage"] == stage
+        )
         attempts = 0
         board_size = {"preflop": 0, "flop": 3, "turn": 4}[stage]
         while sum(question["stage"] == stage for question in questions) < count:
@@ -653,7 +717,14 @@ def build_mode_b(rng: random.Random) -> list[dict]:
             archetype = comparison_archetype(hands, board, reasons)
             if archetype not in targets or archetype_counts[archetype] >= targets[archetype]:
                 continue
-            equities = equity(hands, board, rng, 12_000 if stage == "preflop" else None)
+            if stage == "preflop" and is_obvious_preflop_comparison(hands):
+                continue
+            equities = equity(
+                hands,
+                board,
+                rng,
+                12_000 if stage == "preflop" else None,
+            )
             winner = 0 if equities[0] > equities[1] else 1
             best = equities[winner]
             if best < 51:
@@ -663,7 +734,7 @@ def build_mode_b(rng: random.Random) -> list[dict]:
             )
             if obvious:
                 continue
-            questions.append({
+            question = {
                 "id": f"b-{len(questions) + 1:05d}", "mode": "B", "stage": stage,
                 "hands": [list(hand) for hand in hands], "board": list(board),
                 "equities": equities, "trueP": best, "answer": winner,
@@ -672,9 +743,55 @@ def build_mode_b(rng: random.Random) -> list[dict]:
                 "archetype": archetype,
                 "continuationReasons": [list(reason) for reason in reasons],
                 "distractorModel": f"比較要素の一部だけを過大評価する: {factors}", "conceptKey": key,
-            })
+            }
+            if stage == "preflop":
+                question["simulationTrials"] = 12_000
+            questions.append(question)
             seen.add(key)
             archetype_counts[archetype] += 1
+    questions.sort(
+        key=lambda question: (
+            ("preflop", "flop", "turn").index(question["stage"]),
+            question["id"],
+        )
+    )
+    for index, question in enumerate(questions, 1):
+        question["id"] = f"b-{index:05d}"
+    return questions
+
+
+def refresh_preflop_comparison_equities(questions: list[dict]) -> list[dict]:
+    preflop = [question for question in questions if question["stage"] == "preflop"]
+    tasks = [
+        (
+            tuple(tuple(hand) for hand in question["hands"]),
+            2026081300 + index,
+        )
+        for index, question in enumerate(preflop)
+    ]
+    with ProcessPoolExecutor() as executor:
+        values = executor.map(preflop_comparison_equity_task, tasks)
+        for question, equities in zip(preflop, values, strict=True):
+            hands = tuple(tuple(hand) for hand in question["hands"])
+            obvious, difficulty, explain, factors, archetype, reasons = comparison_profile(
+                hands,
+                (),
+                equities,
+            )
+            if obvious:
+                raise RuntimeError(f"差が明白なプリフロップ比較です: {question['id']}")
+            winner = 0 if equities[0] > equities[1] else 1
+            question["equities"] = equities
+            question["trueP"] = equities[winner]
+            question["answer"] = winner
+            question["difficulty"] = difficulty
+            question["explain"] = explain
+            question["archetype"] = archetype
+            question["continuationReasons"] = [list(reason) for reason in reasons]
+            question["distractorModel"] = (
+                f"比較要素の一部だけを過大評価する: {factors}"
+            )
+            question["simulationTrials"] = 12_000
     return questions
 
 
@@ -729,7 +846,7 @@ def build_mode_c(rng: random.Random) -> list[dict]:
     entries = [
         (label, hole, players)
         for label, hole in starting_hands()
-        for players in (2, 6)
+        for players in (6, 9)
     ]
     tasks = [
         (hole, players, 2026080200 + index)
@@ -1777,6 +1894,12 @@ def validate(bank: list[dict]) -> None:
                 raise RuntimeError(f"続行理由が不一致です: {question['id']}")
             if question.get("archetype") != comparison_archetype(hands, board, reasons):
                 raise RuntimeError(f"対決類型が不一致です: {question['id']}")
+            if not board and is_obvious_preflop_comparison(hands):
+                raise RuntimeError(f"差が明白なプリフロップ比較です: {question['id']}")
+            if not board and max(question["equities"]) < 51:
+                raise RuntimeError(f"勝率差が小さすぎるプリフロップ比較です: {question['id']}")
+            if not board and question.get("simulationTrials") != 12_000:
+                raise RuntimeError(f"プリフロップ比較の試行数が不正です: {question['id']}")
         if question.get("category") == "backdoor_flush":
             hole = tuple(question["hole"])
             board = tuple(question["board"])
@@ -2371,8 +2494,9 @@ def mode_c_learning_explanation(question: dict) -> str:
                 "最後に同じマークと数字の近さを見ます。"
             )
         return (
-            f"{hand_copy}6人では相手5人全員を上回る必要があり、高いペアと高いカードの価値が上がります。"
-            "「2人分を割り算せず、6人用の基準値として覚える」のがポイントです。"
+            f"{hand_copy}{players}人では相手{players - 1}人全員を上回る必要があり、"
+            "高いペアと高いカードの価値が上がります。"
+            f"「1対1の値を割り算せず、{players}人用の基準値として覚える」のがポイントです。"
         )
 
     current = HAND_NAMES[evaluate((*hole, *board))[0]]
@@ -2385,7 +2509,7 @@ def mode_c_learning_explanation(question: dict) -> str:
             "勝率は「役が完成する確率」だけではなく、今のまま勝つ道も含みます。"
         )
     return (
-        f"現在は{current}で、確認する強みは{draw_copy}。6人では相手5人の誰かに上回られる可能性が増えるため、"
+        f"現在は{current}で、確認する強みは{draw_copy}。{players}人では相手{players - 1}人の誰かに上回られる可能性が増えるため、"
         "同じ役でも高いキッカーや強いドローほど価値が上がります。"
         "「1対1の値を5倍せず、多人数では強い完成形を重視」と覚えます。"
     )
@@ -2874,9 +2998,46 @@ def main() -> int:
             not question.get("continuationReasons")
             or not question.get("archetype")
             for question in legacy_by_mode["B"]
+        ) or Counter(
+            (question["stage"], question.get("archetype"))
+            for question in legacy_by_mode["B"]
+        ) != Counter(
+            {
+                (stage, archetype): count
+                for stage, targets in B_HAND_COMPARISON_STAGE_TARGETS.items()
+                for archetype, count in targets.items()
+            }
+        ) or any(
+            question["stage"] == "preflop"
+            and (
+                max(question["equities"]) < 51
+                or is_obvious_preflop_comparison(
+                    tuple(tuple(hand) for hand in question["hands"])
+                )
+            )
+            for question in legacy_by_mode["B"]
         ):
             print("モードB従来分を実戦的な対決へ再生成します", flush=True)
-            legacy_by_mode["B"] = build_mode_b(random.Random(20260803))
+            legacy_by_mode["B"] = build_mode_b(
+                random.Random(20260803),
+                legacy_by_mode["B"],
+            )
+        if any(
+            question["stage"] == "preflop"
+            and question.get("simulationTrials") != 12_000
+            for question in legacy_by_mode["B"]
+        ):
+            print("モードBプリフロップ勝率を12,000試行で再計算します", flush=True)
+            legacy_by_mode["B"] = refresh_preflop_comparison_equities(
+                legacy_by_mode["B"]
+            )
+        if {
+            question["playerCount"]
+            for question in legacy_by_mode["C"]
+            if question["category"] == "preflop_equity"
+        } != {6, 9}:
+            print("モードCプリフロップを6人・9人卓へ再生成します", flush=True)
+            legacy_by_mode["C"] = build_mode_c(random.Random(20260804))
     existing_additions = load_existing_additions()
     additions = {}
     for mode, builder, seed in (

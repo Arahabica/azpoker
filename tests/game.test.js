@@ -94,31 +94,42 @@ test("モードAのフロップとターンはカテゴリを重複させない"
   }
 });
 
-test("モードAの5問はカテゴリを重複させない", () => {
+test("モードAの4問はカテゴリを重複させない", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
     const categories = session
       .filter((question) => question.mode === "A")
       .map((question) => question.category);
-    assert.equal(new Set(categories).size, 5);
+    assert.equal(new Set(categories).size, 4);
   }
 });
 
-test("Bを手札型・数値型1問ずつ、Cを1問、Dを別系統から2問含む", () => {
+test("プリフロップ勝率1問・手札比較2問・数値比較1問を含む", () => {
   for (let seed = 0; seed < 20; seed += 1) {
     const session = createSession(bank, seededRandom(seed));
     const comparisons = session.filter((question) => question.mode === "B");
-    assert.equal(comparisons.length, 2);
+    assert.equal(comparisons.length, 3);
     assert.equal(
       comparisons.filter((question) => question.answerType === "hand").length,
-      1,
+      2,
     );
     assert.equal(
       comparisons.filter((question) => question.answerType === "percent")
         .length,
       1,
     );
-    assert.equal(session.filter((question) => question.mode === "C").length, 1);
+    const preflopEquities = session.filter((question) => question.mode === "C");
+    assert.equal(preflopEquities.length, 1);
+    assert.equal(preflopEquities[0].stage, "preflop");
+    assert.ok([6, 9].includes(preflopEquities[0].playerCount));
+    const handComparisons = comparisons.filter(
+      (question) => question.answerType === "hand",
+    );
+    assert.ok(handComparisons.some((question) => question.stage === "preflop"));
+    assert.equal(
+      new Set(handComparisons.map((question) => question.archetype)).size,
+      2,
+    );
     assert.equal(session.filter((question) => question.mode === "D").length, 2);
   }
 });
