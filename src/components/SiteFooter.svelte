@@ -28,6 +28,11 @@
     >
     <a href="/credits#materials">素材</a>
     <a href="/credits#developer">開発者</a>
+    <a
+      href="https://github.com/Arahabica/azpoker"
+      rel="external noopener"
+      target="_blank">ソースコード</a
+    >
   </nav>
 </footer>
 

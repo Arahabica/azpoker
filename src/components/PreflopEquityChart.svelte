@@ -42,11 +42,11 @@
 
 <section class="equity-chart" aria-labelledby="preflop-equity-title">
   <div class="chart-copy">
-    <h3 id="preflop-equity-title">プリフロップ勝率表</h3>
+    <h3 id="preflop-equity-title">スターティングハンド勝率表</h3>
     <p>ハンド名の色で、ショーダウン時の強さを確認できます。</p>
   </div>
 
-  <table aria-label={`${playerCount}人卓のプリフロップ勝率表`}>
+  <table aria-label={`${playerCount}人卓のスターティングハンド勝率表`}>
     <tbody>
       {#each RANKS as rank, rowIndex (rank)}
         <tr>
@@ -93,6 +93,12 @@
       onclick={() => (playerCount = 9)}>9人卓</button
     >
   </div>
+
+  <p class="player-context" aria-live="polite">
+    {playerCount}人卓で最初に判断する場合の目安です。{playerCount +
+      1}人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が{playerCount -
+      1}人います。
+  </p>
 
   <p class="chart-source">
     100万回のシミュレーションによるポット獲得率（引き分け分を含む）。出典：
@@ -194,6 +200,7 @@
   }
 
   .chart-guide,
+  .player-context,
   .chart-source {
     padding-inline: 0.55rem;
     color: #a9c3ba;
@@ -203,6 +210,11 @@
 
   .chart-guide strong {
     color: #eef7f3;
+  }
+
+  .player-context {
+    color: #c5d9d2;
+    font-size: 0.68rem;
   }
 
   .strength-legend {

@@ -21,7 +21,10 @@ export const Default: Story = {
       canvas.getByRole("heading", { level: 1, name: "素材・開発者" }),
     ).toBeVisible();
     await expect(
-      canvas.getByRole("heading", { level: 2, name: "プリフロップ勝率表" }),
+      canvas.getByRole("heading", {
+        level: 2,
+        name: "スターティングハンド勝率表",
+      }),
     ).toBeVisible();
     await userEvent.click(
       canvas.getByRole("link", { name: "トップページへ戻る" }),

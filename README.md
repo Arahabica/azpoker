@@ -67,7 +67,7 @@ pnpm patterns:build
 
 `pnpm questions:build` は最初にパターン定義も更新します。生成済み定義と正本の不一致は `pnpm patterns:check` とCIで検出します。
 
-トップページのプリフロップ勝率表は [`questions/preflop-equities.md`](questions/preflop-equities.md) が正本です。問題バンクの計算値とは分けて管理し、次のコマンドで表示用JSONを更新します。
+トップページのスターティングハンド勝率表は [`questions/preflop-equities.md`](questions/preflop-equities.md) が正本です。問題バンクの計算値とは分けて管理し、次のコマンドで表示用JSONを更新します。
 
 ```sh
 pnpm preflop-equities:build

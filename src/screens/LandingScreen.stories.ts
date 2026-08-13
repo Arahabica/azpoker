@@ -35,7 +35,10 @@ export const FirstVisit: Story = {
     });
     await expect(startButtons).toHaveLength(2);
     await expect(
-      canvas.getByRole("heading", { level: 3, name: "プリフロップ勝率表" }),
+      canvas.getByRole("heading", {
+        level: 3,
+        name: "スターティングハンド勝率表",
+      }),
     ).toBeVisible();
     const holdemHeading = canvas.getByRole("heading", {
       level: 3,
@@ -51,7 +54,14 @@ export const FirstVisit: Story = {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     await expect(
-      canvas.getByRole("table", { name: "6人卓のプリフロップ勝率表" }),
+      canvas.getByRole("table", {
+        name: "6人卓のスターティングハンド勝率表",
+      }),
+    ).toBeVisible();
+    await expect(
+      canvas.getByText(
+        "6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。",
+      ),
     ).toBeVisible();
     await expect(canvas.getAllByRole("cell")).toHaveLength(169);
     await expect(
@@ -83,11 +93,24 @@ export const FirstVisit: Story = {
     await expect(
       canvas.getByRole("link", { name: "LA Poker.info" }),
     ).toHaveAttribute("href", "https://lapoker.info/ranking/");
+    const sourceCodeLink = canvas.getByRole("link", { name: "ソースコード" });
+    await expect(sourceCodeLink).toHaveAttribute(
+      "href",
+      "https://github.com/Arahabica/azpoker",
+    );
+    await expect(sourceCodeLink).toHaveAttribute("target", "_blank");
     const ninePlayers = canvas.getByRole("button", { name: "9人卓" });
     await userEvent.click(ninePlayers);
     await expect(ninePlayers).toHaveAttribute("aria-pressed", "true");
     await expect(
-      canvas.getByRole("table", { name: "9人卓のプリフロップ勝率表" }),
+      canvas.getByRole("table", {
+        name: "9人卓のスターティングハンド勝率表",
+      }),
+    ).toBeVisible();
+    await expect(
+      canvas.getByText(
+        "9人卓で最初に判断する場合の目安です。10人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が8人います。",
+      ),
     ).toBeVisible();
     await expect(
       canvas.getByRole("cell", { name: "AA、とても強い" }),

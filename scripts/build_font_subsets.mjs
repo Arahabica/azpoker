@@ -39,6 +39,7 @@ const landingBodySourcePaths = [
   "src/screens/LandingScreen.svelte",
   "src/components/LandingQuizPreview.svelte",
   "src/components/HoldemOverview.svelte",
+  "src/components/PreflopEquityChart.svelte",
   "src/components/ChoiceButton.svelte",
   "src/components/SiteFooter.svelte",
 ].map((filename) => path.join(root, filename));
@@ -52,6 +53,7 @@ const gameFontExcludedSourcePaths = new Set(
     "src/screens/CreditsScreen.svelte",
     "src/components/LandingQuizPreview.svelte",
     "src/components/HoldemOverview.svelte",
+    "src/components/PreflopEquityChart.svelte",
     "src/components/HistoryPanel.svelte",
     "src/components/HistoryList.svelte",
     "src/components/PublicPageShell.svelte",
