@@ -15,6 +15,7 @@ const meta = {
     detailNavigationAriaLabel: "履歴一覧へ戻る",
     onNavigate: fn(),
     onOpenHistory: fn(),
+    onOpenOlderHistory: fn(),
     onLeaveDetail: fn(),
   },
 } satisfies Meta<typeof HistoryScreen>;
@@ -60,8 +61,23 @@ export const DetailFromHistory: Story = {
     await expect(canvas.getAllByText("解説")).toHaveLength(2);
     await expect(canvas.getByText("難易度: ふつう")).toBeVisible();
     await expect(canvas.getByText("難易度: むずかしい")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await expect(args.onOpenOlderHistory).toHaveBeenCalledWith(
+      historyEntries[1]!.id,
+    );
     await userEvent.click(canvas.getByRole("link", { name: "履歴一覧へ戻る" }));
     await expect(args.onLeaveDetail).toHaveBeenCalledWith("/history");
+  },
+};
+
+export const OldestDetail: Story = {
+  name: "履歴詳細・最古",
+  args: {
+    history: historyEntries,
+    detailId: historyEntries[1]!.id,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole("button", { name: "次へ" })).toBeNull();
   },
 };
 
