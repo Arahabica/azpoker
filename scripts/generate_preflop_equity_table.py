@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""トップページのプリフロップ勝率表をMarkdownの正本から生成する。"""
+"""トップページのスターティングハンド勝率表をMarkdownの正本から生成する。"""
 
 from __future__ import annotations
 
@@ -59,12 +59,14 @@ def main() -> int:
     if args.check:
         if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != expected:
             print(
-                "生成済みプリフロップ勝率表が正本と一致しません: "
+                "生成済みスターティングハンド勝率表が正本と一致しません: "
                 f"{OUTPUT.relative_to(ROOT)}",
                 file=sys.stderr,
             )
             return 1
-        print("プリフロップ勝率表: 169ハンド / 6人卓・9人卓 / 正本と一致")
+        print(
+            "スターティングハンド勝率表: 169ハンド / 6人卓・9人卓 / 正本と一致"
+        )
         return 0
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(expected, encoding="utf-8")
