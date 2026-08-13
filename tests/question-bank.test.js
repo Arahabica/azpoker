@@ -274,6 +274,19 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     "コンボドロー",
     "キッカー",
   ];
+  const learningSignals = [
+    "アウツ",
+    "組合せ",
+    "覚えます",
+    "概算",
+    "基準",
+    "順で",
+    "まず",
+    "先に",
+    "残り",
+    "見えていない",
+    "分けて考え",
+  ];
   for (const question of bank) {
     const copy = `${question.prompt}${question.explain}`;
     assert.equal(copy.includes("3カード"), false, `${question.id}: 3カード`);
@@ -290,6 +303,15 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
       copy.includes("ランク"),
       false,
       `${question.id}: 初心者向け表現`,
+    );
+    assert.equal(
+      copy.includes("厳密には"),
+      false,
+      `${question.id}: 冗長な前置き`,
+    );
+    assert.ok(
+      learningSignals.some((signal) => question.explain.includes(signal)),
+      `${question.id}: 学習手掛かり`,
     );
     for (const term of explanationOnlyTerms) {
       assert.equal(
@@ -321,6 +343,55 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
   );
   assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
   assert.match(opponentOesd?.explain ?? "", /OESD/);
+});
+
+test("回答後の解説は数え方・暗算方法・覚え方を具体的に示す", () => {
+  const byId = Object.fromEntries(
+    ["a-04136", "a-06565", "a-06918", "a-03171"].map((id) => [
+      id,
+      bank.find((question) => question.id === id),
+    ]),
+  );
+
+  assert.match(byId["a-04136"]?.explain ?? "", /3枚＝3アウツ/);
+  assert.match(byId["a-04136"]?.explain ?? "", /アウツ×2/);
+  assert.match(byId["a-04136"]?.explain ?? "", /約6%/);
+
+  assert.match(byId["a-06565"]?.explain ?? "", /9枚＝9アウツ/);
+  assert.match(byId["a-06565"]?.explain ?? "", /アウツ×4/);
+  assert.match(byId["a-06565"]?.explain ?? "", /約36%/);
+
+  assert.match(byId["a-06918"]?.explain ?? "", /合計8アウツ/);
+  assert.match(byId["a-06918"]?.explain ?? "", /アウツ×2/);
+  assert.match(byId["a-06918"]?.explain ?? "", /約16%/);
+
+  assert.match(byId["a-03171"]?.explain ?? "", /9＋4−1＝12アウツ/);
+  assert.match(byId["a-03171"]?.explain ?? "", /アウツ×4/);
+  assert.match(byId["a-03171"]?.explain ?? "", /少し高め/);
+
+  assert.ok(bank.every((question) => !question.explain.includes("厳密には")));
+  assert.ok(
+    bank
+      .filter((question) => question.mode === "C")
+      .every(
+        (question) =>
+          !/^この(?:手札|状況)での\d人での勝率は/.test(question.explain),
+      ),
+  );
+  assert.ok(
+    bank.every(
+      (question) => !/約(?:1\d\d|[2-9]\d\d)%と概算/.test(question.explain),
+    ),
+    "100%以上の概算を説明へ出さない",
+  );
+  for (const question of bank.filter(
+    (candidate) =>
+      candidate.category === "overcard" &&
+      candidate.stage === "flop" &&
+      candidate.trueP >= 80,
+  )) {
+    assert.match(question.explain, /外れ.*100%から引/);
+  }
 });
 
 test("バックドアフラッシュは単独ドローの約4.2%だけを問う", () => {
