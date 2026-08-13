@@ -5,6 +5,7 @@
   import HoldemOverview from "../components/HoldemOverview.svelte";
   import LandingQuizPreview from "../components/LandingQuizPreview.svelte";
   import LogoCards from "../components/LogoCards.svelte";
+  import PreflopEquityChart from "../components/PreflopEquityChart.svelte";
   import SiteFooter from "../components/SiteFooter.svelte";
   import type { QuizHistoryEntry } from "../result-history.ts";
 
@@ -88,6 +89,11 @@
       <div class="holdem-section">
         <HoldemOverview />
       </div>
+
+      <section class="appendix-section" aria-labelledby="appendix-title">
+        <h2 id="appendix-title">付録</h2>
+        <PreflopEquityChart />
+      </section>
 
       <div class="closing-action">
         <ActionButton
@@ -200,6 +206,20 @@
 
   .holdem-section {
     margin-top: 1.25rem;
+  }
+
+  .appendix-section {
+    display: grid;
+    gap: 1rem;
+    margin-top: 3.5rem;
+  }
+
+  .appendix-section > h2 {
+    color: var(--text);
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.5;
   }
 
   .closing-action {

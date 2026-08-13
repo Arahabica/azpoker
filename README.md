@@ -67,6 +67,12 @@ pnpm patterns:build
 
 `pnpm questions:build` は最初にパターン定義も更新します。生成済み定義と正本の不一致は `pnpm patterns:check` とCIで検出します。
 
+トップページのプリフロップ勝率表は [`questions/preflop-equities.md`](questions/preflop-equities.md) が正本です。問題バンクの計算値とは分けて管理し、次のコマンドで表示用JSONを更新します。
+
+```sh
+pnpm preflop-equities:build
+```
+
 OGP画像を現在のトップページから再生成する場合:
 
 ```sh
@@ -118,7 +124,9 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 - `src/probability-engine.ts`: 確率計算の純粋関数
 - `src/question-loader.ts`: manifestとA・B+C・Dの3パック遅延取得、メモリ再利用、直近問題の記録
 - `questions/patterns.md`: 問題カテゴリ、学習目的、件数、対象者、出題系統の人間向け正本
+- `questions/preflop-equities.md`: トップページに表示する6人卓・9人卓のプリフロップ勝率の正本
 - `scripts/generate_question_patterns.py`: Markdownの正本からPython・TypeScript定義を生成
+- `scripts/generate_preflop_equity_table.py`: 表示用の勝率正本からJSONを生成・検査
 - `src/loading-timing.ts`: 短い読み込みでは表示せず、表示したローディングは最低時間を保つ遷移制御
 - `src/result-summary.ts`: 正答数、回答速度、時間切れ数から結果文言・表示値を作る純粋関数
 - `src/sound-effects.ts`: Web Audio APIによる効果音の取得・事前デコード・即時再生・停止

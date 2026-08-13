@@ -346,77 +346,62 @@ audience_rule = "対決類型"
 
 [variants."プリフロップ".pair_vs_overcards]
 name = "ポケットペア対オーバーカード"
-count = 250
+count = 600
 audience = "初心者"
-
-[variants."プリフロップ".pair_vs_high_cards]
-name = "ポケットペア対高いカード"
-count = 100
-audience = "中級者"
-
-[variants."プリフロップ".pair_vs_pair]
-name = "ポケットペア同士"
-count = 100
-audience = "初心者"
-
-[variants."プリフロップ".domination]
-name = "同じ高いカードによるドミネーション"
-count = 150
-audience = "中級者"
 
 [variants."プリフロップ".playable_preflop]
 name = "プレイ可能な初期手札同士"
-count = 100
+count = 600
 audience = "中級者"
 
 [variants."フロップ".draw_vs_two_pair_plus]
 name = "ドロー対ツーペア以上"
-count = 200
+count = 150
 audience = "中級者"
 
 [variants."フロップ".top_pair_vs_flush_draw]
 name = "トップペア対フラッシュドロー"
-count = 250
+count = 200
 audience = "初心者"
 
 [variants."フロップ".one_pair_kicker]
 name = "ワンペアのキッカー勝負"
-count = 150
+count = 100
 audience = "初心者"
 
 [variants."フロップ".combo_hand]
 name = "複数の役やドローを持つ手札"
-count = 200
+count = 150
 audience = "中級者"
 
 [variants."フロップ".continue_matchup]
 name = "双方に続行理由がある対決"
-count = 350
+count = 300
 audience = "中級者"
 
 [variants."ターン".draw_vs_two_pair_plus]
 name = "ドロー対ツーペア以上"
-count = 200
+count = 150
 audience = "中級者"
 
 [variants."ターン".top_pair_vs_flush_draw]
 name = "トップペア対フラッシュドロー"
-count = 250
+count = 200
 audience = "初心者"
 
 [variants."ターン".one_pair_kicker]
 name = "ワンペアのキッカー勝負"
-count = 150
+count = 100
 audience = "初心者"
 
 [variants."ターン".combo_hand]
 name = "複数の役やドローを持つ手札"
-count = 200
+count = 150
 audience = "中級者"
 
 [variants."ターン".continue_matchup]
 name = "双方に続行理由がある対決"
-count = 350
+count = 300
 audience = "中級者"
 ```
 
@@ -458,15 +443,15 @@ audience = "中級者"
 id = "preflop_equity"
 mode = "C"
 name = "プリフロップ勝率"
-purpose = "169種類の初期手札について2人卓と6人卓の基準勝率を覚える"
+purpose = "169種類の初期手札について6人卓と9人卓の基準勝率を覚える"
 example = "6人での勝率は？"
 count = 338
 per_player = 169
 generator = "Cプリフロップ"
 answer_type = "確率"
 stages = ["プリフロップ"]
-players = [2, 6]
-audience_by_players = { "2人" = "初心者", "6人" = "上級者" }
+players = [6, 9]
+audience_by_players = { "6人" = "初心者", "9人" = "中級者" }
 ```
 
 ### ポストフロップ勝率

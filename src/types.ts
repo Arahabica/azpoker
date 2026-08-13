@@ -38,7 +38,8 @@ interface QuestionBase {
   targetRank?: SourceRank;
   targetSuit?: Suit;
   targetHand?: HandIndex;
-  playerCount?: 2 | 6;
+  playerCount?: 2 | 6 | 9;
+  simulationTrials?: number;
 }
 
 interface HoleLayout {

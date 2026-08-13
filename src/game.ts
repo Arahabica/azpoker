@@ -12,14 +12,14 @@ import type {
 import { dQuestionFamily } from "./generated/question-patterns.ts";
 
 const SESSION_MODE_COUNTS: Readonly<Record<GameMode, number>> = Object.freeze({
-  A: 5,
-  B: 2,
+  A: 4,
+  B: 3,
   C: 1,
   D: 2,
 });
 const SESSION_STAGE_COUNTS: Readonly<Record<Stage, number>> = Object.freeze({
-  preflop: 2,
-  flop: 5,
+  preflop: 3,
+  flop: 4,
   turn: 3,
 });
 const SESSION_DIFFICULTY_COUNTS: Readonly<Record<Difficulty, number>> =
@@ -97,17 +97,32 @@ function createSession(
   const numericB = byMode.B.filter(
     (question) => question.answerType === "percent",
   );
-  if (classicB.length === 0 || numericB.length === 0) {
+  const preflopClassicB = classicB.filter(
+    (question) => question.stage === "preflop",
+  );
+  const preflopEquity = byMode.C.filter(
+    (question) =>
+      question.category === "preflop_equity" &&
+      question.stage === "preflop" &&
+      (question.playerCount === 6 || question.playerCount === 9),
+  );
+  if (
+    classicB.length === 0 ||
+    numericB.length === 0 ||
+    preflopClassicB.length === 0 ||
+    preflopEquity.length === 0
+  ) {
     throw new Error("モードBの出題形式が不足しています");
   }
 
   const slots: Question[][] = [
     numericB,
-    byMode.C,
-    byMode.D,
-    byMode.D,
+    preflopEquity,
+    preflopClassicB,
     classicB,
-    ...Array<Question[]>(5).fill(byMode.A),
+    byMode.D,
+    byMode.D,
+    ...Array<Question[]>(4).fill(byMode.A),
   ];
   let requiredLevel: Exclude<AudienceLevel, "advanced"> | undefined;
   if (requiredQuestion) {
@@ -122,7 +137,9 @@ function createSession(
           ? requiredQuestion.answerType === "hand"
             ? classicB
             : numericB
-          : byMode[requiredQuestion.mode];
+          : requiredQuestion.mode === "C"
+            ? preflopEquity
+            : byMode[requiredQuestion.mode];
     const requiredSlotIndex = slots.indexOf(requiredPool);
     if (requiredSlotIndex === -1) {
       throw new Error("履歴問題を通常セッションへ追加できません");
@@ -141,6 +158,13 @@ function createSession(
     const selected: Question[] = requiredQuestion ? [requiredQuestion] : [];
     const aCategories = new Set<string>(
       requiredQuestion?.mode === "A" ? [requiredQuestion.category] : [],
+    );
+    const bHandArchetypes = new Set<string>(
+      requiredQuestion?.mode === "B" &&
+        requiredQuestion.answerType === "hand" &&
+        requiredQuestion.archetype
+        ? [requiredQuestion.archetype]
+        : [],
     );
     let firstD: Question | null =
       requiredQuestion?.mode === "D" ? requiredQuestion : null;
@@ -167,6 +191,13 @@ function createSession(
         if (question.mode === "A" && aCategories.has(question.category))
           return false;
         if (
+          question.mode === "B" &&
+          question.answerType === "hand" &&
+          question.archetype &&
+          bHandArchetypes.has(question.archetype)
+        )
+          return false;
+        if (
           question.mode === "D" &&
           firstD &&
           (question.category === firstD.category ||
@@ -189,6 +220,12 @@ function createSession(
       remainingDifficulties[question.difficulty] -= 1;
       remainingLevels[question.level] -= 1;
       if (question.mode === "A") aCategories.add(question.category);
+      if (
+        question.mode === "B" &&
+        question.answerType === "hand" &&
+        question.archetype
+      )
+        bHandArchetypes.add(question.archetype);
       if (question.mode === "D" && !firstD) firstD = question;
     }
     if (
