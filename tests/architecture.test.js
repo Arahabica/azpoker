@@ -55,6 +55,7 @@ test("公開ページをビルド時に描画し、ブラウザでhydrateする"
   for (const outputPath of [
     "history/index.html",
     "history-detail/index.html",
+    "starting-hand-3d/index.html",
     "terms/index.html",
     "credits/index.html",
   ]) {
@@ -84,6 +85,7 @@ test("AppがURLとゲーム状態を対応する画面へ接続する", () => {
     "QuizScreen",
     "ResultScreen",
     "HistoryScreen",
+    "StartingHand3DScreen",
     "TermsScreen",
     "CreditsScreen",
   ]) {
@@ -107,6 +109,44 @@ test("AppがURLとゲーム状態を対応する画面へ接続する", () => {
   assert.match(app, /createHistoryDetailPath\(id\)/);
   assert.match(app, /openHistoryDetail\(id, "top"\)/);
   assert.match(app, /openHistoryDetail\(id, "history"\)/);
+});
+
+test("Three.jsを3Dページへ遷移した後にだけ読み込む", () => {
+  const screen = read("src/screens/StartingHand3DScreen.svelte");
+  const scene = read("src/components/StartingHand3DScene.svelte");
+
+  assert.equal(packageJson.dependencies.three, "^0.185.1");
+  assert.match(packageJson.devDependencies["@types/three"], /^\^0\.185\./);
+  assert.doesNotMatch(app, /from ["']three/);
+  assert.doesNotMatch(screen, /from ["']three/);
+  assert.match(screen, /onMount\(\(\) =>/);
+  assert.match(
+    screen,
+    /import\("\.\.\/components\/StartingHand3DScene\.svelte"\)/,
+  );
+  assert.match(scene, /from "three"/);
+  assert.match(scene, /from "three\/addons\/controls\/OrbitControls\.js"/);
+  assert.match(scene, /new THREE\.InstancedMesh/);
+  assert.match(scene, /const HEIGHT_SCALE = GRID_SIZE \/ 100/);
+  assert.match(scene, /new THREE\.GridHelper\(240, 240/);
+  assert.match(scene, /new THREE\.EdgesGeometry\(frameBoxGeometry\)/);
+  assert.match(scene, /renderer\.shadowMap\.enabled = true/);
+  assert.doesNotMatch(scene, /new THREE\.Sprite/);
+  assert.match(scene, /selectedHand: string \| null/);
+  assert.match(scene, /onSelect: \(cell: PreflopEquityCell \| null\)/);
+  assert.match(scene, /new THREE\.Color\(0xf1c40f\)/);
+  assert.match(scene, /bars\.setColorAt\(selectedIndex, selectedColor\)/);
+  assert.match(scene, /selectHand\(cell\?\.hand \?\? null\)/);
+  assert.match(
+    scene,
+    /defaultCameraDirection = new THREE\.Vector3\(1, 0\.78, 0\)/,
+  );
+  assert.match(app, /data-app-path="\/starting-hand-3d"/);
+  assert.match(app, /max-width: none/);
+  assert.doesNotMatch(screen, /PublicPageShell/);
+  assert.match(screen, /id="public-page-title" tabindex="-1"/);
+  assert.match(scene, /renderer\.dispose\(\)/);
+  assert.match(scene, /controls\.dispose\(\)/);
 });
 
 test("復習終了後は専用ページを挟まず通常結果へ戻す", () => {

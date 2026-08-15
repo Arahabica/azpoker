@@ -4,7 +4,7 @@
 
 ポーカーのドロー確率、2ハンドの強さ、プリフロップ勝率を2択で答える、10問1セットのブラウザドリルです。
 
-UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。トップ、履歴、利用規約、素材・開発者ページはビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
+UIは **Svelte 5**、アプリコードとCLI型検査は **TypeScript 7**、開発・ビルドは **Vite** を使います。3D勝率表は **Three.js** で描画し、同ページへ移動した場合だけライブラリを読み込みます。トップ、履歴、3D勝率表、利用規約、素材・開発者ページはビルド時に静的HTMLへ描画し、ブラウザでhydrateします。SvelteKit、CSSフレームワーク、外部コンポーネントライブラリは使っていません。
 
 ## 起動
 
@@ -25,7 +25,7 @@ Viteが表示したローカルURLをブラウザで開きます。
 pnpm storybook
 ```
 
-<http://localhost:6006/> で、トップ、問題の読み込み、開始準備、読み込みエラー、問題の回答前・正解・誤答・時間切れ、ゲーム終了、全問正解メッセージ12種類、履歴一覧・詳細、利用規約、素材・開発者、280px幅などを個別に確認できます。
+<http://localhost:6006/> で、トップ、問題の読み込み、開始準備、読み込みエラー、問題の回答前・正解・誤答・時間切れ、ゲーム終了、全問正解メッセージ12種類、履歴一覧・詳細、3D勝率表、利用規約、素材・開発者、280px幅などを個別に確認できます。
 
 操作テストとアクセシビリティ検査を初めて実行する前に、テスト用ブラウザを導入します。
 
@@ -98,13 +98,15 @@ Node.jsは `.node-version` の24.18.0、pnpmはCloudflareのビルド環境変�
 ## コード構成
 
 - `src/App.svelte`: 公開ページの遷移、問題データの準備、フォーカス・効果音など画面遷移に伴う副作用
-- `src/app-route.ts`: `/`、`/history`、`/terms`、`/credits`の解決とページメタ情報
+- `src/app-route.ts`: `/`、`/history`、`/starting-hand-3d`、`/terms`、`/credits`の解決とページメタ情報
 - `src/game-flow.ts`: トップ、準備、出題、回答済み、結果を遷移させる純粋なTypeScript状態機械
 - `src/types.ts`: カード、問題、回答、画面状態で共有するドメイン型
 - `src/entry-server.ts`: 公開ページを静的HTMLへ描画するSSRエントリ
 - `scripts/prerender.mjs`: SSR出力を各URLの `index.html` へ埋め込むビルド処理
 - `scripts/capture-ogp.mjs`: トップの撮影専用状態から1200×630pxのOGP画像を再生成
-- `src/screens/`: トップ、履歴、規約、素材、読み込み、開始準備、問題、結果の各画面
+- `src/screens/`: トップ、履歴、3D勝率表、規約、素材、読み込み、開始準備、問題、結果の各画面
+- `src/components/StartingHand3DScene.svelte`: Three.jsによる全画面の白い方眼空間、169ハンドの柱と影、視点操作、選択、WebGLリソース破棄
+- `src/preflop-equity.ts`: 2D・3D勝率表で共有する13×13配置、6人卓勝率、5段階分類
 - `src/result-history.ts`: クイズ結果の検証、LocalStorage保存、50件上限と重複防止
 - `src/components/HistoryList.svelte`: トップと履歴ページで共有する結果一覧
 - `src/components/PublicPageShell.svelte`: 履歴、利用規約、素材ページの共通レイアウト

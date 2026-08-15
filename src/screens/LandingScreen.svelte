@@ -92,7 +92,7 @@
 
       <section class="appendix-section" aria-labelledby="appendix-title">
         <h2 id="appendix-title">付録</h2>
-        <PreflopEquityChart />
+        <PreflopEquityChart {onNavigate} />
       </section>
 
       <div class="closing-action">

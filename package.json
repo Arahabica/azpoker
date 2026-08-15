@@ -43,6 +43,7 @@
     "@storybook/svelte-vite": "^10.5.7",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@types/node": "^24.13.3",
+    "@types/three": "^0.185.4",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/browser-playwright": "^4.0.0",
     "eslint": "^10.8.0",
@@ -65,5 +66,8 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "three": "^0.185.1"
   }
 }

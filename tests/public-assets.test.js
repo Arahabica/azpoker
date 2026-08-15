@@ -39,7 +39,13 @@ test("検索エンジンへ正規ドメインの公開ページを案内する",
   );
 
   assert.match(robots, /Sitemap: https:\/\/azpoker\.me\/sitemap\.xml/);
-  for (const pathname of ["/", "/history", "/terms", "/credits"]) {
+  for (const pathname of [
+    "/",
+    "/history",
+    "/starting-hand-3d",
+    "/terms",
+    "/credits",
+  ]) {
     assert.match(sitemap, new RegExp(`<loc>https://azpoker\\.me${pathname}`));
   }
 });

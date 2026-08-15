@@ -1,45 +1,29 @@
 <script lang="ts">
-  import equityRows from "../generated/preflop-equity-table.json";
+  import { shouldHandleAppNavigation, type AppPath } from "../app-route.ts";
+  import {
+    PREFLOP_EQUITY_CELLS,
+    PREFLOP_RANKS,
+    PREFLOP_TIER_LABELS,
+    getPreflopTierRange,
+    type PreflopTier,
+  } from "../preflop-equity.ts";
 
-  const RANKS = [..."AKQJT98765432"] as const;
-  const TIER_LABELS = [
-    "とても弱い",
-    "弱い",
-    "中",
-    "強い",
-    "とても強い",
-  ] as const;
-  const TIER_THRESHOLDS = [16, 22, 25, 30] as const;
-  const equityByHand = new Map(
-    equityRows.map((row) => [row.hand, row] as const),
+  const cellsByPosition = new Map(
+    PREFLOP_EQUITY_CELLS.map(
+      (cell) => [`${cell.rowIndex}-${cell.columnIndex}`, cell] as const,
+    ),
   );
 
-  function handAt(rowIndex: number, columnIndex: number): string {
-    const rowRank = RANKS[rowIndex]!;
-    const columnRank = RANKS[columnIndex]!;
-    if (rowIndex === columnIndex) return `${rowRank}${columnRank}`;
-    if (rowIndex < columnIndex) return `${rowRank}${columnRank}s`;
-    return `${columnRank}${rowRank}o`;
+  interface Props {
+    onNavigate: (path: AppPath) => void;
   }
 
-  function equityFor(hand: string): number {
-    const row = equityByHand.get(hand);
-    if (!row) throw new Error(`勝率表に${hand}がありません`);
-    return row.players6;
-  }
+  let { onNavigate }: Props = $props();
 
-  function tierFor(value: number): number {
-    if (value >= TIER_THRESHOLDS[3]) return 5;
-    if (value >= TIER_THRESHOLDS[2]) return 4;
-    if (value >= TIER_THRESHOLDS[1]) return 3;
-    if (value >= TIER_THRESHOLDS[0]) return 2;
-    return 1;
-  }
-
-  function rangeFor(tierIndex: number): string {
-    return tierIndex === 0
-      ? `${TIER_THRESHOLDS[0]}%未満`
-      : `${TIER_THRESHOLDS[tierIndex - 1]}%以上`;
+  function showThreeDimensionalChart(event: MouseEvent): void {
+    if (!shouldHandleAppNavigation(event)) return;
+    event.preventDefault();
+    onNavigate("/starting-hand-3d");
   }
 </script>
 
@@ -54,16 +38,20 @@
   <div class="table-bleed">
     <table aria-label="6人卓のスターティングハンド勝率表">
       <tbody>
-        {#each RANKS as rank, rowIndex (rank)}
+        {#each PREFLOP_RANKS as rank, rowIndex (rank)}
           <tr>
-            {#each RANKS as columnRank, columnIndex (`${rowIndex}-${columnRank}`)}
-              {@const hand = handAt(rowIndex, columnIndex)}
-              {@const value = equityFor(hand)}
-              {@const tier = tierFor(value)}
-              {@const strength = TIER_LABELS[tier - 1]!}
-              <td data-tier={tier} aria-label={`${hand}、${strength}`}>
-                {hand}
-              </td>
+            {#each PREFLOP_RANKS as columnRank, columnIndex (`${rowIndex}-${columnRank}`)}
+              {@const cell = cellsByPosition.get(`${rowIndex}-${columnIndex}`)}
+              {#if cell}
+                <td
+                  data-tier={cell.tier}
+                  aria-label={`${cell.hand}、${cell.strength}`}
+                >
+                  {cell.hand}
+                </td>
+              {:else}
+                <td aria-label="データなし">-</td>
+              {/if}
             {/each}
           </tr>
         {/each}
@@ -77,12 +65,12 @@
     </div>
 
     <ul class="strength-legend" aria-label="勝率による強さの色分け">
-      {#each TIER_LABELS as label, tierIndex (label)}
-        {@const tier = tierIndex + 1}
+      {#each PREFLOP_TIER_LABELS as label, tierIndex (label)}
+        {@const tier = (tierIndex + 1) as PreflopTier}
         <li>
           <i data-tier={tier} aria-hidden="true"></i>
           <span>{label}</span>
-          <small>{rangeFor(tierIndex)}</small>
+          <small>{getPreflopTierRange(tier)}</small>
         </li>
       {/each}
     </ul>
@@ -90,6 +78,12 @@
     <p class="player-context">
       6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。
     </p>
+
+    <a
+      class="three-dimensional-link"
+      href="/starting-hand-3d"
+      onclick={showThreeDimensionalChart}>3Dで見る</a
+    >
 
     <p class="chart-source">
       100万回のシミュレーションによるポット獲得率（引き分け分を含む）。出典：
@@ -233,6 +227,20 @@
     font-size: 0.68rem;
   }
 
+  .three-dimensional-link {
+    justify-self: start;
+    margin-inline: 0.55rem;
+    color: #d4c781;
+    font-size: 0.64rem;
+    line-height: 1.65;
+    text-underline-offset: 0.2em;
+  }
+
+  .three-dimensional-link:focus-visible {
+    outline: 3px solid rgb(255 255 255 / 82%);
+    outline-offset: 3px;
+  }
+
   .strength-legend {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -278,6 +286,10 @@
   }
 
   @media (hover: hover) {
+    .three-dimensional-link:hover {
+      color: #fff0aa;
+    }
+
     .chart-source a:hover {
       color: #fff0aa;
     }

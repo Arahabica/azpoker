@@ -16,10 +16,17 @@ import {
   readHistoryDetailOrigin,
 } from "../src/app-route.ts";
 
-test("公開する4つのURLを末尾スラッシュの有無によらず解決する", () => {
-  assert.deepEqual(APP_PATHS, ["/", "/history", "/terms", "/credits"]);
+test("公開する5つのURLを末尾スラッシュの有無によらず解決する", () => {
+  assert.deepEqual(APP_PATHS, [
+    "/",
+    "/history",
+    "/starting-hand-3d",
+    "/terms",
+    "/credits",
+  ]);
   assert.equal(normalizeAppPath("/history"), "/history");
   assert.equal(normalizeAppPath("/history/"), "/history");
+  assert.equal(normalizeAppPath("/starting-hand-3d/"), "/starting-hand-3d");
   assert.equal(normalizeAppPath("/terms?from=footer"), "/terms");
   assert.equal(normalizeAppPath("/credits#sounds"), "/credits");
 });
@@ -76,6 +83,10 @@ test("各ページに固有のタイトルと説明を持たせる", () => {
   }
   assert.match(getPageMetadata("/history").title, /^履歴/);
   assert.match(getPageMetadata("/history/result-1").title, /^履歴詳細/);
+  assert.match(
+    getPageMetadata("/starting-hand-3d").title,
+    /^スターティングハンド勝率表\(3D\)/,
+  );
   assert.match(getPageMetadata("/terms").title, /^利用規約/);
 });
 
@@ -83,6 +94,10 @@ test("公開URLとOGP画像はazpoker.meの絶対URLに統一する", () => {
   assert.equal(SITE_ORIGIN, "https://azpoker.me");
   assert.equal(getCanonicalUrl("/"), "https://azpoker.me/");
   assert.equal(getCanonicalUrl("/history"), "https://azpoker.me/history");
+  assert.equal(
+    getCanonicalUrl("/starting-hand-3d"),
+    "https://azpoker.me/starting-hand-3d",
+  );
   assert.equal(
     getCanonicalUrl("/history/result-1"),
     "https://azpoker.me/history/result-1",

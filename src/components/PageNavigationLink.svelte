@@ -6,6 +6,7 @@
     path: AppPath;
     label?: string;
     ariaLabel?: string;
+    tone?: "on-dark" | "on-light";
     onNavigate: () => void;
   }
 
@@ -13,6 +14,7 @@
     path,
     label = "トップへ",
     ariaLabel = "トップページへ戻る",
+    tone = "on-dark",
     onNavigate,
   }: Props = $props();
 
@@ -28,6 +30,7 @@
   href={path}
   onclick={followNavigation}
   aria-label={ariaLabel}
+  data-tone={tone}
 >
   <ChevronIcon direction="left" />
   <span>{label}</span>
@@ -52,9 +55,21 @@
     outline-offset: 3px;
   }
 
+  .page-navigation-link[data-tone="on-light"] {
+    color: #35413d;
+  }
+
+  .page-navigation-link[data-tone="on-light"]:focus-visible {
+    outline-color: rgb(23 34 30 / 82%);
+  }
+
   @media (hover: hover) {
     .page-navigation-link:hover {
       color: var(--text);
+    }
+
+    .page-navigation-link[data-tone="on-light"]:hover {
+      color: #111719;
     }
   }
 </style>
