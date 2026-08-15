@@ -11,9 +11,12 @@
 ## 回答後の解説方針
 
 - 画面に別表示される実測値は繰り返さず、「何を数えるか → 暗算方法 → 覚え方」の順で説明します。
-- 1枚で完成するドローは、フロップなら「アウツ×4」、ターンなら「アウツ×2」を概算の基準にします。
-- 残り2枚の両方が必要な場合、相手の2枚組、多人数の勝率にはアウツの公式を使わず、必要な組合せを説明します。
-- 複合ドローは重複アウツを一度だけ数え、6人卓は相手1人分を単純に5倍しません。
+- 各解説は単独で読まれる前提で書きます。その問題に登場しない概念（他カテゴリの計算法など）を引き合いに出して否定しません。
+- 専門用語を避けます。「アウツ」は「当たり」、「ターン」「リバー」は「4枚目」「5枚目」と書きます。
+- 1枚で完成するドローは概算に「×4」「×2」を使いますが、必ず直前に「あと2枚めくれるので、1枚あたり約4%」（ターンは約2%）と単位を示してから使います。
+- 残り2枚の両方が必要な場合、相手の2枚組、多人数の勝率には枚数×確率の概算を使わず、必要な組合せを説明します。
+- 複合ドローは重複する当たりを一度だけ数え、6人卓は相手1人分を単純に5倍しません。
+- 手札比較の解説は、手札の形から付くラベルではなく、実際の勝ち・引き分け・負けの枚数から書きます。見かけのドローが引き分けにしかならない場合はその旨を明記します。
 - 「厳密には」という前置きは使いません。
 
 ## 全体構成
@@ -21,7 +24,7 @@
 ```toml question-catalog
 schema_version = 1
 batch_size = 100
-expected_mode_counts = { A = 10000, B = 4800, C = 1200, D = 5000 }
+expected_mode_counts = { A = 10000, B = 4800, C = 1200, D = 4500 }
 ```
 
 ## モードA：自分の手札が完成・変化する確率
@@ -32,8 +35,8 @@ expected_mode_counts = { A = 10000, B = 4800, C = 1200, D = 5000 }
 id = "flush"
 mode = "A"
 name = "フラッシュ"
-purpose = "自分の手札がリバーまでにフラッシュになる確率を概算する"
-example = "リバーまでにフラッシュになる確率は？"
+purpose = "自分の手札が5枚目までにフラッシュになる確率を概算する"
+example = "フラッシュの確率は？"
 count = 1400
 generator = "A基本"
 answer_type = "確率"
@@ -48,7 +51,7 @@ id = "straight"
 mode = "A"
 name = "ストレート"
 purpose = "OESDやガットショットからストレートになる確率を概算する"
-example = "リバーまでにストレートになる確率は？"
+example = "ストレートの確率は？"
 count = 1600
 generator = "A基本"
 answer_type = "確率"
@@ -167,8 +170,8 @@ audience = "中級者"
 id = "backdoor_flush"
 mode = "A"
 name = "バックドアフラッシュ"
-purpose = "残り2枚が両方同じマークになる約4.2%を覚える"
-example = "リバーまでにフラッシュができる確率は？"
+purpose = "残り2枚が両方同じマークになる約4%を覚える"
+example = "5枚目までにフラッシュができる確率は？"
 count = 200
 generator = "A追加"
 answer_type = "確率"
@@ -411,7 +414,7 @@ audience = "中級者"
 id = "trailing_hand_wins"
 mode = "B"
 name = "現在負けている右手札の勝率"
-purpose = "現在弱い右手札がリバーまでに逆転して勝つ確率を考える"
+purpose = "現在弱い右手札が5枚目までに逆転して勝つ確率を考える"
 example = "右の手札の勝率は？"
 count = 900
 generator = "B数値"
@@ -483,11 +486,11 @@ mode = "D"
 name = "相手が指定カードを持つ"
 purpose = "見えていない同じ数字・文字が相手へ配られる確率を考える"
 example = "6人卓でほかの誰かがAを持つ確率は？"
-count = 662
+count = 651
 generator = "D指定カード"
 answer_type = "確率"
 stages = ["プリフロップ", "フロップ", "ターン"]
-stage_counts = { "プリフロップ" = 156, "フロップ" = 253, "ターン" = 253 }
+stage_counts = { "プリフロップ" = 153, "フロップ" = 249, "ターン" = 249 }
 players = [2, 6]
 audience_by_players = { "2人" = "初心者", "6人" = "上級者" }
 session_family = "完成役・所持札"
@@ -501,7 +504,7 @@ mode = "D"
 name = "相手がポケットペア"
 purpose = "相手の手札2枚が同じ数字・文字になる確率を考える"
 example = "6人卓でほかの誰かの手札がペアの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["プリフロップ"]
@@ -518,7 +521,7 @@ mode = "D"
 name = "相手がオーバーペア"
 purpose = "ボードの一番高いカードより高いポケットペアの可能性を考える"
 example = "6人卓でほかの誰かがボードより高いペアの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -535,7 +538,7 @@ mode = "D"
 name = "相手がセット"
 purpose = "相手のポケットペアとボード1枚でスリーになる可能性を考える"
 example = "6人卓でほかの誰かが手札のペアでスリーの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -552,7 +555,7 @@ mode = "D"
 name = "相手がトップカードを持つ"
 purpose = "ボードで一番高いカードと同じカードを相手が持つ可能性を考える"
 example = "6人卓でほかの誰かがAを持つ確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -569,7 +572,7 @@ mode = "D"
 name = "相手がツーペア"
 purpose = "相手の手札を使って異なる2組のペアができる可能性を考える"
 example = "6人卓でほかの誰かがツーペアの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -586,7 +589,7 @@ mode = "D"
 name = "相手がストレート"
 purpose = "相手の手札を最低1枚使って完成するストレートの可能性を考える"
 example = "6人卓でほかの誰かがストレートの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -603,7 +606,7 @@ mode = "D"
 name = "相手がフラッシュ"
 purpose = "相手の手札を最低1枚使って完成するフラッシュの可能性を考える"
 example = "6人卓でほかの誰かがフラッシュの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -628,7 +631,7 @@ mode = "D"
 name = "3枚連続ボードで相手がストレート"
 purpose = "3枚の連番が見えているフロップで、6人卓のほかの5人の誰かが不足する2種類を持つ可能性を考える"
 example = "ボードが10・J・Qのとき、6人卓でほかの誰かがストレートの確率は？"
-count = 250
+count = 247
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ"]
@@ -645,7 +648,7 @@ mode = "D"
 name = "4枚連続ボードで相手がストレート"
 purpose = "4枚の連番が見えているターンで、6人卓のほかの5人の誰かが並びの端を持つ可能性を考える"
 example = "ボードが10・J・Q・Kのとき、6人卓でほかの誰かがストレートの確率は？"
-count = 250
+count = 246
 generator = "D相手役"
 answer_type = "確率"
 stages = ["ターン"]
@@ -662,7 +665,7 @@ mode = "D"
 name = "同じマーク3枚のボードで相手がフラッシュ"
 purpose = "同じマーク3枚が見えているフロップで、6人卓のほかの5人の誰かが同じマークを2枚持つ可能性を考える"
 example = "ボードにハートが3枚あるとき、6人卓でほかの誰かがフラッシュの確率は？"
-count = 250
+count = 246
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ"]
@@ -679,47 +682,13 @@ mode = "D"
 name = "同じマーク4枚のボードで相手がフラッシュ"
 purpose = "同じマーク4枚が見えているターンで、6人卓のほかの5人の誰かが同じマークを1枚以上持つ可能性を考える"
 example = "ボードにハートが4枚あるとき、6人卓でほかの誰かがフラッシュの確率は？"
-count = 250
+count = 246
 generator = "D相手役"
 answer_type = "確率"
 stages = ["ターン"]
 players = [6]
 audience = "中級者"
 session_family = "危険ボード"
-```
-
-### 相手がストレートの両端待ち
-
-```toml question-pattern
-id = "opponent_oesd"
-mode = "D"
-name = "相手がストレートの両端待ち"
-purpose = "相手がOESDを持つ可能性を考える"
-example = "6人卓でほかの誰かがストレートの両端待ちの確率は？"
-count = 209
-generator = "D相手役"
-answer_type = "確率"
-stages = ["フロップ", "ターン"]
-players = [2, 6]
-audience_by_players = { "2人" = "初心者", "6人" = "上級者" }
-session_family = "ドロー"
-```
-
-### 相手がストレートの内側待ち
-
-```toml question-pattern
-id = "opponent_gutshot"
-mode = "D"
-name = "相手がストレートの内側待ち"
-purpose = "相手がガットショットを持つ可能性を考える"
-example = "6人卓でほかの誰かがストレートの内側待ちの確率は？"
-count = 209
-generator = "D相手役"
-answer_type = "確率"
-stages = ["フロップ", "ターン"]
-players = [2, 6]
-audience_by_players = { "2人" = "初心者", "6人" = "上級者" }
-session_family = "ドロー"
 ```
 
 ### 相手がフラッシュドロー
@@ -730,7 +699,7 @@ mode = "D"
 name = "相手がフラッシュドロー"
 purpose = "相手があと1枚でフラッシュになる形を持つ可能性を考える"
 example = "6人卓でほかの誰かがあと1枚でフラッシュの確率は？"
-count = 209
+count = 205
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -747,7 +716,7 @@ mode = "D"
 name = "相手がストレートとフラッシュ待ち"
 purpose = "相手が複合ドローを持つ可能性を考える"
 example = "6人卓でほかの誰かがストレートとフラッシュ待ちの確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -764,7 +733,7 @@ mode = "D"
 name = "相手が自分より高いフラッシュ"
 purpose = "完成フラッシュ同士で相手に上回られる可能性を考える"
 example = "6人卓でほかの誰かが自分より高いフラッシュの確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -781,7 +750,7 @@ mode = "D"
 name = "相手が同じペアで高いキッカー"
 purpose = "同じペア同士で相手のキッカーに上回られる可能性を考える"
 example = "6人卓でほかの誰かが同じペアで自分より強い確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -798,7 +767,7 @@ mode = "D"
 name = "相手全員がボードとペアでない"
 purpose = "全相手がボードと同じカードを1枚も持たない可能性を考える"
 example = "6人卓で相手全員がボードとペアでない確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["フロップ", "ターン"]
@@ -815,7 +784,7 @@ mode = "D"
 name = "指定カードを持つ相手が1人だけ"
 purpose = "指定した数字・文字を持つ相手がちょうど1人になる可能性を考える"
 example = "6人卓でAを持つ相手が1人だけの確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["プリフロップ"]
@@ -832,7 +801,7 @@ mode = "D"
 name = "指定カードを持つ相手が2人以上"
 purpose = "指定した数字・文字を複数の相手が持つ可能性を考える"
 example = "6人卓でAを持つ相手が2人以上の確率は？"
-count = 208
+count = 204
 generator = "D相手役"
 answer_type = "確率"
 stages = ["プリフロップ"]

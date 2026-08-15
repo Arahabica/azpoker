@@ -9,6 +9,7 @@ import itertools
 import json
 import math
 import random
+import re
 import shutil
 import sys
 from collections import Counter
@@ -1135,7 +1136,7 @@ def build_new_a_state(category: str, rng: random.Random):
 
 NEW_A_COPY = {
     "backdoor_flush": (
-        "リバーまでにフラッシュができる確率は？",
+        "5枚目までにフラッシュができる確率は？",
         "同じマークは今3枚です。残り2枚が両方そのマークなら完成するため、約4.2%です。",
     ),
     "flush_draw": (
@@ -1432,10 +1433,6 @@ def opponent_matches(category, hand, hero, board, target_rank=None):
         return has_flush_using_hole(hand, board)
     if category == "opponent_flush":
         return score[0] == 5 and has_flush_using_hole(hand, board)
-    if category == "opponent_oesd":
-        return opponent_draw_kind(hand, board) == "oesd"
-    if category == "opponent_gutshot":
-        return opponent_draw_kind(hand, board) == "gutshot"
     if category == "opponent_flush_draw":
         return has_flush_draw_using_hole(hand, board)
     if category == "opponent_combo_draw":
@@ -1620,14 +1617,6 @@ MODE_D_BEGINNER_COPY = {
         "がフラッシュの確率は？",
         "ボードと同じマークを1枚以上持つ相手がいる組合せです。",
     ),
-    "opponent_oesd": (
-        "がストレートの両端待ちの確率は？",
-        "並びの左右どちらの数字が出てもストレートになる形です。この両端待ちをOESDと呼びます。",
-    ),
-    "opponent_gutshot": (
-        "がストレートの内側待ちの確率は？",
-        "並びの内側にある1種類の数字を引けばストレートになる形です。一般にガットショットと呼びます。",
-    ),
     "opponent_flush_draw": (
         "があと1枚でフラッシュの確率は？",
         "同じマークが現在4枚あり、あと1枚でフラッシュになる形です。一般にフラッシュドローと呼びます。",
@@ -1789,6 +1778,68 @@ def build_new_mode_d(
     return questions
 
 
+BANNED_EXPLANATION_WORDS = (
+    "アウツ",
+    "ターン",
+    "リバー",
+    "OESD",
+    "厳密には",
+)
+
+
+def validate_explanation_copy(question: dict) -> None:
+    """解説文が初心者向けの表記ルールと実際の数値に沿っているかを検証します。"""
+    explain = question["explain"]
+    question_id = question["id"]
+    for word in BANNED_EXPLANATION_WORDS:
+        if word in explain:
+            raise RuntimeError(
+                f"解説に初心者向けでない語「{word}」が含まれます: {question_id}"
+            )
+    if (
+        question["mode"] == "B"
+        and question["category"] == "hand_comparison"
+        and not question["board"]
+        and "スターティングハンド勝率表" in explain
+    ):
+        raise RuntimeError(
+            f"2ハンドの直接対決を6人卓の勝率表へ案内しています: {question_id}"
+        )
+    if re.search(r"\d×4＝", explain) and "約4%" not in explain:
+        raise RuntimeError(
+            f"×4の前に1枚あたりの確率を示していません: {question_id}"
+        )
+    if re.search(r"\d×2＝", explain) and "約2%" not in explain:
+        raise RuntimeError(
+            f"×2の前に1枚あたりの確率を示していません: {question_id}"
+        )
+    if question["mode"] == "B" and question["category"] in {
+        "trailing_hand_wins",
+        "leading_hand_holds",
+    }:
+        hands = tuple(tuple(hand) for hand in question["hands"])
+        board = tuple(question["board"])
+        result = enumerate_runouts(hands, board, 1)
+        stated = re.findall(r"約([\d.]+)%", explain)
+        if not stated:
+            raise RuntimeError(f"勝率を示していない解説です: {question_id}")
+        actual = 100 * len(result["wins"]) / result["total"]
+        if abs(float(stated[-1]) - actual) > 0.15:
+            raise RuntimeError(
+                f"解説の勝率が実際の列挙結果と一致しません: {question_id} "
+                f"（解説={stated[-1]}%, 実測={actual:.1f}%）"
+            )
+        if question["stage"] == "flop":
+            if "残り2枚の組合せ" in explain or re.search(r"\d+通り", explain):
+                raise RuntimeError(
+                    f"暗算できない全組合せの件数を解説へ出しています: {question_id}"
+                )
+            if "見積もります" not in explain:
+                raise RuntimeError(
+                    f"暗算用の見積もり方を示していない解説です: {question_id}"
+                )
+
+
 def validate(bank: list[dict]) -> None:
     expected_total = sum(MODE_COUNTS.values())
     if len(bank) != expected_total:
@@ -1860,6 +1911,7 @@ def validate(bank: list[dict]) -> None:
             raise RuntimeError(f"初心者向けでない表示文言: {question['id']}")
         if "ランナーランナー" in f"{question['prompt']}{question['explain']}":
             raise RuntimeError(f"廃止したバックドア表現です: {question['id']}")
+        validate_explanation_copy(question)
         if question.get("answerType") == "percent":
             correct = float(question["answer"].removesuffix("%"))
             wrong = float(question["distractor"].removesuffix("%"))
@@ -2020,18 +2072,22 @@ def remaining_cards_for(*groups: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def outs_approximation(stage: str, outs: int, count_explanation: str) -> str:
+    """1枚あたりの確率を示してから枚数×確率の概算に進む解説を作ります。"""
     multiplier = 4 if stage == "flop" else 2
     if outs * multiplier >= 100:
         raise ValueError(
-            f"アウツ×{multiplier}を使えない大きなアウツです: {outs}"
+            f"枚数×確率の概算を使えない大きな当たり枚数です: {outs}"
         )
-    street = "フロップから残り2枚" if stage == "flop" else "ターンから残り1枚"
-    explanation = (
-        f"{count_explanation}{street}なら「アウツ×{multiplier}」で"
-        f"約{outs * multiplier}%と概算できます。"
-    )
+    if stage == "flop":
+        unit = "あと2枚めくれるので、特定の1枚が来る確率は約4%。"
+    else:
+        unit = "あと1枚しかめくれないので、1枚あたり約2%。"
+    explanation = f"{count_explanation}{unit}{outs}×{multiplier}＝約{outs * multiplier}%です。"
     if stage == "flop" and outs >= 10:
-        explanation += "アウツが多いと「×4」は少し高めに出ます。"
+        explanation += (
+            "ただしこの足し算は、4枚目と5枚目の両方が当たりだった場合を"
+            "二重に数えてしまいます。当たりが多いほどそのズレは大きくなります。"
+        )
     return explanation
 
 
@@ -2091,7 +2147,7 @@ def mode_a_learning_explanation(question: dict) -> str:
         return outs_approximation(
             stage,
             outs,
-            f"{suit_name}は手札とボードに4枚。13枚中、見えていない{outs}枚＝{outs}アウツ。",
+            f"{suit_name}は手札とボードで4枚。残りの{suit_name}は13−4＝{outs}枚が当たりです。",
         )
 
     if category in {"straight", "oesd", "gutshot"}:
@@ -2102,16 +2158,27 @@ def mode_a_learning_explanation(question: dict) -> str:
             else len(new_a_completion_outs(question))
         )
         names = format_rank_values(missing)
-        shape = {
-            "straight": "ストレートドロー",
-            "oesd": "両端待ち（OESD）",
-            "gutshot": "内側待ち（ガットショット）",
-        }[category]
-        return outs_approximation(
-            stage,
-            outs,
-            f"完成する数字・文字は{names}の{len(missing)}種類で、合計{outs}アウツの{shape}です。",
-        )
+        if len(missing) >= 2:
+            values = {RANK_VALUE[card[0]] for card in (*hole, *board)}
+            if 14 in values:
+                values.add(1)
+            connected = any(
+                all(value + offset in values for offset in range(4))
+                for value in range(1, 11)
+            )
+            if connected:
+                shape_copy = f"4枚つながっているので、{names}のどちらでも完成します。"
+            else:
+                shape_copy = (
+                    f"抜けているところが2か所あり、{names}のどちらでも完成します。"
+                )
+            count_copy = f"{shape_copy}当たりは合わせて{outs}枚。"
+        else:
+            count_copy = (
+                f"そろうのは{names}だけ。1か所だけ抜けた形（ガットショット）で、"
+                f"当たりは{names}の{outs}枚です。"
+            )
+        return outs_approximation(stage, outs, count_copy)
 
     if category == "flush_or_straight":
         remaining = remaining_cards_for(hole, board)
@@ -2129,23 +2196,25 @@ def mode_a_learning_explanation(question: dict) -> str:
             overlap = len(flush_outs & straight_outs)
             outs = len(flush_outs | straight_outs)
             if overlap:
-                arithmetic = (
-                    f"{len(flush_outs)}＋{len(straight_outs)}−{overlap}＝{outs}アウツ。"
+                overlap_copy = (
+                    f"ただし{overlap}枚は両方に入るので、二重に数えず "
+                    f"{len(flush_outs)}＋{len(straight_outs)}−{overlap}＝{outs}枚。"
                 )
-                overlap_copy = f"ただし{overlap}枚は両方に含まれるため、"
             else:
-                arithmetic = f"{len(flush_outs)}＋{len(straight_outs)}＝{outs}アウツ。"
-                overlap_copy = "重なるカードはないため、"
+                overlap_copy = (
+                    f"重なるカードはないので "
+                    f"{len(flush_outs)}＋{len(straight_outs)}＝{outs}枚。"
+                )
             return outs_approximation(
                 stage,
                 outs,
-                f"フラッシュ{len(flush_outs)}アウツとストレート{len(straight_outs)}アウツが当たり。"
-                f"{overlap_copy}{arithmetic}",
+                f"フラッシュの当たりが{len(flush_outs)}枚、"
+                f"ストレートの当たりが{len(straight_outs)}枚。{overlap_copy}",
             )
         return (
-            "次の1枚だけでは、フラッシュとストレートの両方に完成アウツがそろいません。"
-            "残り2枚の組合せを別々に数え、両方になる組合せは一度だけ数えます。"
-            "「2枚必要な道にはアウツ×4を使わない」と覚えます。"
+            "次の1枚だけでは、フラッシュもストレートも完成しません。"
+            "残り2枚がそろって初めて届く形なので、2枚の組合せを別々に数え、"
+            "両方に当てはまる組合せは一度だけ数えます。"
         )
 
     if category in {"rank_hit", "rank_trips", "four_kind"}:
@@ -2155,18 +2224,18 @@ def mode_a_learning_explanation(question: dict) -> str:
         outs = len(simple_completion_outs(question))
         if category == "rank_hit":
             count_copy = (
-                f"見えている{rank}は手札の{visible}枚だけなので、"
-                f"残りは{4 - visible}枚＝{outs}アウツ。"
+                f"{rank}は手札の{visible}枚しか見えていないので、"
+                f"当たりは残り{outs}枚。"
             )
         elif category == "rank_trips":
             count_copy = (
-                f"{rank}は手札に{visible}枚。スリーにする残りの{rank}は"
-                f"{4 - visible}枚＝{outs}アウツ。"
+                f"手札に{rank}が{visible}枚あるので、"
+                f"スリーにする当たりの{rank}は残り{outs}枚だけ。"
             )
         else:
             count_copy = (
-                f"{rank}は手札とボードに{visible}枚。フォーカードにする残りの{rank}は"
-                f"{4 - visible}枚＝{outs}アウツ。"
+                f"{rank}は手札とボードに{visible}枚見えています。"
+                f"フォーカードにする当たりは残り{outs}枚。"
             )
         return outs_approximation(stage, outs, count_copy)
 
@@ -2175,7 +2244,7 @@ def mode_a_learning_explanation(question: dict) -> str:
         return outs_approximation(
             stage,
             outs,
-            f"同じマークで連番を完成させるカードだけが当たりなので、{outs}アウツ。",
+            f"同じマークで連番を完成させるカードだけが当たりなので、{outs}枚だけです。",
         )
 
     if category == "four_kind":
@@ -2187,14 +2256,19 @@ def mode_a_learning_explanation(question: dict) -> str:
             return outs_approximation(
                 stage,
                 outs,
-                f"今のペアとは別の数字・文字をペアにし、ツーペアで終わるカードは合計{outs}アウツ。",
+                f"今のペアとは別の数字とペアになり、ツーペアで終わるカードは{outs}枚。",
             )
         board_counts = Counter(card[0] for card in board)
+        single_ranks = [rank for rank, count in board_counts.items() if count == 1]
         direct = sum(4 - count for count in board_counts.values() if count == 1)
+        board_copy = "・".join(
+            display_rank(rank) for rank in sorted(single_ranks, key=RANKS.index)
+        )
         return (
-            f"まずボードの数字・文字をもう1枚重ねるカードが{direct}枚。"
-            "さらに残り2枚同士が新しいペアになる道もあり、フルハウス以上になる道は除きます。"
-            "「既存の数字が重なる道＋新しい2枚がそろう道」と覚えます。"
+            f"ボードは{board_copy}の{len(single_ranks)}種類。"
+            f"このどれかとペアになるカードは{len(single_ranks)}種類×3枚＝{direct}枚です。"
+            f"あと2枚めくれるので、1枚あたり約4%で {direct}×4＝約{direct * 4}%。"
+            "さらに残り2枚が別々にそろってペアになる道もあり、それを足した値になります。"
         )
 
     if category == "full_house":
@@ -2203,54 +2277,69 @@ def mode_a_learning_explanation(question: dict) -> str:
             return outs_approximation(
                 stage,
                 outs,
-                f"スリー側かペア側を完成させ、フルハウスになるカードは合計{outs}アウツ。",
+                f"スリー側かペア側を完成させ、フルハウスになるカードは{outs}枚。",
             )
         return (
-            "フロップでは1枚引くだけでは完成せず、スリーとペアの両方が必要です。"
-            "手札のペアをスリーにしてボードもペアにする道と、ボードの同じ数字・文字を2枚引く道を数えます。"
-            "「2枚必要なので×4ではなく組合せ」と覚えます。"
+            "フルハウスはスリー＋ペアの組み合わせなので、あと2枚とも役に立たないと完成しません。"
+            "「当たりが何枚か」を数えて済ませられる形ではないということです。"
+            "手札のペアをスリーにしてボードもペアになる道と、"
+            "ボードの同じ数字を2枚引く道を、1本ずつ数えます。"
         )
 
     if category == "backdoor_flush":
         target_suit = question["targetSuit"]
+        suit_name = SUIT_NAMES[target_suit]
         remaining_same_suit = 13 - sum(card[1] == target_suit for card in known)
         return (
-            f"同じマークは今3枚で、残りは{remaining_same_suit}枚。"
-            f"ターンとリバーが両方そのマークになるので、{remaining_same_suit}/47×"
-            f"{remaining_same_suit - 1}/46で約4.2%です。"
-            "「同じマーク3枚なら約4%、4枚なら約35%」と覚えます。"
+            f"{suit_name}はまだ3枚。4枚目も5枚目も両方{suit_name}でないと届きません。"
+            f"残り{remaining_same_suit}枚から2枚続けてなので "
+            f"{remaining_same_suit}/47×{remaining_same_suit - 1}/46≒約4%。"
+            "「同じマーク3枚なら約4%、4枚なら約35%」と2つセットで覚えます。"
         )
 
     if category == "board_pair":
         outs = len(new_a_completion_outs(question))
+        board_copy = "・".join(
+            display_rank(rank)
+            for rank in sorted({card[0] for card in board}, key=RANKS.index)
+        )
         count_copy = (
-            f"ボードに見えている数字・文字と同じカードを数えると、合計{outs}アウツ。"
+            f"ボードの{board_copy}と同じ数字が来ればボードにペアができます。"
+            f"当たりは合計{outs}枚。"
         )
         if stage == "flop":
             return (
-                f"{count_copy}ターンで外れても、その新しい数字・文字がリバーのペア候補に加わります。"
-                "途中でアウツが増えるため固定の「×4」ではなく、ターンとリバーを順に考えます。"
-                "「新しく出たカードも次のペア候補」と覚えます。"
+                f"{count_copy}4枚目で外れても、そこで出た新しい数字が"
+                "5枚目のペア候補に加わります。途中で当たりが増えるので、"
+                "枚数×確率の概算ではなく、4枚目と5枚目を順に考えます。"
             )
         return outs_approximation(stage, outs, count_copy)
 
     if category == "overcard":
         outs = len(new_a_completion_outs(question))
         pair_rank = display_rank(hole[0][0])
-        count_copy = (
-            f"手札は{pair_rank}のペア。これより高い見えていないカードは{outs}枚です。"
-        )
         total = len(remaining_cards_for(hole, board))
         misses = total - outs
+        many = outs * (4 if stage == "flop" else 2) >= 50
+        emphasis = "もあります" if many else "です"
+        count_copy = (
+            f"手札は{pair_rank}のペア。見えていない{total}枚のうち、"
+            f"これより高いカードは{outs}枚{emphasis}。"
+        )
         if stage == "flop":
+            lead = (
+                "当たりが多いので、外れの方から考えます。"
+                if many
+                else "2枚とも外れる場合を先に求めます。"
+            )
             return (
-                f"{count_copy}この問題は当たりが多いため、×4ではなく外れから考えます。"
-                f"外れ{misses}枚が2回続く{misses}/47×{misses - 1}/46を先に考え、100%から引きます。"
-                "「起きやすい側は外れから逆算」と覚えます。"
+                f"{count_copy}{lead}"
+                f"外れ{misses}枚が2回続く {misses}/{total}×{misses - 1}/{total - 1} を求め、"
+                "100%から引きます。"
             )
         return (
-            f"{count_copy}残り{total}枚中{outs}枚なので、{outs}/{total}をそのまま割合にします。"
-            "当たりが多いときは×2より、全体に占める割合を見る方が分かりやすくなります。"
+            f"{count_copy}枚数×確率の概算ではなく、"
+            f"{outs}/{total} と全体に占める割合で見ます。"
         )
 
     if category == "board_two_pair":
@@ -2259,12 +2348,18 @@ def mode_a_learning_explanation(question: dict) -> str:
             return outs_approximation(
                 stage,
                 outs,
-                f"ボードの別の数字・文字をもう1枚重ね、2組目のペアを作るカードは{outs}アウツ。",
+                "ボードの別の数字をもう1枚重ねると2組目のペアができます。"
+                f"見えていない当たりは{outs}枚。",
             )
+        board_copy = "・".join(
+            display_rank(rank)
+            for rank in sorted({card[0] for card in board}, key=RANKS.index)
+        )
         return (
-            "ボードの別々の数字・文字を、残り2枚で1回ずつ重ねる必要があります。"
-            "1枚目と2枚目の組合せで考えるため、1種類のアウツを×4する問題ではありません。"
-            "「異なる2組を作る」と覚えます。"
+            f"ボードだけで2組のペアを作るには、{board_copy}のうち別々の2つを、"
+            "残り2枚で1つずつ重ねる必要があります。"
+            "1枚目でどれかが当たり、2枚目で別のもう1つが当たるという2段構えなので、"
+            "かなり低い確率になります。"
         )
 
     if category == "four_flush_board":
@@ -2276,55 +2371,67 @@ def mode_a_learning_explanation(question: dict) -> str:
             return outs_approximation(
                 stage,
                 remaining_same_suit,
-                f"ボードの{suit_name}は{on_board}枚。見えていない{suit_name}{remaining_same_suit}枚が当たりです。",
+                f"ボードの{suit_name}は{on_board}枚。"
+                f"見えていない{suit_name}{remaining_same_suit}枚が当たりです。",
             )
         if on_board == 2:
             return (
-                f"ボードの{suit_name}は2枚なので、残り2枚も両方{suit_name}が必要です。"
-                f"見えていない{suit_name}は{remaining_same_suit}枚で、"
-                f"{remaining_same_suit}/47×{remaining_same_suit - 1}/46と考えます。"
-                "「2枚必要なら×4を使わない」と覚えます。"
+                f"ボードの{suit_name}は2枚。4枚目も5枚目も両方{suit_name}でないと4枚になりません。"
+                f"残り{remaining_same_suit}枚から2枚続けてなので "
+                f"{remaining_same_suit}/47×{remaining_same_suit - 1}/46 で求めます。"
+                "2枚とも条件を満たす必要があるときは、"
+                "当たり枚数を数える方法ではなく、かけ算で求めます。"
             )
         return (
-            f"ボードの{suit_name}は3枚。残り2枚のうち、ちょうど1枚だけ{suit_name}なら4枚になります。"
-            "2枚とも同じマークだと5枚になるため除きます。"
-            "「少なくとも1枚」ではなく「ちょうど1枚」がポイントです。"
+            f"ボードの{suit_name}は3枚なので、あと1枚だけ{suit_name}が来れば4枚。"
+            f"2枚とも{suit_name}だと5枚になってしまうので、そこは除きます。"
+            "「1枚以上」ではなく「ちょうど1枚」なのがポイントです。"
         )
 
     if category == "pocket_pair_counterfeit":
+        pair_rank = display_rank(hole[0][0])
         if stage == "turn":
             outs = len(new_a_completion_outs(question))
             return outs_approximation(
                 stage,
                 outs,
-                f"次の1枚でボードだけの5枚が強くなり、手札のペアが外れるカードは{outs}アウツ。",
+                f"ボードだけで{pair_rank}のペアより強い5枚ができると、"
+                f"手札のペアは使われなくなります。そうなるカードは{outs}枚。",
             )
         return (
-            "ボードだけで今のポケットペアより強い5枚が作られる道を数えます。"
-            "ペア化だけでなく残り2枚の並びや同じマークの組合せも関わるため、単純な×4は使いません。"
-            "「最後のベスト5枚に手札が残るか」で判断します。"
+            f"ボードだけで{pair_rank}のペアより強い5枚ができる道を数えます。"
+            "ペアができる場合だけでなく、残り2枚の並びや同じマークの重なりも関わるため、"
+            "当たりを1種類に絞って数えられる形ではありません。"
+            "最後の5枚に自分の手札が残るかで判断します。"
         )
 
     if category == "two_pair_counterfeit":
+        low_rank = display_rank(
+            min(hole, key=lambda card: RANK_VALUE[card[0]])[0]
+        )
         return (
-            "現在のベスト5枚で低い方のペアを確認し、それがボードの強い5枚に押し出される組合せを数えます。"
-            "ボードのペア化や高いカード2枚の組合せがあるため、1枚分のアウツ×4では考えません。"
-            "「役の名前ではなく最後の5枚を見る」と覚えます。"
+            f"今のツーペアのうち低い方は{low_rank}。"
+            "ボードにこれより強い組合せができると、低い方が最後の5枚から押し出されます。"
+            "ボードがペアになる道や、高いカードが2枚並ぶ道があるため、"
+            "残り2枚の組合せを数えます。役の名前ではなく、最後に残る5枚で考えます。"
         )
 
     if category == "same_hand_category":
         remaining = remaining_cards_for(hole, board)
         stays = len(new_a_completion_outs(question))
         changes = len(remaining) - stays
+        current = HAND_NAMES[evaluate((*hole, *board))[0]]
         if stage == "turn":
             return (
-                f"次のカードで役が変わる{changes}枚を先に除くと、今の役を保つのは{stays}枚。"
-                "「維持する確率＝100%−役が変わる確率」と逆算します。"
+                f"今は{current}。次の1枚で役が変わるのは{changes}枚、"
+                f"変わらないのは{stays}枚です。"
+                f"{len(remaining)}枚中{stays}枚なので、"
+                f"約{round(100 * stays / len(remaining))}%。"
+                "「変わる方を数えて残りを見る」と早くなります。"
             )
         return (
-            "まずペア、スリー、ストレート、フラッシュなどへ役が変わる残り2枚の組合せを数えます。"
-            "その合計を100%から引けば、今の役のまま終わる確率です。"
-            "「変化を数えて逆算」と覚えます。"
+            f"今は{current}。まず残り2枚でペアやストレートなどへ役が変わる組合せを数え、"
+            "その合計を100%から引きます。変わる方から数えた方が早く求まります。"
         )
 
     raise ValueError(f"未対応のモードA解説です: {category}")
@@ -2340,8 +2447,8 @@ REASON_COPY = {
     "overpair": "オーバーペア",
     "top_pair": "トップペア",
     "flush_draw": "フラッシュドロー",
-    "oesd_or_double_gut": "8アウツのストレートドロー",
-    "gutshot": "4アウツのガットショット",
+    "oesd_or_double_gut": "当たり8枚のストレート待ち",
+    "gutshot": "当たり4枚のストレート待ち",
     "middle_pair+flush_draw": "ペア＋フラッシュドロー",
     "middle_pair+straight_draw": "ペア＋ストレートドロー",
 }
@@ -2367,6 +2474,108 @@ def explain_reasons(reasons: tuple[str, ...]) -> str:
     return "・".join(labels)
 
 
+def enumerate_runouts(
+    hands: tuple[tuple[str, str], tuple[str, str]],
+    board: tuple[str, ...],
+    target: int,
+) -> dict:
+    """残りのカードを実際に配り、対象の手札の勝ち・引き分け・負けを数えます。
+
+    手札の形から付くラベル（OESDなど）ではなく、この実測値から解説を書きます。
+    見かけ上のドローが引き分けにしかならない盤面を取りこぼさないためです。
+    """
+    other = 1 - target
+    remaining = remaining_cards_for(hands[0], hands[1], board)
+    runouts = (
+        [(card,) for card in remaining]
+        if len(board) == 4
+        else list(itertools.combinations(remaining, 2))
+    )
+    wins: list[tuple[str, ...]] = []
+    ties: list[tuple[str, ...]] = []
+    losses = 0
+    for runout in runouts:
+        final_board = (*board, *runout)
+        target_score = evaluate((*hands[target], *final_board))
+        other_score = evaluate((*hands[other], *final_board))
+        if target_score > other_score:
+            wins.append(runout)
+        elif target_score == other_score:
+            ties.append(runout)
+        else:
+            losses += 1
+    return {
+        "total": len(runouts),
+        "wins": wins,
+        "ties": ties,
+        "losses": losses,
+        "remaining": len(remaining),
+    }
+
+
+def format_card_ranks(runouts: list[tuple[str, ...]], limit: int = 4) -> str:
+    """1枚めくりの結果カードを、重複しない数字の並びにまとめます。
+
+    種類が多すぎると読みにくいため、limit を超える場合は空文字を返し、
+    呼び出し側で枚数だけを示す文面に切り替えます。
+    """
+    ranks = sorted({runout[0][0] for runout in runouts}, key=RANKS.index)
+    if len(ranks) > limit:
+        return ""
+    return "・".join(display_rank(rank) for rank in ranks)
+
+
+def compare_current_copy(current: list[str], leading: bool = False) -> str:
+    """左右の現在の役を、同じ役名が並んでも読みやすい形で説明します。"""
+    if current[0] == current[1]:
+        comparison_point = {
+            "ハイカード": "高いカード",
+            "ワンペア": "ペアの数字やキッカー",
+            "ツーペア": "2組の数字やキッカー",
+            "スリー": "スリーの数字やキッカー",
+            "ストレート": "ストレートの高さ",
+            "フラッシュ": "フラッシュの高いカード",
+            "フルハウス": "スリーとペアの数字",
+            "フォーカード": "フォーカードの数字やキッカー",
+            "ストレートフラッシュ": "ストレートフラッシュの高さ",
+        }[current[1]]
+        direction = "上" if leading else "下"
+        return f"左右とも{current[1]}ですが、{comparison_point}は右が{direction}です。"
+    verb = "勝っています" if leading else "負けています"
+    return f"右は{current[1]}で、{current[0]}の左に{verb}。"
+
+
+def rough_frequency_copy(percent: float) -> str:
+    """暗算で選択肢を選ぶための、覚えやすい頻度表現へ丸めます。"""
+    references = (
+        (5, "20回に1回"),
+        (10, "10回に1回"),
+        (15, "7回に1回"),
+        (20, "5回に1回"),
+        (25, "4回に1回"),
+        (100 / 3, "3回に1回"),
+        (40, "5回に2回"),
+        (50, "2回に1回"),
+        (60, "5回に3回"),
+        (200 / 3, "3回に2回"),
+        (75, "4回に3回"),
+        (80, "5回に4回"),
+        (85, "7回に6回"),
+        (90, "10回に9回"),
+        (95, "20回に19回"),
+    )
+    return min(references, key=lambda item: abs(item[0] - percent))[1]
+
+
+def flop_strength_copy(reasons: tuple[tuple[str, ...], tuple[str, ...]]) -> str:
+    """左右の続行材料を、厳密な組合せ数ではなく比較の軸として示します。"""
+    left = explain_reasons(reasons[0])
+    right = explain_reasons(reasons[1])
+    if left == right:
+        return f"双方の主な強みは{right}で同程度です。"
+    return f"右の主な強みは{right}。左には{left}があります。"
+
+
 def mode_b_learning_explanation(question: dict) -> str:
     hands = tuple(tuple(hand) for hand in question["hands"])
     board = tuple(question["board"])
@@ -2374,33 +2583,67 @@ def mode_b_learning_explanation(question: dict) -> str:
 
     if category == "hand_comparison" and not board:
         archetype = question["archetype"]
+        pair_side = next(
+            (index for index, hand in enumerate(hands) if hand[0][0] == hand[1][0]),
+            None,
+        )
         if archetype == "pair_vs_overcards":
+            pair_rank = display_rank(hands[pair_side][0][0]) if pair_side is not None else ""
+            high_card_side = 1 - pair_side if pair_side is not None else 0
+            high_cards = "・".join(
+                display_rank(card[0])
+                for card in sorted(
+                    hands[high_card_side],
+                    key=lambda card: RANK_VALUE[card[0]],
+                    reverse=True,
+                )
+            )
+            high_card_draws = "か".join(high_cards.split("・"))
+            pair_equity = question["equities"][pair_side] if pair_side is not None else 50
+            if abs(pair_equity - 50) <= 0.5:
+                matchup_copy = (
+                    "手札同士の相性によって勝率は変わり、"
+                    "この組合せはほぼ互角です。"
+                )
+            else:
+                favored_side = (
+                    f"{pair_rank}のペア" if pair_equity > 50 else f"{high_cards}側"
+                )
+                degree = "わずかに" if abs(pair_equity - 50) <= 3 else "やや"
+                matchup_copy = (
+                    "手札同士の相性によって勝率は変わり、"
+                    f"この組合せでは"
+                    f"{favored_side}が{degree}有利です。"
+                )
             return (
-                "ポケットペアは最初からワンペアで先行し、高い2枚側は主にどちらかをペアにして逆転します。"
-                "「小さなペア対高い2枚はほぼ五分で、ペアが少し先行」と覚えます。"
+                f"{pair_rank}のペアは最初からワンペアで先行し、"
+                f"{high_cards}側は主に{high_card_draws}を引いて逆転します。"
+                f"{matchup_copy}"
             )
         if archetype == "pair_vs_high_cards":
             return (
-                "ポケットペア側は完成役で先行。高いカード側はペア、ストレート、フラッシュへの伸びを比べます。"
-                "「まず完成しているペア、次に相手の2枚の高さ」と見ます。"
+                "ペア側は最初から役ができていて先行します。"
+                "高いカード側は、ペアになる道に加えてストレートやフラッシュの伸びも足して比べます。"
+                "まず完成しているペア、次に相手の2枚の高さの順で見ます。"
             )
         if archetype == "pair_vs_pair":
             pair_ranks = [display_rank(hand[0][0]) for hand in hands]
             return (
-                f"{pair_ranks[0]}のペア対{pair_ranks[1]}のペアでは、高いペアが大きく先行します。"
-                "低い側の主な勝ち筋は残り2枚の同じ数字・文字でスリーにすること。"
-                "「ペア同士は高さ優先」と覚えます。"
+                f"{pair_ranks[0]}のペア対{pair_ranks[1]}のペアでは、高い方が約80%と大きく先行します。"
+                "低い側の勝ち筋はほぼ、同じ数字をもう1枚引いてスリーにする道だけです。"
+                "「ペア同士は高い方が約8割」と覚えます。"
             )
         if archetype == "domination":
             shared = next(iter({card[0] for card in hands[0]} & {card[0] for card in hands[1]}))
             return (
-                f"両方が{display_rank(shared)}を持つため、それが当たると2枚目の高いカード（キッカー）が効きます。"
-                "低いキッカー側は別の数字・文字を当てる必要があり、不利です。"
-                "「同じ高いカードなら2枚目を見る」と覚えます。"
+                f"どちらも{display_rank(shared)}を持っているので、"
+                f"{display_rank(shared)}が場に出ても2枚目（キッカー）で勝負が決まります。"
+                "低いキッカー側は別の数字を当てるしかなく、約25%まで下がります。"
+                "同じカードを共有したらキッカー勝負です。"
             )
         return (
-            "まずペアの有無と2枚の高さを比べ、次に同じマークと数字の近さによる伸びを足します。"
-            "「ペア→高さ→同じマーク・連続性」の順で見ると暗算しやすくなります。"
+            "まずペアの有無と2枚の高さを比べ、次に同じマークや数字の近さによる伸びを足します。"
+            "ペア→高さ→同じマーク・連続性の順に見ると比べやすくなります。"
         )
 
     current = [HAND_NAMES[evaluate((*hand, *board))[0]] for hand in hands]
@@ -2417,48 +2660,115 @@ def mode_b_learning_explanation(question: dict) -> str:
             )
             made_index = 1 - draw_index
             sides = ("左", "右")
+            draw_hand = hands[draw_index]
+            draw_suit = next(
+                suit
+                for suit in SUITS
+                if any(card[1] == suit for card in draw_hand)
+                and sum(card[1] == suit for card in (*draw_hand, *board)) == 4
+            )
+            draw_outs = 13 - sum(
+                card[1] == draw_suit for card in (*hands[0], *hands[1], *board)
+            )
             return (
-                f"{sides[made_index]}の{current[made_index]}は現在の完成役で、"
-                f"{sides[draw_index]}はフラッシュドロー。ドロー側は通常9アウツを"
-                f"「×{street_multiplier}」で概算します。"
-                "「現在の強さ＋残りアウツ」で比べます。"
+                f"{sides[made_index]}の{current[made_index]}は今の時点でできている役。"
+                f"{sides[draw_index]}はまだ役なしですが、"
+                f"当たりの{SUIT_NAMES[draw_suit]}が{draw_outs}枚あります。"
+                f"1枚あたり約{street_multiplier}%で "
+                f"{draw_outs}×{street_multiplier}＝約{draw_outs * street_multiplier}%が"
+                f"{sides[draw_index]}の逆転率の目安、残りが{sides[made_index]}の勝率です。"
             )
         if archetype == "one_pair_kicker":
             return (
-                "どちらも同じトップペアなら、次にペア以外の最も高いカード（キッカー）を比べます。"
-                "同じペア同士は「まずキッカー、次に残りの改善カード」と覚えます。"
+                "どちらも同じトップペアなので、次にペア以外の最も高いカード（キッカー）を比べます。"
+                "キッカーが上の側が有利で、その後に残りの伸びを足して考えます。"
             )
         if archetype == "draw_vs_two_pair_plus":
             return (
                 f"現在は左が{current[0]}、右が{current[1]}で、ツーペア以上の側が先行します。"
-                "ドロー側は完成アウツを数えますが、ボードのペア化は相手をフルハウスへ進めることがあります。"
-                "「自分のアウツだけでなく相手の再逆転も見る」と覚えます。"
+                "待っている側は当たり枚数を数えますが、ボードがペアになると"
+                "相手がフルハウスへ伸びることもあります。"
+                "自分の当たりだけでなく、相手の再逆転も見ます。"
             )
         if archetype == "combo_hand":
             return (
-                f"現在は左が{current[0]}、右が{current[1]}。ペア＋ドローは今の強さと改善アウツを両方持ちます。"
-                "ストレートとフラッシュに重なるカードは一度だけ数え、相手の再逆転も確認します。"
+                f"現在は左が{current[0]}、右が{current[1]}。"
+                "ペアと待ちを両方持つ側は、今の強さと当たり枚数の両方を数えます。"
+                "ストレートとフラッシュで重なるカードは一度だけ数えます。"
             )
         return (
-            f"現在は左が{current[0]}、右が{current[1]}。完成役が違えば強い役を先に、"
-            "同じならキッカーを比べ、その後に残りのドローを足します。"
-            "「現在の役→キッカー→アウツ」の順で見ます。"
+            f"現在は左が{current[0]}、右が{current[1]}。役が違えば強い方を先に、"
+            "同じならキッカーを比べ、その後に残りの当たり枚数を足します。"
         )
 
-    right_reasons = explain_reasons(reasons[1])
+    if category not in {"trailing_hand_wins", "leading_hand_holds"}:
+        raise ValueError(f"未対応のモードB解説です: {category}")
+
+    result = enumerate_runouts(hands, board, 1)
+    win_count = len(result["wins"])
+    tie_count = len(result["ties"])
+    total = result["total"]
+    percent = round(100 * win_count / total, 1)
+
+    if question["stage"] == "turn":
+        right_reasons = explain_reasons(reasons[1])
+        win_copy = format_card_ranks(result["wins"])
+        tie_copy = format_card_ranks(result["ties"]) if tie_count else ""
+        if category == "trailing_hand_wins":
+            lead_copy = compare_current_copy(current)
+            if tie_count and tie_count >= win_count:
+                tie_lead = (
+                    f"{tie_copy}が来ると左も同じ役になり、引き分けです"
+                    if tie_copy
+                    else "左も同じ役になって引き分けになるカードが多く"
+                )
+                win_lead = (
+                    f"{win_copy}の{win_count}枚だけ" if win_copy else f"{win_count}枚だけ"
+                )
+                return (
+                    f"{lead_copy}{tie_lead}（{total}枚中{tie_count}枚）。"
+                    f"右が単独で勝てるのは{win_lead}。"
+                    f"あと1枚しかめくれないので {win_count}÷{total}＝約{percent}%です。"
+                    "見かけの勝ち筋が引き分けにしかならない形に注意します。"
+                )
+            tie_note = (
+                f"なお{tie_count}枚は引き分けで、勝ちには数えません。"
+                if tie_count
+                else ""
+            )
+            win_lead = (
+                f"{win_copy}の{win_count}枚" if win_copy else f"{win_count}枚"
+            )
+            return (
+                f"{lead_copy}逆転できるのは{win_lead}。"
+                f"あと1枚しかめくれないので {win_count}÷{total}＝約{percent}%です。{tie_note}"
+            )
+        lose_copy = result["losses"]
+        tie_note = (
+            f"引き分けの{tie_count}枚も勝ちには数えません。" if tie_count else ""
+        )
+        return (
+            f"{compare_current_copy(current, leading=True)}"
+            f"逆転されるのは{lose_copy}枚で、右がそのまま勝つのは{win_count}枚。"
+            f"{total}枚中{win_count}枚なので約{percent}%です。{tie_note}"
+        )
+
+    frequency = rough_frequency_copy(percent)
+    strength_copy = flop_strength_copy(reasons)
+    tie_note = "引き分けは勝ちに含めません。" if tie_count else ""
     if category == "trailing_hand_wins":
         return (
-            f"現在は右の{current[1]}が左の{current[0]}より下ですが、右には{right_reasons}の勝ち筋があります。"
-            "完成アウツだけでなく、引き分けと相手の再逆転を除くため、単純なアウツ確率とは一致しません。"
-            "「逆転して最後まで勝つところまで数える」と覚えます。"
+            f"{compare_current_copy(current)}{strength_copy}"
+            "あと2枚あるので、右の当たりを軸に、左の再逆転と引き分けもざっくり差し引きます。"
+            f"右が逆転して単独で勝つのは、およそ{frequency}と見積もります。"
+            f"実際は約{percent}%です。{tie_note}"
         )
-    if category == "leading_hand_holds":
-        return (
-            f"現在は右の{current[1]}が左の{current[0]}より上で、右の強みは{right_reasons}です。"
-            "左の逆転カードに加え、引き分けと右の再逆転もあるため、単純に相手のアウツを引くだけではありません。"
-            "「現在のリードをリバーまで守る確率」と覚えます。"
-        )
-    raise ValueError(f"未対応のモードB解説です: {category}")
+    return (
+        f"{compare_current_copy(current, leading=True)}{strength_copy}"
+        "あと2枚あるので、今のリードを軸に、左の逆転と引き分けもざっくり差し引きます。"
+        f"右が単独で勝ち切るのは、およそ{frequency}と見積もります。"
+        f"実際は約{percent}%です。{tie_note}"
+    )
 
 
 def preflop_hand_learning_copy(hole: tuple[str, str]) -> str:
@@ -2482,6 +2792,31 @@ def preflop_hand_learning_copy(hole: tuple[str, str]) -> str:
     return f"手札は{cards}で、{display_rank(reverse[high])}の高さが主な強みです。"
 
 
+def hole_improves_hand(hole: tuple[str, str], board: tuple[str, ...]) -> bool:
+    """手札2枚が、今の役の種類を作るのに使われているかを判定します。
+
+    ボードだけで同じ種類の役ができるなら False を返します。
+    キッカーとしてしか働いていない場合も False です。
+    """
+    board_counts = Counter(card[0] for card in board)
+    board_category = 0
+    if any(count >= 4 for count in board_counts.values()):
+        board_category = 7
+    elif sorted(board_counts.values(), reverse=True)[:2] == [3, 2]:
+        board_category = 6
+    elif has_flush(board):
+        board_category = 5
+    elif has_straight(board):
+        board_category = 4
+    elif any(count >= 3 for count in board_counts.values()):
+        board_category = 3
+    elif sum(count >= 2 for count in board_counts.values()) >= 2:
+        board_category = 2
+    elif any(count >= 2 for count in board_counts.values()):
+        board_category = 1
+    return evaluate((*hole, *board))[0] > board_category
+
+
 def mode_c_learning_explanation(question: dict) -> str:
     hole = tuple(question["hole"])
     board = tuple(question["board"])
@@ -2490,28 +2825,36 @@ def mode_c_learning_explanation(question: dict) -> str:
         hand_copy = preflop_hand_learning_copy(hole)
         if players == 2:
             return (
-                f"{hand_copy}2人では相手が1人なので、まずペア、次に高いカード、"
-                "最後に同じマークと数字の近さを見ます。"
+                f"{hand_copy}2人なら相手は1人だけ。まずペアの有無、次に2枚の高さ、"
+                "最後に同じマークや数字の近さを見ます。"
             )
+        even = round(100 / players, 1)
         return (
-            f"{hand_copy}{players}人では相手{players - 1}人全員を上回る必要があり、"
-            "高いペアと高いカードの価値が上がります。"
-            f"「1対1の値を割り算せず、{players}人用の基準値として覚える」のがポイントです。"
+            f"{hand_copy}{players}人では相手{players - 1}人全員に勝つ必要があります。"
+            f"全員が互角なら1人あたり約{even}%で、そこを上回るか下回るかが目安です。"
+            "細かい値はスターティングハンド勝率表で確認しましょう。"
         )
 
     current = HAND_NAMES[evaluate((*hole, *board))[0]]
     reasons = continuation_reasons(hole, board)
     draw_copy = explain_reasons(reasons) if reasons else "目立った完成役や強いドローなし"
+    board_only = not hole_improves_hand(hole, board)
+    if board_only:
+        contribution_copy = (
+            f"今の{current}はボードだけでできていて、自分の手札は何も足していません。"
+        )
+    else:
+        contribution_copy = f"現在は{current}で、確認する強みは{draw_copy}。"
     if players == 2:
         return (
-            f"現在は{current}で、確認する強みは{draw_copy}。まず完成役、次にドローのアウツ、"
-            "最後にキッカーの順で評価します。"
-            "勝率は「役が完成する確率」だけではなく、今のまま勝つ道も含みます。"
+            f"{contribution_copy}まず今の役の強さ、次に当たり枚数、"
+            "最後にキッカーの順で見ます。"
+            "勝率には、役が完成する確率だけでなく、今のまま勝ち切る道も含まれます。"
         )
     return (
-        f"現在は{current}で、確認する強みは{draw_copy}。{players}人では相手{players - 1}人の誰かに上回られる可能性が増えるため、"
-        "同じ役でも高いキッカーや強いドローほど価値が上がります。"
-        "「1対1の値を5倍せず、多人数では強い完成形を重視」と覚えます。"
+        f"{contribution_copy}{players}人では相手{players - 1}人の誰かに"
+        "上回られる可能性が増えるため、同じ役でも高いキッカーや強いドローほど価値が上がります。"
+        "1対1の値をそのまま人数で割るのではなく、多人数用の目安として覚えます。"
     )
 
 
@@ -2519,8 +2862,8 @@ def opponent_counting_suffix(players: int) -> str:
     if players == 2:
         return "2人卓は、見えていないカードから相手の2枚の組合せを数えます。"
     return (
-        "6人卓は相手5人へ重複なく配るので、1人分を5倍せず"
-        "「誰も持たない確率」を先に考えて1から引きます。"
+        f"{players}人卓は相手{players - 1}人へ重複なく配るので、1人分を{players - 1}倍せず、"
+        "「誰も持っていない確率」を先に求めて1から引きます。"
     )
 
 
@@ -2556,28 +2899,40 @@ def mode_d_learning_explanation(question: dict) -> str:
         rank = display_rank(target_rank)
         visible = sum(card[0] == target_rank for card in known)
         remaining = 4 - visible
+        if visible:
+            visible_copy = f"{rank}は自分とボードに{visible}枚見えているので、残りは{remaining}枚。"
+        else:
+            visible_copy = f"{rank}は自分にもボードにも無いので、{remaining}枚すべてが残っています。"
         if category == "opponent_rank" and players == 2:
             return (
-                f"自分とボードに見えている{rank}は{visible}枚なので、残りは{remaining}枚。"
-                "そのどれかが相手の2枚に入るかを数えます。"
+                f"{visible_copy}相手は2枚もらうので、そのどれかが入る確率を数えます。"
                 "「残り枚数×約4%」が2人卓の暗算目安です。"
             )
         if category == "exactly_one_opponent_target_rank":
-            target_copy = "そのカードが1人だけに配られる組合せを数え、0人と2人以上を除きます。"
+            target_copy = (
+                "そのカードがちょうど1人だけに配られる組合せを数え、"
+                "0人の場合と2人以上の場合を除きます。"
+            )
         elif category == "multiple_opponents_target_rank":
-            target_copy = "残りのカードが別々の相手へ配られ、2人以上が持つ組合せを数えます。"
+            target_copy = (
+                f"残りのカードが別々の相手へ配られ、2人以上が持つ組合せを数えます。"
+                f"1人に{remaining}枚まとまって入った場合は「2人以上」に数えません。"
+            )
         else:
-            target_copy = "相手5人の10枚へ1枚以上入るかを考えます。"
-        return (
-            f"見えている{rank}は{visible}枚で、残りは{remaining}枚。{target_copy}"
-            f"{suffix}"
-        )
+            target_copy = f"相手{players - 1}人の{(players - 1) * 2}枚へ1枚以上入るかを考えます。"
+        return f"{visible_copy}{target_copy}{suffix}"
 
     if category == "opponent_pocket_pair":
+        if players == 2:
+            return (
+                "相手が同じ数字を2枚そろえる組合せは、全1326通り中78通り＝約6%。"
+                "同じ数字4枚から2枚選ぶ組合せが6通りで、それが13種類あるためです。"
+                "「1人なら約6%」と覚えます。"
+            )
         return (
-            "相手1人のポケットペアは、同じ数字・文字の2枚組だけを数えて約6%が基準です。"
-            "6人卓では相手5人の「誰もペアでない」を先に考えるため、およそ4回に1回まで上がります。"
-            "「1人なら約6%、6人卓なら約25%」と覚えます。"
+            "相手1人がポケットペアになる確率は約6%が基準です。"
+            f"{players}人卓では「相手{players - 1}人とも持っていない」確率を先に求めて1から引き、"
+            "約25%まで上がります。「1人なら約6%、5人相手なら約25%」と覚えます。"
         )
 
     if category == "opponent_overpair":
@@ -2588,11 +2943,18 @@ def mode_d_learning_explanation(question: dict) -> str:
             if RANK_VALUE[rank] > top_value
             and 4 - sum(card[0] == rank for card in known) >= 2
         ]
+        top_rank_copy = display_rank(
+            max(board, key=lambda card: RANK_VALUE[card[0]])[0]
+        )
         candidate_copy = "・".join(display_rank(rank) for rank in candidates) or "なし"
+        pair_ways = sum(
+            math.comb(4 - sum(card[0] == rank for card in known), 2)
+            for rank in candidates
+        )
         return (
-            f"ボードの一番高いカードより上で、相手が2枚そろえられるのは{candidate_copy}のペア。"
-            "それぞれの残り枚数から2枚組を数えます。"
-            f"「上に残るポケットペアだけ」と覚えます。{suffix}"
+            f"ボードの最高は{top_rank_copy}。それより上のポケットペアは"
+            f"{candidate_copy}の{len(candidates)}種類だけです。"
+            f"それぞれ残り枚数から2枚選ぶので、合わせて{pair_ways}通り。{suffix}"
         )
 
     if category == "opponent_set":
@@ -2602,10 +2964,16 @@ def mode_d_learning_explanation(question: dict) -> str:
             for rank, count in board_counts.items()
             if count == 1 and 4 - sum(card[0] == rank for card in known) >= 2
         ]
-        candidate_copy = "・".join(display_rank(rank) for rank in candidates) or "該当なし"
+        candidate_copy = "・".join(
+            display_rank(rank) for rank in sorted(candidates, key=RANKS.index)
+        ) or "該当なし"
+        set_ways = sum(
+            math.comb(4 - sum(card[0] == rank for card in known), 2)
+            for rank in candidates
+        )
         return (
-            f"ボードに1枚だけある{candidate_copy}と同じカードを、相手が2枚とも持つ組合せです。"
-            "手札1枚を合わせる普通のスリーとは分け、ポケットペアだけを数えます。"
+            f"ボードに1枚ずつある{candidate_copy}を、相手が2枚とも手札で持っている場合だけを数えます。"
+            f"合わせて{set_ways}通り。手札1枚を合わせる普通のスリーとは分けます。"
             f"この形をセットと呼びます。{suffix}"
         )
 
@@ -2613,36 +2981,68 @@ def mode_d_learning_explanation(question: dict) -> str:
         top_rank = max(board, key=lambda card: RANK_VALUE[card[0]])[0]
         rank = display_rank(top_rank)
         remaining = 4 - sum(card[0] == top_rank for card in known)
+        if players == 2:
+            return (
+                f"ボードで一番高い{rank}は、見えていないものが{remaining}枚。"
+                f"この{remaining}枚のどれかを相手が持てばトップペア以上です。"
+                f"{suffix}"
+            )
         return (
             f"ボードで一番高い{rank}は、見えていないものが{remaining}枚。"
-            "その1枚を相手が持てばトップペア以上なので、相手へ配られる枚数を数えます。"
-            f"「トップカードの残り枚数から始める」と覚えます。{suffix}"
+            f"この{remaining}枚が相手{players - 1}人の{(players - 1) * 2}枚のどこにも"
+            "入らない確率を求め、1から引きます。"
         )
 
     if category == "opponent_two_pair":
+        board_counts = Counter(card[0] for card in board)
+        board_copy = "・".join(
+            display_rank(rank)
+            for rank in sorted(board_counts, key=RANKS.index)
+        )
+        if any(count >= 2 for count in board_counts.values()):
+            paired_copy = display_rank(
+                next(rank for rank, count in board_counts.items() if count >= 2)
+            )
+            return (
+                f"ボードはすでに{paired_copy}のペアを含んでいます。"
+                "相手は手札1枚をボードの別の数字に合わせるだけでツーペアです。"
+                f"{suffix}"
+            )
         return (
-            "相手の2枚をボードに足し、別々の2組のペアができる組合せだけを数えます。"
-            "同じ数字・文字を2枚持つポケットペアや、スリー以上になる組合せとは分けます。"
-            f"「どの2組を使うかを先に決める」と覚えます。{suffix}"
+            f"相手の2枚が、ボードの{board_copy}のうち別々の2つとペアになる組合せを数えます。"
+            "同じ数字を2枚持つポケットペアや、スリー以上になる組合せとは分けます。"
+            f"{suffix}"
         )
 
     if category == "opponent_straight":
         routes = straight_routes_from_board(board)
-        route_copy = format_straight_routes(routes) if routes else "不足する数字・文字"
+        if routes:
+            route_copy = format_straight_routes(routes)
+            return (
+                f"相手が5連続を作るには{route_copy}が必要です。"
+                "相手の手札を最低1枚使って5連続になる2枚組だけを数えます。"
+                f"{suffix}"
+            )
+        board_copy = "・".join(
+            display_rank(rank)
+            for rank in sorted({card[0] for card in board}, key=RANKS.index)
+        )
         return (
-            f"ボードから完成できる並びを伸ばすと、相手側に必要な候補は{route_copy}。"
-            "相手の手札を最低1枚使って5連続になる2枚組だけを数えます。"
-            f"「完成形を先に並べて不足分を探す」と覚えます。{suffix}"
+            f"ボードは{board_copy}。相手が5連続を作るには、手札2枚とも"
+            "特定のカードでなければならず、組合せは限られます。"
+            f"{suffix}"
         )
 
     if category == "opponent_flush":
         suit, count = Counter(card[1] for card in board).most_common(1)[0]
         needed = 5 - count
         remaining = 13 - sum(card[1] == suit for card in known)
+        ways = math.comb(remaining, needed) if needed <= remaining else 0
         return (
-            f"ボードで最も多い{SUIT_NAMES[suit]}は{count}枚。相手は同じマークを手札に{needed}枚必要で、"
-            f"見えていない同じマークは{remaining}枚です。"
-            f"「ボードの枚数から5までの不足を数える」と覚えます。{suffix}"
+            f"ボードの{SUIT_NAMES[suit]}は{count}枚。"
+            f"相手は手札に{SUIT_NAMES[suit]}が{needed}枚ないとフラッシュになりません。"
+            f"見えていない{SUIT_NAMES[suit]}は{remaining}枚で、そこから{needed}枚選ぶ{ways}通り。"
+            f"{suffix}"
         )
 
     if category in {
@@ -2651,17 +3051,27 @@ def mode_d_learning_explanation(question: dict) -> str:
     }:
         routes = straight_routes_from_board(board)
         route_copy = format_straight_routes(routes)
+        board_copy = "・".join(
+            display_rank(rank)
+            for rank in sorted({card[0] for card in board}, key=RANKS.index)
+        )
         if category == "opponent_straight_three_connected_board":
             return (
-                f"3枚の連番から完成する手札は{route_copy}の{len(routes)}系統。"
-                "不足する2種類を同じ相手が2枚とも持つ必要があり、別々の相手に分かれた場合は完成しません。"
-                "「3枚連番は左右へ伸ばし、完成する2枚組を列挙」と覚えます。フォールドは考慮しません。"
+                f"ボードが{board_copy}と3枚つながっています。"
+                f"完成する手札は{route_copy}の{len(routes)}系統。"
+                "ただし同じ相手が2枚とも持つ必要があり、2人に分かれては完成しません。"
+                "フォールドは考慮しません。"
             )
         missing = sorted({rank for route in routes for rank in route}, key=RANKS.index)
+        missing_copy = "・".join(display_rank(rank) for rank in missing)
+        missing_left = sum(
+            4 - sum(card[0] == rank for card in known) for rank in missing
+        )
         return (
-            f"4枚の連番を完成させる数字・文字は{'・'.join(display_rank(rank) for rank in missing)}。"
-            "相手5人の10枚のどこかに、そのうち1枚以上が入るかを考えます。"
-            "「4枚連番は両端の残りを数える」と覚えます。フォールドは考慮しません。"
+            f"ボードが{board_copy}と4枚つながっているので、相手は{missing_copy}を"
+            f"1枚持っているだけでストレートです。該当するカードは{missing_left}枚。"
+            f"相手{players - 1}人の{(players - 1) * 2}枚に1枚も入らない方が珍しくなります。"
+            "フォールドは考慮しません。"
         )
 
     if category in {
@@ -2673,51 +3083,47 @@ def mode_d_learning_explanation(question: dict) -> str:
         remaining = 13 - sum(card[1] == target_suit for card in known)
         if category == "opponent_flush_three_suited_board":
             return (
-                f"ボードの{suit_name}は3枚で、見えていない{suit_name}は{remaining}枚。"
-                "同じ相手が手札2枚ともそのマークを持つ必要があり、2人に1枚ずつ分かれてもフラッシュではありません。"
-                "「3枚ボードは同じ相手の2枚組」と覚えます。フォールドは考慮しません。"
+                f"ボードの{suit_name}が3枚で、見えていない{suit_name}は{remaining}枚。"
+                f"同じ相手が手札2枚とも{suit_name}を持つ必要があり、"
+                "2人に1枚ずつ分かれてもフラッシュにはなりません。フォールドは考慮しません。"
             )
         return (
-            f"ボードの{suit_name}は4枚で、見えていない{suit_name}は{remaining}枚。"
-            "相手は1枚持つだけでフラッシュなので、相手5人の10枚すべてが外れる確率を1から引きます。"
-            "「4枚ボードは誰かの1枚」で、6人卓では非常に起きやすい形です。フォールドは考慮しません。"
-        )
-
-    if category == "opponent_oesd":
-        return (
-            "相手の2枚をボードに足し、未完成の4連続ができる組合せを探します。"
-            "両端の2種類×4枚＝8アウツを持つ形がOESDです。"
-            f"「相手の現在の2枚組」と「その後の8アウツ」を分けて考えます。{suffix}"
-        )
-
-    if category == "opponent_gutshot":
-        return (
-            "相手の2枚をボードに足し、連番の内側1種類だけが不足する組合せを探します。"
-            "不足1種類×4枚＝4アウツを持つ形がガットショットです。"
-            f"「内側1種類なら4アウツ」と覚えます。{suffix}"
+            f"ボードの{suit_name}が4枚。相手は1枚持っているだけでフラッシュです。"
+            f"見えていない{suit_name}{remaining}枚が、"
+            f"相手{players - 1}人の{(players - 1) * 2}枚のどこにも入らない確率を求め、1から引きます。"
+            "フォールドは考慮しません。"
         )
 
     if category == "opponent_flush_draw":
         suit, count = Counter(card[1] for card in board).most_common(1)[0]
         needed = max(1, 4 - count)
+        remaining = 13 - sum(card[1] == suit for card in known)
         return (
-            f"ボードで最も多い{SUIT_NAMES[suit]}は{count}枚。相手の手札に同じマークが{needed}枚あれば、"
-            "現在4枚のフラッシュドローになります。完成後は通常9アウツが基準です。"
-            f"「今ドローを持つ組合せ」と「次に完成する確率」を分けます。{suffix}"
+            f"ボードの{SUIT_NAMES[suit]}は{count}枚。"
+            f"相手が{SUIT_NAMES[suit]}を{needed}枚持っていれば合わせて4枚になり、"
+            "あと1枚でフラッシュという状態です。"
+            f"見えていない{SUIT_NAMES[suit]}は{remaining}枚。{suffix}"
         )
 
     if category == "opponent_combo_draw":
         return (
-            "同じ相手の2枚で、ストレートドローとフラッシュドローが同時にできる組合せだけを数えます。"
-            "2つの確率を足すのではなく共通部分を探し、完成アウツでは重なるカードを一度だけ数えます。"
-            f"「持っている確率と完成する確率は別」と覚えます。{suffix}"
+            "ストレート待ちとフラッシュ待ちを、同じ2枚で同時に満たす組合せだけを数えます。"
+            "それぞれの確率を足すのではなく、両方に当てはまる手札を探すのがポイントです。"
+            f"条件が厳しいぶん、低い確率になります。{suffix}"
         )
 
     if category == "opponent_higher_flush":
+        hero_score = evaluate((*hole, *board))
+        suit = Counter(card[1] for card in board).most_common(1)[0][0]
+        remaining = 13 - sum(card[1] == suit for card in known)
+        top_copy = display_rank(
+            next(rank for rank, value in RANK_VALUE.items() if value == hero_score[1])
+        )
         return (
-            "まずボードと同じマークの手札だけに絞り、その中で自分のフラッシュより高い5枚になる組合せを数えます。"
-            "同じフラッシュ同士は、上から最初に違うカードで勝敗が決まります。"
-            f"「同じマークに絞って上から比較」と覚えます。{suffix}"
+            f"自分は{SUIT_NAMES[suit]}のフラッシュですが、一番高いカードは{top_copy}。"
+            f"見えていない{SUIT_NAMES[suit]}は{remaining}枚で、"
+            f"その中で{top_copy}より高いカードを持つ相手がいれば負けます。"
+            f"フラッシュ同士は上から順に比べます。{suffix}"
         )
 
     if category == "opponent_same_pair_higher_kicker":
@@ -2725,22 +3131,29 @@ def mode_d_learning_explanation(question: dict) -> str:
         pair_rank = display_rank(next(rank for rank, value in RANK_VALUE.items() if value == hero_score[1]))
         hero_kicker = display_rank(next(rank for rank, value in RANK_VALUE.items() if value == hero_score[2]))
         return (
-            f"自分は{pair_rank}のペアで、最も高いキッカーは{hero_kicker}。"
-            "相手も同じペアを作り、それより高いキッカーを持つ2枚組だけを数えます。"
-            f"「同じペアならペア以外を上から比較」と覚えます。{suffix}"
+            f"自分は{pair_rank}のペアで、2枚目に効くキッカーは{hero_kicker}。"
+            f"相手も{pair_rank}のペアを作り、キッカーが{hero_kicker}より上なら負けます。"
+            f"同じペアのときは、ペア以外のカードを上から比べます。{suffix}"
         )
 
     if category == "all_opponents_miss_board":
         board_copy = "・".join(display_rank(rank) for rank in sorted({card[0] for card in board}, key=RANKS.index))
+        board_ranks = {card[0] for card in board}
+        remaining = sum(
+            4 - sum(card[0] == rank for card in known) for rank in board_ranks
+        )
         if players == 2:
             return (
-                f"ボードの{board_copy}と同じ数字・文字を除き、相手の2枚が両方とも残りから配られる組合せを数えます。"
-                "「当たる確率」ではなく、2枚とも外れる確率です。"
+                f"ボードの{board_copy}と同じ数字は残り{remaining}枚。"
+                f"相手の2枚が、その{remaining}枚をどちらも引かない組合せを数えます。"
+                "当たる確率ではなく、外れる確率を求めます。"
             )
         return (
-            f"ボードの{board_copy}と同じ数字・文字が、相手5人の10枚に1枚も入らない組合せです。"
-            "相手ごとに独立ではないため、1人のミス率を単純に5乗せず、10枚を重複なしで考えます。"
-            "「全員ミスは10枚まとめて」と覚えます。"
+            f"ボードの{board_copy}と同じ数字は残り{remaining}枚。"
+            f"この{remaining}枚が、相手{players - 1}人の{(players - 1) * 2}枚に"
+            "1枚も入らない確率です。"
+            f"相手ごとに独立ではないので、1人分を{players - 1}乗せず、"
+            f"{(players - 1) * 2}枚をまとめて考えます。"
         )
 
     raise ValueError(f"未対応のモードD解説です: {category}")

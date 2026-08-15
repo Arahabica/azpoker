@@ -68,7 +68,14 @@ export const Correct: Story = {
       await expect(canvas.getByText("正解")).toBeVisible();
       await expect(canvas.getByText("35.0%")).toBeVisible();
     });
-    await userEvent.click(canvas.getByRole("button", { name: "次の問題へ" }));
+    const explanation = canvas.getByTestId("answer-explanation");
+    const nextButton = canvas.getByRole("button", { name: "次の問題へ" });
+    await expect(explanation.getBoundingClientRect().width).toBeCloseTo(
+      nextButton.getBoundingClientRect().width,
+      1,
+    );
+    await expect(getComputedStyle(explanation).textAlign).toBe("left");
+    await userEvent.click(nextButton);
     await expect(args.onNext).toHaveBeenCalledTimes(1);
   },
 };

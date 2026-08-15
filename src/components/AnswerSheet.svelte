@@ -59,7 +59,9 @@
     {feedbackTitle}
   </p>
   <p class="actual-probability">{formatActualPercent(question.trueP)}</p>
-  <p class="explanation"><MixedFontText text={question.explain} /></p>
+  <p class="explanation" data-testid="answer-explanation">
+    <MixedFontText text={question.explain} />
+  </p>
   <ActionButton
     id="next-question"
     label={isLast ? "結果を見る" : "次の問題へ"}
@@ -134,12 +136,12 @@
   }
 
   .explanation {
-    max-width: 24rem;
+    width: 100%;
     margin: 0.2rem auto 1rem;
     color: #d1dfda;
     font-size: 0.9rem;
     line-height: 1.65;
-    text-wrap: balance;
+    text-align: left;
   }
 
   @keyframes raise-sheet {
