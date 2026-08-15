@@ -299,14 +299,13 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     "オーバーペア",
     "セット",
     "トップペア",
-    "OESD",
     "ガットショット",
     "フラッシュドロー",
     "コンボドロー",
     "キッカー",
   ];
   const learningSignals = [
-    "アウツ",
+    "当たり",
     "組合せ",
     "覚えます",
     "概算",
@@ -317,6 +316,12 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
     "残り",
     "見えていない",
     "分けて考え",
+    "枚",
+    "通り",
+    "目安",
+    "必要",
+    "数え",
+    "相性",
   ];
   for (const question of bank) {
     const copy = `${question.prompt}${question.explain}`;
@@ -369,11 +374,10 @@ test("初心者向け文言を使い、内部表記を画面へ出さない", ()
   assert.match(opponentSet?.prompt ?? "", /手札のペアでスリー/);
   assert.match(opponentSet?.explain ?? "", /セット/);
 
-  const opponentOesd = bank.find(
-    (question) => question.category === "opponent_oesd",
+  const opponentFlushDraw = bank.find(
+    (question) => question.category === "opponent_flush_draw",
   );
-  assert.match(opponentOesd?.prompt ?? "", /ストレートの両端待ち/);
-  assert.match(opponentOesd?.explain ?? "", /OESD/);
+  assert.match(opponentFlushDraw?.prompt ?? "", /あと1枚でフラッシュ/);
 });
 
 test("回答後の解説は数え方・暗算方法・覚え方を具体的に示す", () => {
@@ -384,23 +388,49 @@ test("回答後の解説は数え方・暗算方法・覚え方を具体的に�
     ]),
   );
 
-  assert.match(byId["a-04136"]?.explain ?? "", /3枚＝3アウツ/);
-  assert.match(byId["a-04136"]?.explain ?? "", /アウツ×2/);
-  assert.match(byId["a-04136"]?.explain ?? "", /約6%/);
+  assert.match(byId["a-04136"]?.explain ?? "", /当たりは残り3枚/);
+  assert.match(byId["a-04136"]?.explain ?? "", /1枚あたり約2%/);
+  assert.match(byId["a-04136"]?.explain ?? "", /3×2＝約6%/);
 
-  assert.match(byId["a-06565"]?.explain ?? "", /9枚＝9アウツ/);
-  assert.match(byId["a-06565"]?.explain ?? "", /アウツ×4/);
-  assert.match(byId["a-06565"]?.explain ?? "", /約36%/);
+  assert.match(byId["a-06565"]?.explain ?? "", /13−4＝9枚が当たり/);
+  assert.match(byId["a-06565"]?.explain ?? "", /特定の1枚が来る確率は約4%/);
+  assert.match(byId["a-06565"]?.explain ?? "", /9×4＝約36%/);
 
-  assert.match(byId["a-06918"]?.explain ?? "", /合計8アウツ/);
-  assert.match(byId["a-06918"]?.explain ?? "", /アウツ×2/);
-  assert.match(byId["a-06918"]?.explain ?? "", /約16%/);
+  assert.match(byId["a-06918"]?.explain ?? "", /当たりは合わせて8枚/);
+  assert.match(byId["a-06918"]?.explain ?? "", /1枚あたり約2%/);
+  assert.match(byId["a-06918"]?.explain ?? "", /8×2＝約16%/);
 
-  assert.match(byId["a-03171"]?.explain ?? "", /9＋4−1＝12アウツ/);
-  assert.match(byId["a-03171"]?.explain ?? "", /アウツ×4/);
-  assert.match(byId["a-03171"]?.explain ?? "", /少し高め/);
+  assert.match(byId["a-03171"]?.explain ?? "", /9＋4−1＝12枚/);
+  assert.match(byId["a-03171"]?.explain ?? "", /12×4＝約48%/);
+  assert.match(byId["a-03171"]?.explain ?? "", /二重に数えて/);
 
   assert.ok(bank.every((question) => !question.explain.includes("厳密には")));
+  assert.ok(
+    bank.every((question) => !question.explain.includes("アウツ")),
+    "解説に「アウツ」を使わない",
+  );
+  assert.ok(
+    bank.every(
+      (question) =>
+        !question.explain.includes("ターン") &&
+        !question.explain.includes("リバー"),
+    ),
+    "解説では4枚目・5枚目と表記する",
+  );
+  assert.ok(
+    bank.every(
+      (question) =>
+        !/\d×4＝/.test(question.explain) || question.explain.includes("約4%"),
+    ),
+    "×4の前に1枚あたりの確率を示す",
+  );
+  assert.ok(
+    bank.every(
+      (question) =>
+        !/\d×2＝/.test(question.explain) || question.explain.includes("約2%"),
+    ),
+    "×2の前に1枚あたりの確率を示す",
+  );
   assert.ok(
     bank
       .filter((question) => question.mode === "C")
@@ -425,7 +455,7 @@ test("回答後の解説は数え方・暗算方法・覚え方を具体的に�
   }
 });
 
-test("バックドアフラッシュは単独ドローの約4.2%だけを問う", () => {
+test("バックドアフラッシュは単独ドローの約4%だけを問う", () => {
   const questions = bank.filter(
     (question) => question.category === "backdoor_flush",
   );
@@ -439,11 +469,11 @@ test("バックドアフラッシュは単独ドローの約4.2%だけを問う"
     assert.equal(question.distractor, "35%", question.id);
     assert.equal(
       question.prompt,
-      "リバーまでにフラッシュができる確率は？",
+      "5枚目までにフラッシュができる確率は？",
       question.id,
     );
-    assert.match(question.explain, /今3枚/);
-    assert.match(question.explain, /約4\.2%/);
+    assert.match(question.explain, /まだ3枚/);
+    assert.match(question.explain, /約4%/);
     const cards = [...question.hole, ...question.board];
     assert.equal(
       cards.filter((card) => card[1] === question.targetSuit).length,
@@ -545,11 +575,32 @@ test("モードBの数値問題は実戦的な右手札の勝率2形式に絞る
     assert.equal(question.prompt, "右の手札の勝率は？");
     assert.ok(question.trueP >= 5 && question.trueP <= 95, question.id);
     assert.equal(question.level, "intermediate", question.id);
+    if (question.stage === "flop") {
+      assert.doesNotMatch(
+        question.explain,
+        /残り2枚の組合せ|\d+通り/,
+        `${question.id}: 全組合せを暗算させない`,
+      );
+      assert.match(
+        question.explain,
+        /およそ.+と見積もります/,
+        `${question.id}: 暗算の目安`,
+      );
+    }
   }
   assert.equal(
     numericModeB.some((question) => question.prompt === "左の手札の勝率は？"),
     false,
   );
+
+  const kickerLead = numericModeB.find((question) => question.id === "b-03934");
+  assert.match(kickerLead?.explain ?? "", /ペアの数字やキッカーは右が上/);
+  assert.match(
+    kickerLead?.explain ?? "",
+    /双方の主な強みは当たり4枚のストレート待ちで同程度/,
+  );
+  assert.match(kickerLead?.explain ?? "", /およそ4回に3回/);
+  assert.doesNotMatch(kickerLead?.explain ?? "", /990|731|166/);
 });
 
 test("手札比較は両方に続行理由がある実戦的な類型へ寄せる", () => {
@@ -574,6 +625,11 @@ test("手札比較は両方に続行理由がある実戦的な類型へ寄せ�
     assert.ok(question.continuationReasons.every((reasons) => reasons.length));
     if (question.stage === "preflop") {
       assert.equal(question.simulationTrials, 12_000, question.id);
+      assert.doesNotMatch(
+        question.explain,
+        /スターティングハンド勝率表/,
+        question.id,
+      );
       const ranks = "23456789TJQKA";
       const rankPairs = question.hands.map((hand) =>
         hand
@@ -601,6 +657,30 @@ test("手札比較は両方に続行理由がある実戦的な類型へ寄せ�
       }
     }
   }
+
+  const pairVsOvercards = comparisons.find(
+    (question) => question.id === "b-00793",
+  );
+  assert.equal(
+    pairVsOvercards?.explain,
+    "Qのペアは最初からワンペアで先行し、A・K側は主にAかKを引いて逆転します。手札同士の相性によって勝率は変わり、この組合せではQのペアがやや有利です。",
+  );
+
+  const shownMatchup = comparisons.find(
+    (question) => question.id === "b-00482",
+  );
+  assert.equal(
+    shownMatchup?.explain,
+    "6のペアは最初からワンペアで先行し、A・Q側は主にAかQを引いて逆転します。手札同士の相性によって勝率は変わり、この組合せでは6のペアがわずかに有利です。",
+  );
+
+  const overcardsAhead = comparisons.find(
+    (question) => question.id === "b-00386",
+  );
+  assert.equal(
+    overcardsAhead?.explain,
+    "2のペアは最初からワンペアで先行し、6・5側は主に6か5を引いて逆転します。手札同士の相性によって勝率は変わり、この組合せでは6・5側がわずかに有利です。",
+  );
 });
 
 test("モードDは2人・6人、全13ランクと追加カテゴリを含む", () => {
@@ -658,7 +738,7 @@ test("モードDは2人・6人、全13ランクと追加カテゴリを含む", 
   }
 });
 
-test("危険ボード4カテゴリは6人卓の完成役確率を各250問扱う", () => {
+test("危険ボード4カテゴリは6人卓の完成役確率を正本どおりの問題数で扱う", () => {
   const categories = {
     opponent_straight_three_connected_board: {
       stage: "flop",
@@ -686,7 +766,6 @@ test("危険ボード4カテゴリは6人卓の完成役確率を各250問扱う
   for (const [category, expected] of Object.entries(categories)) {
     const questions = bank.filter((question) => question.category === category);
     assert.equal(questions.length, QUESTION_PATTERN_COUNTS.D[category]);
-    assert.equal(questions.length, 250);
     for (const question of questions) {
       assert.equal(question.playerCount, 6, question.id);
       assert.equal(question.level, "intermediate", question.id);

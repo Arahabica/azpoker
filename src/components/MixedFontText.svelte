@@ -55,6 +55,9 @@
   }
 
   .phrase {
-    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 </style>

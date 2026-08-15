@@ -4,17 +4,17 @@
 import type { GameMode } from "../types.ts";
 
 const QUESTION_BATCH_SIZE = 100 as const;
-const QUESTION_TOTAL = 21000 as const;
+const QUESTION_TOTAL = 20500 as const;
 const QUESTION_MODE_COUNTS = {
   A: 10000,
   B: 4800,
   C: 1200,
-  D: 5000,
+  D: 4500,
 } as const satisfies Readonly<Record<GameMode, number>>;
 const QUESTION_GROUP_COUNTS = {
   A: 10000,
   BC: 6000,
-  D: 5000,
+  D: 4500,
 } as const;
 const QUESTION_PATTERN_COUNTS = {
   A: {
@@ -49,27 +49,25 @@ const QUESTION_PATTERN_COUNTS = {
     postflop_equity: 862,
   },
   D: {
-    opponent_rank: 662,
-    opponent_pocket_pair: 209,
-    opponent_overpair: 209,
-    opponent_set: 209,
-    opponent_top_pair_plus: 209,
-    opponent_two_pair: 209,
-    opponent_straight: 209,
-    opponent_flush: 209,
-    opponent_straight_three_connected_board: 250,
-    opponent_straight_four_connected_board: 250,
-    opponent_flush_three_suited_board: 250,
-    opponent_flush_four_suited_board: 250,
-    opponent_oesd: 209,
-    opponent_gutshot: 209,
-    opponent_flush_draw: 209,
-    opponent_combo_draw: 208,
-    opponent_higher_flush: 208,
-    opponent_same_pair_higher_kicker: 208,
-    all_opponents_miss_board: 208,
-    exactly_one_opponent_target_rank: 208,
-    multiple_opponents_target_rank: 208,
+    opponent_rank: 651,
+    opponent_pocket_pair: 205,
+    opponent_overpair: 205,
+    opponent_set: 205,
+    opponent_top_pair_plus: 205,
+    opponent_two_pair: 205,
+    opponent_straight: 205,
+    opponent_flush: 205,
+    opponent_straight_three_connected_board: 247,
+    opponent_straight_four_connected_board: 246,
+    opponent_flush_three_suited_board: 246,
+    opponent_flush_four_suited_board: 246,
+    opponent_flush_draw: 205,
+    opponent_combo_draw: 204,
+    opponent_higher_flush: 204,
+    opponent_same_pair_higher_kicker: 204,
+    all_opponents_miss_board: 204,
+    exactly_one_opponent_target_rank: 204,
+    multiple_opponents_target_rank: 204,
   },
 } as const satisfies Readonly<
   Record<GameMode, Readonly<Record<string, number>>>
@@ -86,7 +84,7 @@ const QUESTION_ANSWER_TYPE_COUNTS = {
     percent: 1200,
   },
   D: {
-    percent: 5000,
+    percent: 4500,
   },
 } as const;
 const B_HAND_COMPARISON_ARCHETYPE_COUNTS = {
@@ -115,8 +113,6 @@ const D_CATEGORY_FAMILIES: Readonly<Record<string, DQuestionFamily>> =
     opponent_straight_four_connected_board: "board_threat",
     opponent_flush_three_suited_board: "board_threat",
     opponent_flush_four_suited_board: "board_threat",
-    opponent_oesd: "draw",
-    opponent_gutshot: "draw",
     opponent_flush_draw: "draw",
     opponent_combo_draw: "draw",
     opponent_higher_flush: "holding",
