@@ -37,7 +37,7 @@
   const GRID_SIZE = PREFLOP_RANKS.length;
   const GRID_CENTER = (GRID_SIZE - 1) / 2;
   const BAR_WIDTH = 0.78;
-  const FLOAT_HEIGHT = 0.75;
+  const FLOAT_HEIGHT = GRID_SIZE * 0.5;
   const HEIGHT_SCALE = GRID_SIZE / 100;
 
   function xFor(cell: PreflopEquityCell): number {
@@ -67,7 +67,7 @@
     function setupScene(): () => void {
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0xffffff);
-      scene.fog = new THREE.Fog(0xffffff, 28, 105);
+      scene.fog = new THREE.Fog(0xffffff, 110, 210);
 
       const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 220);
       const renderer = new THREE.WebGLRenderer({
@@ -259,7 +259,7 @@
 
       const cameraTarget = new THREE.Vector3(
         0,
-        FLOAT_HEIGHT + GRID_SIZE / 2,
+        FLOAT_HEIGHT / 2 + GRID_SIZE / 2,
         0,
       );
       const defaultCameraDirection = new THREE.Vector3(1, 0.78, 0).normalize();
@@ -269,7 +269,7 @@
         const horizontalFov =
           2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
         const limitingFov = Math.min(verticalFov, horizontalFov);
-        return Math.max(24, (GRID_SIZE * 0.72) / Math.tan(limitingFov / 2));
+        return Math.max(24, (GRID_SIZE * 0.78) / Math.tan(limitingFov / 2));
       }
 
       function setDefaultView(): void {

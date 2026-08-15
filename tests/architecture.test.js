@@ -127,8 +127,10 @@ test("Three.jsを3Dページへ遷移した後にだけ読み込む", () => {
   assert.match(scene, /from "three"/);
   assert.match(scene, /from "three\/addons\/controls\/OrbitControls\.js"/);
   assert.match(scene, /new THREE\.InstancedMesh/);
+  assert.match(scene, /const FLOAT_HEIGHT = GRID_SIZE \* 0\.5/);
   assert.match(scene, /const HEIGHT_SCALE = GRID_SIZE \/ 100/);
   assert.match(scene, /new THREE\.GridHelper\(240, 240/);
+  assert.match(scene, /new THREE\.Fog\(0xffffff, 110, 210\)/);
   assert.match(scene, /new THREE\.EdgesGeometry\(frameBoxGeometry\)/);
   assert.match(scene, /renderer\.shadowMap\.enabled = true/);
   assert.doesNotMatch(scene, /new THREE\.Sprite/);
@@ -145,6 +147,8 @@ test("Three.jsを3Dページへ遷移した後にだけ読み込む", () => {
   assert.match(app, /max-width: none/);
   assert.doesNotMatch(screen, /PublicPageShell/);
   assert.match(screen, /id="public-page-title" tabindex="-1"/);
+  assert.match(screen, /<header class="scene-heading">/);
+  assert.match(screen, /class="navigation-surface"/);
   assert.match(scene, /renderer\.dispose\(\)/);
   assert.match(scene, /controls\.dispose\(\)/);
 });

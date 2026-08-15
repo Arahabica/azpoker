@@ -99,37 +99,35 @@
     {/if}
   </div>
 
-  <header class="scene-hud">
-    <div class="hud-row">
-      <div class="navigation-surface">
-        <PageNavigationLink
-          path="/"
-          label="トップへ"
-          ariaLabel="トップページへ戻る"
-          tone="on-light"
-          onNavigate={() => onNavigate("/")}
-        />
-      </div>
-      <button
-        class="reset-view"
-        type="button"
-        onclick={resetView}
-        disabled={!sceneReady}
-      >
-        視点をリセット
-      </button>
-    </div>
-
+  <header class="scene-heading">
     <h1 id="public-page-title" tabindex="-1">スターティングハンド勝率表(3D)</h1>
+
+    {#if selectedCell}
+      <div class="selected-hand" aria-live="polite" aria-atomic="true">
+        <strong>{selectedCell.hand}</strong>
+        <span>{selectedCell.equity.toFixed(1)}%</span>
+        <small>{selectedCell.strength}</small>
+      </div>
+    {/if}
   </header>
 
-  {#if selectedCell}
-    <div class="selected-hand" aria-live="polite" aria-atomic="true">
-      <strong>{selectedCell.hand}</strong>
-      <span>{selectedCell.equity.toFixed(1)}%</span>
-      <small>{selectedCell.strength}</small>
-    </div>
-  {/if}
+  <div class="navigation-surface">
+    <PageNavigationLink
+      path="/"
+      label="トップへ"
+      ariaLabel="トップページへ戻る"
+      onNavigate={() => onNavigate("/")}
+    />
+  </div>
+
+  <button
+    class="reset-view"
+    type="button"
+    onclick={resetView}
+    disabled={!sceneReady}
+  >
+    視点をリセット
+  </button>
 
   <p id="starting-hand-3d-description" class="visually-hidden">
     柱の高さは6人卓における勝率を表します。1本指またはマウスのドラッグで回転し、ピンチまたはホイールで拡大・縮小できます。柱を選ぶとハンド名、勝率、強さを確認でき、柱以外を選ぶと選択を解除します。
@@ -202,50 +200,59 @@
     color: rgb(53 65 61 / 78%);
   }
 
-  .scene-hud {
+  .scene-heading {
     position: absolute;
-    inset: 0 0 auto;
+    top: 0;
+    left: 50%;
     z-index: 3;
     display: grid;
+    width: calc(100vw - 1.5rem);
+    justify-items: center;
     gap: 0.45rem;
-    padding: max(0.75rem, env(safe-area-inset-top))
-      max(0.75rem, env(safe-area-inset-right)) 0
-      max(0.75rem, env(safe-area-inset-left));
+    padding-top: max(0.75rem, env(safe-area-inset-top));
     pointer-events: none;
+    transform: translateX(-50%);
   }
 
-  .hud-row {
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 0.75rem;
+  .scene-heading h1 {
+    margin: 0;
+    color: #17221e;
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.5;
+    text-align: center;
   }
 
   .navigation-surface,
-  .reset-view,
-  .scene-hud h1,
-  .selected-hand {
-    border: 1px solid rgb(23 34 30 / 12%);
-    background: rgb(255 255 255 / 82%);
-    box-shadow: 0 0.35rem 1.2rem rgb(38 48 44 / 12%);
+  .reset-view {
+    position: absolute;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 3;
+    border: 1px solid rgb(255 255 255 / 16%);
+    background: rgb(0 0 0 / 62%);
+    box-shadow: 0 0.35rem 1.2rem rgb(0 0 0 / 16%);
     backdrop-filter: blur(10px);
   }
 
   .navigation-surface {
-    padding-inline: 0.35rem;
+    left: max(0.75rem, env(safe-area-inset-left));
+    padding-inline: 16px;
     border-radius: 0.75rem;
     pointer-events: auto;
   }
 
   .reset-view {
+    left: 50%;
     min-height: 2.75rem;
     padding-inline: 0.85rem;
     border-radius: 0.75rem;
-    color: #27332f;
+    color: #f7faf8;
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 700;
     pointer-events: auto;
+    transform: translateX(-50%);
   }
 
   .reset-view:disabled {
@@ -253,37 +260,18 @@
     opacity: 0.48;
   }
 
-  .reset-view:focus-visible {
-    outline-color: rgb(23 34 30 / 82%);
-  }
-
-  .scene-hud h1 {
-    justify-self: start;
-    max-width: calc(100vw - 1.5rem);
-    margin: 0;
-    padding: 0.58rem 0.75rem;
-    border-radius: 0.75rem;
-    color: #17221e;
-    font-size: 20px;
-    font-weight: 750;
-    letter-spacing: -0.035em;
-    line-height: 1.5;
-    pointer-events: auto;
-  }
-
   .selected-hand {
-    position: absolute;
-    right: max(0.75rem, env(safe-area-inset-right));
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: 3;
     display: grid;
     grid-template-columns: auto auto;
     align-items: baseline;
     gap: 0.08rem 0.7rem;
     min-width: 8.5rem;
     padding: 0.72rem 0.9rem;
-    border-color: rgb(177 137 0 / 24%);
+    border: 1px solid rgb(177 137 0 / 24%);
     border-radius: 0.8rem;
+    background: rgb(255 255 255 / 84%);
+    box-shadow: 0 0.35rem 1.2rem rgb(38 48 44 / 12%);
+    backdrop-filter: blur(10px);
     pointer-events: none;
   }
 
@@ -312,8 +300,8 @@
 
   @media (hover: hover) {
     .reset-view:not(:disabled):hover {
-      border-color: rgb(23 34 30 / 28%);
-      background: rgb(255 255 255 / 94%);
+      border-color: rgb(255 255 255 / 34%);
+      background: rgb(0 0 0 / 76%);
     }
   }
 </style>
