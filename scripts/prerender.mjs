@@ -18,6 +18,11 @@ const pages = [
     output: "history/index.html",
     marker: "まだ履歴がありません",
   },
+  {
+    pathname: "/starting-hand-3d",
+    output: "starting-hand-3d/index.html",
+    marker: "スターティングハンド勝率表(3D)",
+  },
   { pathname: "/terms", output: "terms/index.html", marker: "利用規約" },
   {
     pathname: "/credits",

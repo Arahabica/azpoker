@@ -58,11 +58,30 @@ export const FirstVisit: Story = {
         name: "6人卓のスターティングハンド勝率表",
       }),
     ).toBeVisible();
+    const playerContext = canvas.getByText(
+      "6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。",
+    );
+    await expect(playerContext).toBeVisible();
+    const threeDimensionalLink = canvas.getByRole("link", {
+      name: "3Dで見る",
+    });
+    await expect(threeDimensionalLink).toHaveAttribute(
+      "href",
+      "/starting-hand-3d",
+    );
     await expect(
-      canvas.getByText(
-        "6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。",
-      ),
-    ).toBeVisible();
+      getComputedStyle(threeDimensionalLink).textDecorationLine,
+    ).toContain("underline");
+    await expect(getComputedStyle(threeDimensionalLink).borderTopWidth).toBe(
+      "0px",
+    );
+    await expect(getComputedStyle(threeDimensionalLink).backgroundColor).toBe(
+      "rgba(0, 0, 0, 0)",
+    );
+    await expect(
+      playerContext.compareDocumentPosition(threeDimensionalLink) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     await expect(canvas.getAllByRole("cell")).toHaveLength(169);
     await expect(
       canvas.getByRole("cell", { name: "AA、とても強い" }),
@@ -104,6 +123,8 @@ export const FirstVisit: Story = {
       "https://github.com/Arahabica/azpoker",
     );
     await expect(sourceCodeLink).toHaveAttribute("target", "_blank");
+    await userEvent.click(threeDimensionalLink);
+    await expect(args.onNavigate).toHaveBeenCalledWith("/starting-hand-3d");
     await userEvent.click(startButtons[0]!);
     await expect(args.onStart).toHaveBeenCalledTimes(1);
   },

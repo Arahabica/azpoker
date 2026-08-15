@@ -38,6 +38,11 @@ const preview: Preview = {
           styles: { width: "481px", height: "800px" },
           type: "desktop",
         },
+        desktopWide: {
+          name: "PC全幅 1280px",
+          styles: { width: "1280px", height: "800px" },
+          type: "desktop",
+        },
       },
     },
   },

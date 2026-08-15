@@ -59,6 +59,7 @@
   import PreparationLoadingScreen from "./screens/PreparationLoadingScreen.svelte";
   import QuizScreen from "./screens/QuizScreen.svelte";
   import ResultScreen from "./screens/ResultScreen.svelte";
+  import StartingHand3DScreen from "./screens/StartingHand3DScreen.svelte";
   import TermsScreen from "./screens/TermsScreen.svelte";
 
   interface Props {
@@ -627,6 +628,8 @@
       onOpenOlderHistory={openOlderHistoryDetail}
       onLeaveDetail={leaveHistoryDetail}
     />
+  {:else if currentPath === "/starting-hand-3d"}
+    <StartingHand3DScreen onNavigate={moveToPath} />
   {:else if currentPath === "/terms"}
     <TermsScreen onNavigate={moveToPath} />
   {:else if currentPath === "/credits"}
@@ -736,6 +739,20 @@
     .app-shell {
       box-shadow: 0 0 4rem rgb(0 0 0 / 46%);
     }
+  }
+
+  .app-shell[data-app-path="/starting-hand-3d"] {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .app-shell[data-app-path="/starting-hand-3d"]::before {
+    display: none;
   }
 
   :global(html[data-ogp-capture]) .app-shell {

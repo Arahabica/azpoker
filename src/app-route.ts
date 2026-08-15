@@ -1,4 +1,10 @@
-const APP_PATHS = ["/", "/history", "/terms", "/credits"] as const;
+const APP_PATHS = [
+  "/",
+  "/history",
+  "/starting-hand-3d",
+  "/terms",
+  "/credits",
+] as const;
 const SITE_ORIGIN = "https://azpoker.me";
 const OGP_IMAGE_URL = `${SITE_ORIGIN}/ogp.png`;
 const HISTORY_DETAIL_PREFIX = "/history/";
@@ -31,6 +37,11 @@ const PAGE_METADATA: Readonly<Record<StaticAppPath, PageMetadata>> =
     "/history": {
       title: "履歴｜暗算ポーカー",
       description: "暗算ポーカーで挑戦した直近50回の結果を確認できます。",
+    },
+    "/starting-hand-3d": {
+      title: "スターティングハンド勝率表(3D)｜暗算ポーカー",
+      description:
+        "6人卓のスターティングハンド勝率169種類を、角度を変えて確認できる3D柱グラフ。",
     },
     "/terms": {
       title: "利用規約｜暗算ポーカー",

@@ -122,6 +122,15 @@
       >
       とも照合しています。
     </p>
+
+    <h3>Three.js</h3>
+    <p>
+      3D勝率表の描画と視点操作には、MIT Licenseで提供されている
+      <a href="https://threejs.org/" rel="external noopener" target="_blank"
+        >Three.js</a
+      >
+      を使用しています。
+    </p>
   </section>
 
   <section id="sounds">
