@@ -49,23 +49,25 @@
     <p>ハンド名の色で、ショーダウン時の強さを確認できます。</p>
   </div>
 
-  <table aria-label="6人卓のスターティングハンド勝率表">
-    <tbody>
-      {#each RANKS as rank, rowIndex (rank)}
-        <tr>
-          {#each RANKS as columnRank, columnIndex (`${rowIndex}-${columnRank}`)}
-            {@const hand = handAt(rowIndex, columnIndex)}
-            {@const value = equityFor(hand)}
-            {@const tier = tierFor(value)}
-            {@const strength = TIER_LABELS[tier - 1]!}
-            <td data-tier={tier} aria-label={`${hand}、${strength}`}>
-              {hand}
-            </td>
-          {/each}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
+  <div class="table-bleed">
+    <table aria-label="6人卓のスターティングハンド勝率表">
+      <tbody>
+        {#each RANKS as rank, rowIndex (rank)}
+          <tr>
+            {#each RANKS as columnRank, columnIndex (`${rowIndex}-${columnRank}`)}
+              {@const hand = handAt(rowIndex, columnIndex)}
+              {@const value = equityFor(hand)}
+              {@const tier = tierFor(value)}
+              {@const strength = TIER_LABELS[tier - 1]!}
+              <td data-tier={tier} aria-label={`${hand}、${strength}`}>
+                {hand}
+              </td>
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 
   <div class="chart-guide">
     <p><strong>s</strong>＝同じマーク／<strong>o</strong>＝別のマーク</p>
@@ -98,15 +100,17 @@
 
 <style>
   .equity-chart {
+    --chart-card-padding-inline: 1.25rem;
+    --table-bleed: calc(
+      var(--lp-padding-horizontal) + var(--chart-card-padding-inline) - 4px
+    );
+
     display: grid;
-    gap: 1rem;
-    width: calc(100% + (var(--lp-padding-horizontal) * 2));
-    margin-left: calc(var(--lp-padding-horizontal) * -1);
-    padding: 1.35rem max(4px, calc(var(--lp-padding-horizontal) / 4)) 1.1rem;
-    border-block: 1px solid rgb(255 255 255 / 12%);
-    background:
-      radial-gradient(circle at 84% 0%, rgb(34 154 117 / 15%), transparent 35%),
-      rgb(2 42 32 / 55%);
+    gap: 1.7rem;
+    padding: 1.5rem var(--chart-card-padding-inline);
+    border: 1px solid rgb(255 255 255 / 11%);
+    border-radius: 1.3rem;
+    background: rgb(2 42 32 / 45%);
     box-shadow:
       inset 0 1px rgb(255 255 255 / 4%),
       0 0.8rem 2rem rgb(0 35 26 / 10%);
@@ -114,23 +118,27 @@
 
   .chart-copy {
     display: grid;
-    gap: 0.35rem;
-    padding-inline: 0.55rem;
+    gap: 0.75rem;
   }
 
   h3 {
-    margin: 0;
     color: var(--text);
-    font-size: 1.15rem;
     font-weight: 750;
+    padding: 0;
+    margin: 0;
     letter-spacing: -0.035em;
     line-height: 1.5;
   }
 
   .chart-copy p {
     color: #c5d9d2;
-    font-size: 0.75rem;
-    line-height: 1.7;
+    font-size: 0.9rem;
+    line-height: 1.95;
+  }
+
+  .table-bleed {
+    width: calc(100% + var(--table-bleed) + var(--table-bleed));
+    margin-inline: calc(0px - var(--table-bleed));
   }
 
   table {

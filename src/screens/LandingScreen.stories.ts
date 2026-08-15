@@ -149,14 +149,21 @@ export const MinimumWidth: Story = {
       ".equity-chart table",
     );
     const app = canvasElement.querySelector<HTMLElement>(".landing-screen");
+    const holdem = canvasElement.querySelector<HTMLElement>(".holdem-overview");
 
     await expect(chart).not.toBeNull();
     await expect(table).not.toBeNull();
     await expect(app).not.toBeNull();
-    await expect(chart!.scrollWidth).toBeLessThanOrEqual(chart!.clientWidth);
+    await expect(holdem).not.toBeNull();
     await expect(table!.scrollWidth).toBeLessThanOrEqual(table!.clientWidth);
     await expect(app!.scrollWidth).toBeLessThanOrEqual(app!.clientWidth);
     await expect(chart!.getBoundingClientRect().width).toBe(
+      holdem!.getBoundingClientRect().width,
+    );
+    await expect(table!.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+      app!.getBoundingClientRect().width - 12,
+    );
+    await expect(table!.getBoundingClientRect().width).toBeLessThanOrEqual(
       app!.getBoundingClientRect().width,
     );
   },
