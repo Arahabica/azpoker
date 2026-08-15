@@ -734,8 +734,6 @@
 
   @media (min-width: 481px) {
     .app-shell {
-      border-right: 1px solid rgb(255 255 255 / 8%);
-      border-left: 1px solid rgb(255 255 255 / 8%);
       box-shadow: 0 0 4rem rgb(0 0 0 / 46%);
     }
   }

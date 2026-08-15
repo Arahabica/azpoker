@@ -44,9 +44,11 @@
 </script>
 
 <section class="equity-chart" aria-labelledby="preflop-equity-title">
-  <div class="chart-copy">
-    <h3 id="preflop-equity-title">スターティングハンド勝率表</h3>
-    <p>ハンド名の色で、ショーダウン時の強さを確認できます。</p>
+  <div class="chart-section chart-section-top">
+    <div class="chart-copy">
+      <h3 id="preflop-equity-title">スターティングハンド勝率表</h3>
+      <p>ハンド名の色で、ショーダウン時の強さを確認できます。</p>
+    </div>
   </div>
 
   <div class="table-bleed">
@@ -69,52 +71,69 @@
     </table>
   </div>
 
-  <div class="chart-guide">
-    <p><strong>s</strong>＝同じマーク／<strong>o</strong>＝別のマーク</p>
+  <div class="chart-section chart-section-bottom">
+    <div class="chart-guide">
+      <p><strong>s</strong>＝同じマーク／<strong>o</strong>＝別のマーク</p>
+    </div>
+
+    <ul class="strength-legend" aria-label="勝率による強さの色分け">
+      {#each TIER_LABELS as label, tierIndex (label)}
+        {@const tier = tierIndex + 1}
+        <li>
+          <i data-tier={tier} aria-hidden="true"></i>
+          <span>{label}</span>
+          <small>{rangeFor(tierIndex)}</small>
+        </li>
+      {/each}
+    </ul>
+
+    <p class="player-context">
+      6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。
+    </p>
+
+    <p class="chart-source">
+      100万回のシミュレーションによるポット獲得率（引き分け分を含む）。出典：
+      <a
+        href="https://lapoker.info/ranking/"
+        rel="external noopener"
+        target="_blank">LA Poker.info</a
+      >
+    </p>
   </div>
-
-  <ul class="strength-legend" aria-label="勝率による強さの色分け">
-    {#each TIER_LABELS as label, tierIndex (label)}
-      {@const tier = tierIndex + 1}
-      <li>
-        <i data-tier={tier} aria-hidden="true"></i>
-        <span>{label}</span>
-        <small>{rangeFor(tierIndex)}</small>
-      </li>
-    {/each}
-  </ul>
-
-  <p class="player-context">
-    6人卓で最初に判断する場合の目安です。7人卓でも、最初の1人がフォールドして自分に回ってきた場合は、おおむね同じ基準です。どちらも、自分のあとに判断する相手が5人います。
-  </p>
-
-  <p class="chart-source">
-    100万回のシミュレーションによるポット獲得率（引き分け分を含む）。出典：
-    <a
-      href="https://lapoker.info/ranking/"
-      rel="external noopener"
-      target="_blank">LA Poker.info</a
-    >
-  </p>
 </section>
 
 <style>
   .equity-chart {
+    --chart-card-border-width: 1px;
     --chart-card-padding-inline: 1.25rem;
-    --chart-surface: rgb(2 42 32);
-    --table-bleed: calc(
-      var(--lp-padding-horizontal) + var(--chart-card-padding-inline) - 4px
-    );
+    --chart-panel-background: rgb(2 42 32 / 45%);
+    --table-bleed: var(--lp-padding-horizontal);
 
     display: grid;
+    width: 100%;
+  }
+
+  .chart-section {
+    padding-inline: var(--chart-card-padding-inline);
+    border-inline: var(--chart-card-border-width) solid rgb(255 255 255 / 11%);
+    background: var(--chart-panel-background);
+  }
+
+  .chart-section-top {
+    padding-block: 1.5rem 1.7rem;
+    border-top: var(--chart-card-border-width) solid rgb(255 255 255 / 11%);
+    border-radius: 1.3rem 1.3rem 0 0;
+    box-shadow: inset 0 1px rgb(255 255 255 / 4%);
+  }
+
+  .chart-section-bottom {
+    display: grid;
     gap: 1.7rem;
-    padding: 1.5rem var(--chart-card-padding-inline);
-    border: 1px solid rgb(255 255 255 / 11%);
-    border-radius: 1.3rem;
-    background: rgb(2 42 32 / 45%);
-    box-shadow:
-      inset 0 1px rgb(255 255 255 / 4%),
-      0 0.8rem 2rem rgb(0 35 26 / 10%);
+    padding-block: 1.7rem 1.5rem;
+    border-bottom: var(--chart-card-border-width) solid rgb(255 255 255 / 11%);
+    border-radius: 0 0 1.3rem 1.3rem;
+    background: var(--chart-panel-background);
+    box-shadow: 0 0.8rem 2rem rgb(0 35 26 / 10%);
   }
 
   .chart-copy {
@@ -140,7 +159,8 @@
   .table-bleed {
     width: calc(100% + var(--table-bleed) + var(--table-bleed));
     margin-inline: calc(0px - var(--table-bleed));
-    background: var(--chart-surface);
+    padding: 6px;
+    background: var(--chart-panel-background);
   }
 
   table {
@@ -241,7 +261,7 @@
   }
 
   .strength-legend small {
-    color: #8eaaa0;
+    color: #a9c3ba;
     font-size: 0.52rem;
     white-space: nowrap;
   }

@@ -149,12 +149,19 @@ export const MinimumWidth: Story = {
       ".equity-chart table",
     );
     const tableBleed = canvasElement.querySelector<HTMLElement>(".table-bleed");
+    const chartTop =
+      canvasElement.querySelector<HTMLElement>(".chart-section-top");
+    const chartBottom = canvasElement.querySelector<HTMLElement>(
+      ".chart-section-bottom",
+    );
     const app = canvasElement.querySelector<HTMLElement>(".landing-screen");
     const holdem = canvasElement.querySelector<HTMLElement>(".holdem-overview");
 
     await expect(chart).not.toBeNull();
     await expect(table).not.toBeNull();
     await expect(tableBleed).not.toBeNull();
+    await expect(chartTop).not.toBeNull();
+    await expect(chartBottom).not.toBeNull();
     await expect(app).not.toBeNull();
     await expect(holdem).not.toBeNull();
     await expect(table!.scrollWidth).toBeLessThanOrEqual(table!.clientWidth);
@@ -162,14 +169,66 @@ export const MinimumWidth: Story = {
     await expect(chart!.getBoundingClientRect().width).toBe(
       holdem!.getBoundingClientRect().width,
     );
-    await expect(table!.getBoundingClientRect().width).toBeGreaterThanOrEqual(
-      app!.getBoundingClientRect().width - 12,
+    await expect(chartTop!.getBoundingClientRect().width).toBe(
+      holdem!.getBoundingClientRect().width,
     );
-    await expect(table!.getBoundingClientRect().width).toBeLessThanOrEqual(
+    await expect(chartBottom!.getBoundingClientRect().width).toBe(
+      holdem!.getBoundingClientRect().width,
+    );
+    await expect(tableBleed!.getBoundingClientRect().width).toBe(
       app!.getBoundingClientRect().width,
     );
+    await expect(tableBleed!.getBoundingClientRect().left).toBe(
+      app!.getBoundingClientRect().left,
+    );
+    await expect(table!.getBoundingClientRect().width).toBe(
+      app!.getBoundingClientRect().width - 12,
+    );
+    await expect(table!.getBoundingClientRect().left).toBe(
+      app!.getBoundingClientRect().left + 6,
+    );
+    await expect(getComputedStyle(chartTop!).backgroundColor).toBe(
+      getComputedStyle(holdem!).backgroundColor,
+    );
+    await expect(getComputedStyle(chartBottom!).backgroundColor).toBe(
+      getComputedStyle(holdem!).backgroundColor,
+    );
     await expect(getComputedStyle(tableBleed!).backgroundColor).toBe(
-      "rgb(2, 42, 32)",
+      getComputedStyle(holdem!).backgroundColor,
+    );
+    await expect(getComputedStyle(tableBleed!).padding).toBe("6px");
+  },
+};
+
+export const DesktopBoundary: Story = {
+  name: "PC境界481px・勝率表",
+  args: { history: landingHistoryEntries },
+  globals: {
+    viewport: { value: "desktopBoundary", isRotated: false },
+  },
+  play: async ({ canvasElement }) => {
+    const tableBleed = canvasElement.querySelector<HTMLElement>(".table-bleed");
+    const table = canvasElement.querySelector<HTMLTableElement>(
+      ".equity-chart table",
+    );
+    const app = canvasElement.querySelector<HTMLElement>(".landing-screen");
+
+    await expect(tableBleed).not.toBeNull();
+    await expect(table).not.toBeNull();
+    await expect(app).not.toBeNull();
+    await expect(getComputedStyle(canvasElement).borderLeftWidth).toBe("0px");
+    await expect(getComputedStyle(canvasElement).borderRightWidth).toBe("0px");
+    await expect(tableBleed!.getBoundingClientRect().width).toBe(
+      app!.getBoundingClientRect().width,
+    );
+    await expect(tableBleed!.getBoundingClientRect().left).toBe(
+      app!.getBoundingClientRect().left,
+    );
+    await expect(table!.getBoundingClientRect().width).toBe(
+      app!.getBoundingClientRect().width - 12,
+    );
+    await expect(table!.getBoundingClientRect().left).toBe(
+      app!.getBoundingClientRect().left + 6,
     );
   },
 };
