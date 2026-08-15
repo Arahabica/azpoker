@@ -148,11 +148,13 @@ export const MinimumWidth: Story = {
     const table = canvasElement.querySelector<HTMLTableElement>(
       ".equity-chart table",
     );
+    const tableBleed = canvasElement.querySelector<HTMLElement>(".table-bleed");
     const app = canvasElement.querySelector<HTMLElement>(".landing-screen");
     const holdem = canvasElement.querySelector<HTMLElement>(".holdem-overview");
 
     await expect(chart).not.toBeNull();
     await expect(table).not.toBeNull();
+    await expect(tableBleed).not.toBeNull();
     await expect(app).not.toBeNull();
     await expect(holdem).not.toBeNull();
     await expect(table!.scrollWidth).toBeLessThanOrEqual(table!.clientWidth);
@@ -165,6 +167,9 @@ export const MinimumWidth: Story = {
     );
     await expect(table!.getBoundingClientRect().width).toBeLessThanOrEqual(
       app!.getBoundingClientRect().width,
+    );
+    await expect(getComputedStyle(tableBleed!).backgroundColor).toBe(
+      "rgb(2, 42, 32)",
     );
   },
 };

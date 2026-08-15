@@ -101,6 +101,7 @@
 <style>
   .equity-chart {
     --chart-card-padding-inline: 1.25rem;
+    --chart-surface: rgb(2 42 32);
     --table-bleed: calc(
       var(--lp-padding-horizontal) + var(--chart-card-padding-inline) - 4px
     );
@@ -139,6 +140,7 @@
   .table-bleed {
     width: calc(100% + var(--table-bleed) + var(--table-bleed));
     margin-inline: calc(0px - var(--table-bleed));
+    background: var(--chart-surface);
   }
 
   table {
