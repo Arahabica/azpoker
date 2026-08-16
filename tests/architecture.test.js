@@ -129,6 +129,7 @@ test("Three.jsを3Dページへ遷移した後にだけ読み込む", () => {
   assert.match(scene, /new THREE\.InstancedMesh/);
   assert.match(scene, /const FLOAT_HEIGHT = GRID_SIZE \* 0\.5/);
   assert.match(scene, /const HEIGHT_SCALE = GRID_SIZE \/ 100/);
+  assert.match(scene, /return cell\.rowIndex - GRID_CENTER/);
   assert.match(scene, /new THREE\.GridHelper\(240, 240/);
   assert.match(scene, /new THREE\.Fog\(0xffffff, 110, 210\)/);
   assert.match(scene, /new THREE\.EdgesGeometry\(frameBoxGeometry\)/);

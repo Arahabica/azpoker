@@ -45,7 +45,7 @@
   }
 
   function zFor(cell: PreflopEquityCell): number {
-    return GRID_CENTER - cell.rowIndex;
+    return cell.rowIndex - GRID_CENTER;
   }
 
   function heightFor(cell: PreflopEquityCell): number {
