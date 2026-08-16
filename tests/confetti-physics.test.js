@@ -9,7 +9,7 @@ import {
   PERFECT_CONFETTI_GRAVITY,
 } from "../src/confetti-physics.ts";
 
-test("720枚の紙吹雪を約3.2秒へ均等に分散する", () => {
+test("設定された枚数の紙吹雪を噴射時間全体へ均等に分散する", () => {
   const particles = createPerfectConfettiParticles();
   assert.equal(particles.length, PERFECT_CONFETTI_COUNT);
   assert.ok(particles[0].emittedAtMs <= 10);
@@ -58,14 +58,13 @@ test("紙片は画面上部まで上がってから落下する", () => {
   assert.ok(highestPoint < 0.12);
 });
 
-test("噴射口は左右上部の画面外にあり、ほぼ水平に中央へ向く", () => {
+test("噴射口は左右上部の画面外にあり、中央かつ上向きに噴射する", () => {
   const particles = createPerfectConfettiParticles();
 
   for (const particle of particles) {
     assert.ok(particle.originX < 0 || particle.originX > 1);
-    assert.ok(particle.originY >= -0.035 && particle.originY <= 0.035);
+    assert.ok(particle.originY >= 0 && particle.originY < 0.25);
     assert.ok(particle.velocityY < 0);
-    assert.ok(Math.abs(particle.velocityX) > Math.abs(particle.velocityY) * 3);
     assert.equal(particle.velocityX > 0, particle.originX < 0);
   }
 });
