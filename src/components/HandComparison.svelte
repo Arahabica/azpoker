@@ -32,7 +32,7 @@
   }
 </script>
 
-<div class="hand-options" aria-label="選択肢">
+<div class="hand-options" aria-label={selectable ? "選択肢" : "比較する手札"}>
   {#each hands as hand, index (index)}
     {#if selectable}
       <button
