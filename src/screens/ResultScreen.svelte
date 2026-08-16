@@ -1,7 +1,14 @@
 <script lang="ts">
+  import { onMount, tick } from "svelte";
+
   import ActionButton from "../components/ActionButton.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
+  import PerfectConfetti from "../components/PerfectConfetti.svelte";
   import { getResultSummary } from "../result-summary.ts";
+  import {
+    PERFECT_RESULT_REVEAL_DELAY_MS,
+    PERFECT_SPOTLIGHT_DELAY_MS,
+  } from "../ui-timing.ts";
 
   interface Props {
     score: number;
@@ -26,82 +33,116 @@
   const summary = $derived(
     getResultSummary({ score, total, elapsedMs, timeLimitMs, timeoutCount }),
   );
-  const confettiColors = [
-    "#f1c40f",
-    "#ff6b6f",
-    "#20ca91",
-    "#f8f5ec",
-    "#7d8cff",
-  ];
-  const confetti = Array.from({ length: 48 }, (_, index) => ({
-    id: index,
-    color: confettiColors[index % confettiColors.length],
-    x: (index * 37) % 101,
-    delay: (index % 12) * 70,
-    duration: 2_500 + (index % 8) * 160,
-    drift: ((index * 19) % 25) - 12,
-    rotation: 360 + (index % 5) * 150,
-    wide: index % 3 === 0,
-  }));
+  type PerfectStage = "waiting" | "spotlight" | "revealed";
+  let perfectStage = $state<PerfectStage>("waiting");
+  const resultRevealed = $derived(
+    !summary.perfect || perfectStage === "revealed",
+  );
+  const spotlightVisible = $derived(
+    summary.perfect && perfectStage !== "waiting",
+  );
+  let resultTitleElement = $state<HTMLElement>();
+
+  function focusPerfectHeadline(): void {
+    void tick().then(() => {
+      window.requestAnimationFrame(() => {
+        resultTitleElement?.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  function revealPerfectResult(): void {
+    perfectStage = "revealed";
+    focusPerfectHeadline();
+  }
+
+  onMount(() => {
+    if (!summary.perfect) return;
+    const reducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      revealPerfectResult();
+      return;
+    }
+
+    const spotlightTimer = window.setTimeout(() => {
+      perfectStage = "spotlight";
+    }, PERFECT_SPOTLIGHT_DELAY_MS);
+    const revealTimer = window.setTimeout(
+      revealPerfectResult,
+      PERFECT_RESULT_REVEAL_DELAY_MS,
+    );
+
+    return () => {
+      window.clearTimeout(spotlightTimer);
+      window.clearTimeout(revealTimer);
+    };
+  });
 </script>
 
 <section
   id="result"
   class="result-screen"
   class:is-perfect={summary.perfect}
-  aria-labelledby="result-title"
+  class:is-result-revealed={resultRevealed}
+  aria-labelledby={resultRevealed ? "result-title" : undefined}
+  aria-label={resultRevealed ? undefined : "全問正解の結果"}
+  aria-busy={resultRevealed ? undefined : "true"}
+  data-perfect-stage={summary.perfect ? perfectStage : "not-perfect"}
 >
   {#if summary.perfect}
-    <div class="confetti" aria-hidden="true">
-      {#each confetti as piece (piece.id)}
-        <span
-          class="confetti-piece"
-          class:is-wide={piece.wide}
-          style={`--confetti-color: ${piece.color}; --confetti-x: ${piece.x}%; --confetti-delay: ${piece.delay}ms; --confetti-duration: ${piece.duration}ms; --confetti-drift: ${piece.drift}vw; --confetti-rotation: ${piece.rotation}deg;`}
-        ></span>
-      {/each}
-    </div>
+    <div class="perfect-dimmer" aria-hidden="true"></div>
+    {#if spotlightVisible}
+      <div class="perfect-spotlight" aria-hidden="true"></div>
+    {/if}
+    {#if resultRevealed}
+      <PerfectConfetti />
+    {/if}
   {/if}
 
-  <div class="result-content">
-    <h2 id="result-title">
-      <MixedFontText text={summary.headline} messageWrap />
-    </h2>
+  {#if resultRevealed}
+    <div class="result-content">
+      <h2 id="result-title" bind:this={resultTitleElement} tabindex="-1">
+        <MixedFontText text={summary.headline} messageWrap />
+      </h2>
 
-    <div class="result-stats">
-      <div class="result-stat">
-        <p class="stat-value">
-          <MixedFontText text={summary.scoreLabel} />
-        </p>
-        <p class="stat-caption">
-          <MixedFontText text={summary.totalLabel} />
-        </p>
-      </div>
-      <span class="stat-divider" aria-hidden="true"></span>
-      <div class="result-stat">
-        <p class="stat-value">
-          <MixedFontText text={summary.elapsedLabel} />
-        </p>
-        <p class="stat-caption">
-          <MixedFontText text={summary.limitLabel} />
-        </p>
-        {#if summary.timeoutLabel}
-          <p class="timeout-count">
-            <MixedFontText text={summary.timeoutLabel} />
+      <div class="result-stats">
+        <div class="result-stat">
+          <p class="stat-value">
+            <MixedFontText text={summary.scoreLabel} />
           </p>
-        {/if}
+          <p class="stat-caption">
+            <MixedFontText text={summary.totalLabel} />
+          </p>
+        </div>
+        <span class="stat-divider" aria-hidden="true"></span>
+        <div class="result-stat">
+          <p class="stat-value">
+            <MixedFontText text={summary.elapsedLabel} />
+          </p>
+          <p class="stat-caption">
+            <MixedFontText text={summary.limitLabel} />
+          </p>
+          {#if summary.timeoutLabel}
+            <p class="timeout-count">
+              <MixedFontText text={summary.timeoutLabel} />
+            </p>
+          {/if}
+        </div>
       </div>
     </div>
-  </div>
-  <div class="result-actions">
-    <ActionButton id="retry" label="問題を続ける" onClick={onRetry} />
-    <ActionButton
-      id="back-home"
-      label="トップページに戻る"
-      variant="secondary"
-      onClick={onHome}
-    />
-  </div>
+    <div class="result-actions">
+      <ActionButton id="retry" label="問題を続ける" onClick={onRetry} />
+      <ActionButton
+        id="back-home"
+        label="トップページに戻る"
+        variant="secondary"
+        onClick={onHome}
+      />
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -119,9 +160,66 @@
     font-family: "M PLUS Rounded 1c UI", "Kosugi Maru Game", sans-serif;
   }
 
+  .result-screen.is-perfect {
+    overflow: hidden;
+  }
+
+  .perfect-dimmer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: rgb(0 12 9 / 48%);
+    pointer-events: none;
+    transition: opacity 600ms ease-out;
+    animation: dim-perfect-stage 420ms ease-out both;
+  }
+
+  .is-perfect.is-result-revealed .perfect-dimmer {
+    opacity: 0.68;
+  }
+
+  .perfect-spotlight {
+    position: absolute;
+    top: -8vh;
+    left: 50%;
+    z-index: 1;
+    width: min(145vw, 42rem);
+    height: 112vh;
+    background: linear-gradient(
+      180deg,
+      rgb(255 246 187 / 58%),
+      rgb(255 225 103 / 22%) 54%,
+      transparent 88%
+    );
+    clip-path: polygon(44% 0, 56% 0, 91% 100%, 9% 100%);
+    filter: blur(11px);
+    mix-blend-mode: screen;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transform-origin: 50% 0;
+    animation: reveal-spotlight 1.05s ease-out both;
+  }
+
+  .perfect-spotlight::after {
+    position: absolute;
+    right: 10%;
+    bottom: 5%;
+    left: 10%;
+    height: 17%;
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse,
+      rgb(255 233 137 / 46%),
+      transparent 69%
+    );
+    content: "";
+    filter: blur(8px);
+  }
+
   .result-content {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -146,6 +244,17 @@
   .is-perfect .result-content h2 {
     color: #ffe45e;
     text-shadow: 0 0 1.4rem rgb(241 196 15 / 42%);
+    transform-origin: center bottom;
+    animation: perfect-headline-bounce 900ms cubic-bezier(0.2, 0.78, 0.3, 1.2)
+      70ms both;
+  }
+
+  .is-perfect .result-content {
+    animation: reveal-perfect-content 520ms ease-out both;
+  }
+
+  .is-perfect .result-stats {
+    animation: reveal-perfect-panel 520ms ease-out 180ms both;
   }
 
   .result-stats {
@@ -202,54 +311,85 @@
 
   .result-actions {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     display: grid;
     flex: 0 0 auto;
     gap: 0.85rem;
     width: 100%;
   }
 
-  .confetti {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    overflow: hidden;
-    pointer-events: none;
+  .is-perfect .result-actions {
+    animation: reveal-perfect-panel 460ms ease-out 300ms both;
   }
 
-  .confetti-piece {
-    position: absolute;
-    top: -8%;
-    left: var(--confetti-x);
-    width: 0.42rem;
-    height: 0.76rem;
-    border-radius: 0.08rem;
-    background: var(--confetti-color);
-    opacity: 0;
-    box-shadow: 0 0.2rem 0.35rem rgb(0 0 0 / 14%);
-    animation: confetti-fall var(--confetti-duration) ease-in
-      var(--confetti-delay) both;
-  }
-
-  .confetti-piece.is-wide {
-    width: 0.7rem;
-    height: 0.42rem;
-  }
-
-  @keyframes confetti-fall {
-    0% {
+  @keyframes dim-perfect-stage {
+    from {
       opacity: 0;
-      transform: translate3d(0, -8vh, 0) rotate(0deg);
     }
 
-    8% {
+    to {
       opacity: 1;
+    }
+  }
+
+  @keyframes reveal-spotlight {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) scaleX(0.42);
+    }
+
+    to {
+      opacity: 0.9;
+      transform: translateX(-50%) scaleX(1);
+    }
+  }
+
+  @keyframes reveal-perfect-content {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes reveal-perfect-panel {
+    from {
+      opacity: 0;
+      transform: translateY(0.8rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes perfect-headline-bounce {
+    0% {
+      opacity: 0;
+      transform: translateY(1.4rem) scale(0.72);
+    }
+
+    42% {
+      opacity: 1;
+      transform: translateY(-0.35rem) scale(1.14);
+    }
+
+    64% {
+      transform: translateY(0.16rem) scale(0.94);
+    }
+
+    82% {
+      transform: translateY(-0.08rem) scale(1.05);
     }
 
     100% {
-      opacity: 0.9;
-      transform: translate3d(var(--confetti-drift), 112vh, 0)
-        rotate(var(--confetti-rotation));
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -269,8 +409,16 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .confetti {
+    .perfect-dimmer,
+    .perfect-spotlight {
       display: none;
+    }
+
+    .is-perfect .result-content,
+    .is-perfect .result-content h2,
+    .is-perfect .result-stats,
+    .is-perfect .result-actions {
+      animation: none;
     }
   }
 </style>

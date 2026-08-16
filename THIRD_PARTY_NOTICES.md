@@ -87,12 +87,13 @@ The following sounds are by OtoLogic and are licensed under the Creative
 Commons Attribution 4.0 International license (CC BY 4.0):
 
 - `public/sounds/otologic-multi-accent04-1.mp3`: マルチアクセント04-1（短・低、通常結果）
-- `public/sounds/otologic-multi-accent03-2.mp3`: マルチアクセント03-2（高、全問正解）
+- `public/sounds/otologic-ooatari3-7s.mp3`: 大当たり！3（全問正解。冒頭7秒を使用し、6.5秒からフェードアウトするよう編集）
 - `public/sounds/otologic-warning-siren05-03.mp3`: 警告音 サイレン05-03（速・短、時間警告）
 
 Sources:
 
 - https://otologic.jp/free/se/multi-accent01.html
+- https://otologic.jp/free/jing/long1.html
 - https://otologic.jp/free/se/warning01.html
 - https://otologic.jp/free/license
 

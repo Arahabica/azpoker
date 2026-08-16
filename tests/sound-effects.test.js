@@ -131,6 +131,7 @@ test("開始前に6つの効果音を取得してAudioBufferへデコードす�
     "complete",
     "perfect",
   ]);
+  assert.equal(SOUND_URLS.perfect, "/sounds/otologic-ooatari3-7s.mp3");
   assert.equal(await sounds.preload(), true);
   assert.deepEqual(urls, Object.values(SOUND_URLS));
   assert.equal(FakeAudioContext.instances[0].decoded.length, 6);

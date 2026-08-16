@@ -1,5 +1,6 @@
 <script lang="ts">
   import AnswerSheet from "../components/AnswerSheet.svelte";
+  import ActionButton from "../components/ActionButton.svelte";
   import Board from "../components/Board.svelte";
   import ChoiceButton from "../components/ChoiceButton.svelte";
   import DifficultyBadge from "../components/DifficultyBadge.svelte";
@@ -56,8 +57,16 @@
   let questionStartedAt = $state(0);
   let questionStartedForIndex = $state(-1);
   let leaveConfirmationOpen = $state(false);
+  let dismissedExplanationForIndex = $state<number | null>(null);
+  let closingExplanationForIndex = $state<number | null>(null);
   const choicesReady = $derived(revealedChoiceIndex === currentIndex);
   const choicesConcealed = $derived(!choicesReady || Boolean(answerResult));
+  const explanationOpen = $derived(
+    Boolean(answerResult) && dismissedExplanationForIndex !== currentIndex,
+  );
+  const explanationClosing = $derived(
+    closingExplanationForIndex === currentIndex,
+  );
   const showsResultNext = $derived(
     currentIndex === total - 1 &&
       answerResult?.correct === true &&
@@ -120,6 +129,36 @@
     leaveConfirmationOpen = true;
   }
 
+  function dismissExplanation(): void {
+    if (!answerResult || leaveConfirmationOpen || explanationClosing) return;
+    if (!reducedMotion) {
+      closingExplanationForIndex = currentIndex;
+      return;
+    }
+    completeExplanationDismissal();
+  }
+
+  function completeExplanationDismissal(): void {
+    dismissedExplanationForIndex = currentIndex;
+    closingExplanationForIndex = null;
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLButtonElement>("#show-explanation")
+        ?.focus({ preventScroll: true });
+    });
+  }
+
+  function showExplanation(): void {
+    if (!answerResult) return;
+    dismissedExplanationForIndex = null;
+    closingExplanationForIndex = null;
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(".answer-sheet")
+        ?.focus({ preventScroll: true });
+    });
+  }
+
   function continueQuiz(): void {
     leaveConfirmationOpen = false;
     window.requestAnimationFrame(() => {
@@ -160,7 +199,8 @@
         <HandComparison
           hands={question.hands}
           disabled={choicesConcealed}
-          selectable={question.answerType === "hand"}
+          selectable={question.answerType === "hand" &&
+            (!answerResult || explanationOpen)}
           {answerResult}
           answer={question.answer}
           targetHand={question.targetHand}
@@ -171,7 +211,15 @@
       {/if}
     </div>
 
-    {#if question.answerType === "percent"}
+    {#if answerResult && !explanationOpen}
+      <div class="explanation-action">
+        <ActionButton
+          id="show-explanation"
+          label="解説を見る"
+          onClick={showExplanation}
+        />
+      </div>
+    {:else if question.answerType === "percent"}
       <div
         class="choices"
         class:is-concealed={choicesConcealed}
@@ -189,13 +237,16 @@
     {/if}
   </div>
 
-  {#if answerResult}
+  {#if answerResult && explanationOpen}
     <AnswerSheet
       correct={answerResult.correct}
       timedOut={answerResult.timedOut}
       {question}
       isLast={showsResultNext}
       blocked={leaveConfirmationOpen}
+      closing={explanationClosing}
+      onDismiss={dismissExplanation}
+      onDismissed={completeExplanationDismissal}
       {onNext}
       onRequestLeave={requestLeave}
     />
@@ -289,6 +340,12 @@
   .choices.is-concealed {
     visibility: hidden;
     pointer-events: none;
+  }
+
+  .explanation-action {
+    flex: 0 0 auto;
+    width: 100%;
+    padding-top: 0.65rem;
   }
 
   @media (max-height: 620px) {

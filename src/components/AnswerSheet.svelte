@@ -12,6 +12,9 @@
     question: Question;
     isLast: boolean;
     blocked?: boolean;
+    closing?: boolean;
+    onDismiss: () => void;
+    onDismissed: () => void;
     onNext: () => void;
     onRequestLeave: () => void;
   }
@@ -22,6 +25,9 @@
     question,
     isLast,
     blocked = false,
+    closing = false,
+    onDismiss,
+    onDismissed,
     onNext,
     onRequestLeave,
   }: Props = $props();
@@ -33,49 +39,90 @@
   }
 
   const feedbackTitle = $derived(getFeedbackTitle());
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key !== "Escape" || blocked || closing) return;
+    event.preventDefault();
+    onDismiss();
+  }
+
+  function handleAnimationEnd(event: AnimationEvent): void {
+    if (closing && event.currentTarget === event.target) onDismissed();
+  }
 </script>
 
-<section
-  class="answer-sheet"
-  aria-live="polite"
-  aria-labelledby="feedback-title"
-  aria-hidden={blocked ? "true" : undefined}
-  inert={blocked}
->
-  <span class="sheet-handle" aria-hidden="true"></span>
+<svelte:window onkeydown={handleKeydown} />
+
+<div class="answer-sheet-layer">
   <button
-    id="leave-quiz"
-    class="leave-button"
+    class="answer-sheet-backdrop"
     type="button"
-    aria-label="問題を終了する"
-    onclick={onRequestLeave}
+    tabindex="-1"
+    aria-label="解説を閉じる"
+    disabled={blocked || closing}
+    onclick={onDismiss}
+  ></button>
+  <section
+    class="answer-sheet"
+    class:is-closing={closing}
+    tabindex="-1"
+    aria-live="polite"
+    aria-labelledby="feedback-title"
+    aria-hidden={blocked || closing ? "true" : undefined}
+    inert={blocked || closing}
+    onanimationend={handleAnimationEnd}
   >
-    <LeaveIcon />
-  </button>
-  <div class="answer-mark" aria-hidden="true">
-    <AnswerResultIcon {correct} />
-  </div>
-  <p id="feedback-title" class="feedback-title">
-    {feedbackTitle}
-  </p>
-  <p class="actual-probability">{formatActualPercent(question.trueP)}</p>
-  <p class="explanation" data-testid="answer-explanation">
-    <MixedFontText text={question.explain} />
-  </p>
-  <ActionButton
-    id="next-question"
-    label={isLast ? "結果を見る" : "次の問題へ"}
-    onClick={onNext}
-  />
-</section>
+    <span class="sheet-handle" aria-hidden="true"></span>
+    <button
+      id="leave-quiz"
+      class="leave-button"
+      type="button"
+      aria-label="問題を終了する"
+      onclick={onRequestLeave}
+    >
+      <LeaveIcon />
+    </button>
+    <div class="answer-mark" aria-hidden="true">
+      <AnswerResultIcon {correct} />
+    </div>
+    <p id="feedback-title" class="feedback-title">
+      {feedbackTitle}
+    </p>
+    <p class="actual-probability">{formatActualPercent(question.trueP)}</p>
+    <p class="explanation" data-testid="answer-explanation">
+      <MixedFontText text={question.explain} />
+    </p>
+    <ActionButton
+      id="next-question"
+      label={isLast ? "結果を見る" : "次の問題へ"}
+      onClick={onNext}
+    />
+  </section>
+</div>
 
 <style>
+  .answer-sheet-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+  }
+
+  .answer-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
   .answer-sheet {
     position: absolute;
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 10;
+    z-index: 1;
     max-height: min(56vh, 28rem);
     padding: 0.7rem var(--gutter) max(1.15rem, env(safe-area-inset-bottom));
     overflow-y: auto;
@@ -85,6 +132,15 @@
     box-shadow: 0 -1.5rem 3rem rgb(0 27 20 / 38%);
     text-align: center;
     animation: raise-sheet 280ms cubic-bezier(0.2, 0.76, 0.28, 1) both;
+  }
+
+  .answer-sheet:focus {
+    outline: none;
+  }
+
+  .answer-sheet.is-closing {
+    pointer-events: none;
+    animation: lower-sheet 220ms cubic-bezier(0.4, 0, 1, 1) both;
   }
 
   .sheet-handle {
@@ -153,6 +209,16 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes lower-sheet {
+    from {
+      transform: translateY(0);
+    }
+
+    to {
+      transform: translateY(100%);
     }
   }
 

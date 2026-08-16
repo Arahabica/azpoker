@@ -14,5 +14,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const SoundAndAnimation: Story = {
-  name: "音とチップを同時再生",
+  name: "音・スポットライト・紙吹雪を再生",
 };

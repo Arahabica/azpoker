@@ -15,7 +15,7 @@ const SOUND_URLS: Readonly<Record<SoundName, string>> = Object.freeze({
   wrong: "/sounds/kettei_2-volume-up-12db.mp3",
   warning: "/sounds/otologic-warning-siren05-03.mp3",
   complete: "/sounds/otologic-multi-accent04-1.mp3",
-  perfect: "/sounds/otologic-multi-accent03-2.mp3",
+  perfect: "/sounds/otologic-ooatari3-7s.mp3",
 });
 
 const SOUND_GAINS: Readonly<Record<SoundName, number>> = Object.freeze({
