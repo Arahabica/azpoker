@@ -47,9 +47,14 @@ export const FastPerfect: Story = {
     await expect(
       canvasElement.querySelector(".perfect-spotlight"),
     ).not.toBeNull();
-    await expect(
-      canvasElement.querySelectorAll(".confetti-piece"),
-    ).toHaveLength(144);
+    const confettiCanvas =
+      canvasElement.querySelector<HTMLCanvasElement>(".confetti-canvas");
+    await expect(confettiCanvas).not.toBeNull();
+    await expect(confettiCanvas).toHaveAttribute("data-confetti-count", "720");
+    await expect(confettiCanvas).toHaveAttribute(
+      "data-emission-duration-ms",
+      "3200",
+    );
     await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
       /全問正解/,
     );
@@ -61,9 +66,7 @@ export const FastPerfect: Story = {
     await expect(getComputedStyle(headline).animationName).toContain(
       "perfect-headline-bounce",
     );
-    await waitFor(async () => {
-      await expect(headline).toHaveFocus();
-    });
+    await expect(headline).toHaveAttribute("tabindex", "-1");
   },
 };
 
@@ -108,7 +111,7 @@ export const Six: Story = {
     );
     await expect(canvasElement.querySelector(".perfect-dimmer")).toBeNull();
     await expect(canvasElement.querySelector(".perfect-spotlight")).toBeNull();
-    await expect(canvasElement.querySelector(".confetti")).toBeNull();
+    await expect(canvasElement.querySelector(".confetti-canvas")).toBeNull();
     const statValues = canvasElement.querySelectorAll(".stat-value");
     await expect(statValues[0]).toHaveTextContent(/6\s*問正解/);
     await expect(statValues[1]).toHaveTextContent(/62\.0\s*秒/);

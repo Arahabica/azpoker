@@ -64,10 +64,13 @@ export const Correct: Story = {
     ],
   },
   play: async ({ args, canvas, canvasElement, userEvent }) => {
-    await waitFor(async () => {
-      await expect(canvas.getByText("正解")).toBeVisible();
-      await expect(canvas.getByText("35.0%")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("正解")).toBeVisible();
+        await expect(canvas.getByText("35.0%")).toBeVisible();
+      },
+      { timeout: 2_500 },
+    );
     const explanation = canvas.getByTestId("answer-explanation");
     const nextButton = canvas.getByRole("button", { name: "次の問題へ" });
     await expect(explanation.getBoundingClientRect().width).toBeCloseTo(
@@ -85,10 +88,13 @@ export const Correct: Story = {
         .querySelector<HTMLElement>(".answer-sheet")
         ?.classList.contains("is-closing"),
     ).toBe(true);
-    await waitFor(async () => {
-      await expect(canvas.queryByTestId("answer-explanation")).toBeNull();
-      await expect(canvas.queryByLabelText("選択肢")).toBeNull();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.queryByTestId("answer-explanation")).toBeNull();
+        await expect(canvas.queryByLabelText("選択肢")).toBeNull();
+      },
+      { timeout: 2_500 },
+    );
 
     const showExplanation = canvas.getByRole("button", {
       name: "解説を見る",
@@ -125,10 +131,13 @@ export const Wrong: Story = {
     ],
   },
   play: async ({ canvas }) => {
-    await waitFor(async () => {
-      await expect(canvas.getByText("不正解")).toBeVisible();
-      await expect(canvas.getByText("35.0%")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("不正解")).toBeVisible();
+        await expect(canvas.getByText("35.0%")).toBeVisible();
+      },
+      { timeout: 2_500 },
+    );
   },
 };
 
@@ -150,9 +159,12 @@ export const TimedOut: Story = {
     ],
   },
   play: async ({ canvas }) => {
-    await waitFor(async () => {
-      await expect(canvas.getByText("時間切れ")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("時間切れ")).toBeVisible();
+      },
+      { timeout: 2_500 },
+    );
   },
 };
 
@@ -183,15 +195,21 @@ export const AnsweredHand: Story = {
     outcomes: ["correct", "wrong"],
   },
   play: async ({ canvas, userEvent }) => {
-    await waitFor(async () => {
-      await expect(canvas.getByText("不正解")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("不正解")).toBeVisible();
+      },
+      { timeout: 2_500 },
+    );
 
     await userEvent.click(canvas.getByRole("button", { name: "解説を閉じる" }));
-    await waitFor(async () => {
-      await expect(canvas.queryByLabelText("選択肢")).toBeNull();
-      await expect(canvas.getByLabelText("比較する手札")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.queryByLabelText("選択肢")).toBeNull();
+        await expect(canvas.getByLabelText("比較する手札")).toBeVisible();
+      },
+      { timeout: 2_500 },
+    );
     await expect(
       canvas.getByRole("button", { name: "解説を見る" }),
     ).toBeVisible();

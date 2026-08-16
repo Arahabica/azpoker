@@ -3,6 +3,7 @@
 
   import ActionButton from "../components/ActionButton.svelte";
   import MixedFontText from "../components/MixedFontText.svelte";
+  import PerfectConfetti from "../components/PerfectConfetti.svelte";
   import { getResultSummary } from "../result-summary.ts";
   import {
     PERFECT_RESULT_REVEAL_DELAY_MS,
@@ -40,33 +41,12 @@
   const spotlightVisible = $derived(
     summary.perfect && perfectStage !== "waiting",
   );
-  const confettiColors = [
-    "#f1c40f",
-    "#ff6b6f",
-    "#20ca91",
-    "#f8f5ec",
-    "#7d8cff",
-  ];
-  const confetti = Array.from({ length: 144 }, (_, index) => {
-    const wave = Math.floor(index / 48);
-    return {
-      id: index,
-      color: confettiColors[index % confettiColors.length],
-      x: (index * 37 + wave * 13) % 101,
-      delay: wave * 330 + (index % 12) * 50,
-      duration: 2_500 + (index % 8) * 140,
-      drift: ((index * 19) % 31) - 15,
-      rotation: 360 + (index % 5) * 150,
-      wide: index % 3 === 0,
-    };
-  });
+  let resultTitleElement = $state<HTMLElement>();
 
   function focusPerfectHeadline(): void {
     void tick().then(() => {
       window.requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>("#result-title")
-          ?.focus({ preventScroll: true });
+        resultTitleElement?.focus({ preventScroll: true });
       });
     });
   }
@@ -118,21 +98,13 @@
       <div class="perfect-spotlight" aria-hidden="true"></div>
     {/if}
     {#if resultRevealed}
-      <div class="confetti" aria-hidden="true">
-        {#each confetti as piece (piece.id)}
-          <span
-            class="confetti-piece"
-            class:is-wide={piece.wide}
-            style={`--confetti-color: ${piece.color}; --confetti-x: ${piece.x}%; --confetti-delay: ${piece.delay}ms; --confetti-duration: ${piece.duration}ms; --confetti-drift: ${piece.drift}vw; --confetti-rotation: ${piece.rotation}deg;`}
-          ></span>
-        {/each}
-      </div>
+      <PerfectConfetti />
     {/if}
   {/if}
 
   {#if resultRevealed}
     <div class="result-content">
-      <h2 id="result-title" tabindex="-1">
+      <h2 id="result-title" bind:this={resultTitleElement} tabindex="-1">
         <MixedFontText text={summary.headline} messageWrap />
       </h2>
 
@@ -350,51 +322,6 @@
     animation: reveal-perfect-panel 460ms ease-out 300ms both;
   }
 
-  .confetti {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  .confetti-piece {
-    position: absolute;
-    top: -8%;
-    left: var(--confetti-x);
-    width: 0.42rem;
-    height: 0.76rem;
-    border-radius: 0.08rem;
-    background: var(--confetti-color);
-    opacity: 0;
-    box-shadow: 0 0.2rem 0.35rem rgb(0 0 0 / 14%);
-    will-change: transform, opacity;
-    animation: confetti-fall var(--confetti-duration) ease-in
-      var(--confetti-delay) both;
-  }
-
-  .confetti-piece.is-wide {
-    width: 0.7rem;
-    height: 0.42rem;
-  }
-
-  @keyframes confetti-fall {
-    0% {
-      opacity: 0;
-      transform: translate3d(0, -8vh, 0) rotate(0deg);
-    }
-
-    8% {
-      opacity: 1;
-    }
-
-    100% {
-      opacity: 0.9;
-      transform: translate3d(var(--confetti-drift), 112vh, 0)
-        rotate(var(--confetti-rotation));
-    }
-  }
-
   @keyframes dim-perfect-stage {
     from {
       opacity: 0;
@@ -492,10 +419,6 @@
     .is-perfect .result-stats,
     .is-perfect .result-actions {
       animation: none;
-    }
-
-    .confetti {
-      display: none;
     }
   }
 </style>
