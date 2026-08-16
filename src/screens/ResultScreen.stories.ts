@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/svelte-vite";
 import { expect, fn, waitFor } from "storybook/test";
 
+import {
+  PERFECT_CONFETTI_COUNT,
+  PERFECT_CONFETTI_EMISSION_DURATION_MS,
+} from "../confetti-physics.ts";
 import ResultScreen from "./ResultScreen.svelte";
 
 const meta = {
@@ -50,10 +54,13 @@ export const FastPerfect: Story = {
     const confettiCanvas =
       canvasElement.querySelector<HTMLCanvasElement>(".confetti-canvas");
     await expect(confettiCanvas).not.toBeNull();
-    await expect(confettiCanvas).toHaveAttribute("data-confetti-count", "720");
+    await expect(confettiCanvas).toHaveAttribute(
+      "data-confetti-count",
+      String(PERFECT_CONFETTI_COUNT),
+    );
     await expect(confettiCanvas).toHaveAttribute(
       "data-emission-duration-ms",
-      "3200",
+      String(PERFECT_CONFETTI_EMISSION_DURATION_MS),
     );
     await expect(canvasElement.querySelector(".stat-value")).toHaveTextContent(
       /全問正解/,

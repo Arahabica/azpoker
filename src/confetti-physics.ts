@@ -1,4 +1,4 @@
-export const PERFECT_CONFETTI_COUNT = 720;
+export const PERFECT_CONFETTI_COUNT = 600;
 export const PERFECT_CONFETTI_EMISSION_DURATION_MS = 3_200;
 export const PERFECT_CONFETTI_GRAVITY = 0.22;
 
@@ -64,9 +64,9 @@ export function createPerfectConfettiParticles(
   const particles = Array.from({ length: count }, (_, index) => {
     const fromLeft = index % 2 === 0;
     const direction = fromLeft ? 1 : -1;
-    const originInset = 0.025 + confettiNoise(index, 0) * 0.055;
-    const originY = -0.035 + confettiNoise(index, 1) * 0.07;
-    const velocityY = -(0.025 + confettiNoise(index, 2) * 0.03);
+    const originInset = 0.125 + confettiNoise(index, 0) * 0.055;
+    const originY = 0.075 + confettiNoise(index, 1) * 0.07;
+    const velocityY = -(0.2 + confettiNoise(index, 2) * 0.03);
     const gravity = PERFECT_CONFETTI_GRAVITY;
     const lifetimeSeconds = getLifetimeSeconds(originY, velocityY, gravity);
     const baseEmissionTime =
@@ -80,7 +80,7 @@ export function createPerfectConfettiParticles(
     const shapeNoise = confettiNoise(index, 4);
     const shape: ConfettiShape =
       shapeNoise > 0.9 ? "circle" : shapeNoise > 0.63 ? "wide" : "rectangle";
-    const size = 0.76 + confettiNoise(index, 5) * 0.48;
+    const size = 0.88 + confettiNoise(index, 5) * 0.48;
     const width =
       shape === "wide"
         ? (3.7 + confettiNoise(index, 6) * 2.1) * size
@@ -99,7 +99,7 @@ export function createPerfectConfettiParticles(
       lifetimeMs: lifetimeSeconds * 1_000,
       originX: fromLeft ? -originInset : 1 + originInset,
       originY,
-      velocityX: direction * (0.2 + confettiNoise(index, 9) * 0.32),
+      velocityX: direction * (0.075 + confettiNoise(index, 9) * 0.32),
       velocityY,
       gravity,
       width,
