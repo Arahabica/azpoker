@@ -65,7 +65,7 @@
   <section class="preview-launcher" aria-labelledby="preview-title">
     <div class="preview-copy">
       <h2 id="preview-title">全問正解の演出確認</h2>
-      <p>音量を確認してから再生してください。</p>
+      <p>音量を確認してから再生してください。約2.3秒後に結果が現れます。</p>
     </div>
     <ActionButton
       id="replay-perfect-result"

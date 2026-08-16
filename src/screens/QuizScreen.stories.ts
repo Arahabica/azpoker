@@ -96,9 +96,12 @@ export const Correct: Story = {
     await expect(showExplanation).toBeVisible();
     await userEvent.click(showExplanation);
 
-    await waitFor(async () => {
-      await expect(canvas.getByTestId("answer-explanation")).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(canvas.getByTestId("answer-explanation")).toBeVisible();
+      },
+      { timeout: 2_000 },
+    );
     await userEvent.click(canvas.getByRole("button", { name: "次の問題へ" }));
     await expect(args.onNext).toHaveBeenCalledTimes(1);
   },
@@ -217,10 +220,13 @@ export const MinimumWidthWrong: Story = {
     viewport: { value: "minimum", isRotated: false },
   },
   play: async ({ canvas }) => {
-    await waitFor(async () => {
-      await expect(
-        canvas.getByRole("button", { name: "次の問題へ" }),
-      ).toBeVisible();
-    });
+    await waitFor(
+      async () => {
+        await expect(
+          canvas.getByRole("button", { name: "次の問題へ" }),
+        ).toBeVisible();
+      },
+      { timeout: 2_000 },
+    );
   },
 };

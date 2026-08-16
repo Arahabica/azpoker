@@ -28,6 +28,14 @@ test("OGP画像を1200×630pxで配信する", () => {
   assert.equal(image.readUInt32BE(20), 630);
 });
 
+test("全問正解用の大当たりジングル7秒版を配信する", () => {
+  const sound = fs.readFileSync(
+    path.join(root, "public", "sounds", "otologic-ooatari3-7s.mp3"),
+  );
+  assert.equal(sound.subarray(0, 3).toString("ascii"), "ID3");
+  assert.ok(sound.length > 100_000);
+});
+
 test("検索エンジンへ正規ドメインの公開ページを案内する", () => {
   const robots = fs.readFileSync(
     path.join(root, "public", "robots.txt"),

@@ -163,7 +163,12 @@
       <a href="https://otologic.jp/" rel="external noopener" target="_blank"
         >OtoLogic</a
       >
-      の「マルチアクセント04」「マルチアクセント03」「警告音 サイレン05」を使用しています。ライセンスは
+      の「マルチアクセント04」、<a
+        href="https://otologic.jp/free/jing/long1.html"
+        rel="external noopener"
+        target="_blank">「大当たり！3」</a
+      >、「警告音
+      サイレン05」を使用しています。「大当たり！3」は冒頭7秒を使用し、末尾をフェードアウトしています。ライセンスは
       <a
         href="https://creativecommons.org/licenses/by/4.0/deed.ja"
         rel="external noopener"
